@@ -1,0 +1,76 @@
+{{define "content"}}
+<div class="grid min-h-screen lg:grid-cols-2">
+  <aside class="login-gradient hidden flex-col justify-between p-12 text-white lg:flex">
+    <div class="flex items-center gap-3">
+      <span class="flex h-12 w-40 items-center justify-center overflow-hidden rounded-xl px-2.5">
+        <img src="/static/logomk.jpeg" alt="Manna Kampus" class="h-auto w-full object-contain">
+      </span>
+      <span class="text-lg font-bold tracking-tight">MOVARA</span>
+    </div>
+    <div>
+      <h2 class="max-w-md text-3xl font-bold leading-tight tracking-tight">Kelola perpindahan barang antar lokasi dengan cepat, rapi, dan terkontrol.</h2>
+      <ul class="mt-8 space-y-3 text-sm text-blue-100">
+        <li class="flex items-center gap-3">{{template "i-scan"}} Scan barcode untuk mengenali produk secara otomatis</li>
+        <li class="flex items-center gap-3">{{template "i-eye"}} Catat arah perpindahan, lokasi, jumlah, dan penanggung jawab</li>
+        <li class="flex items-center gap-3">{{template "i-chat"}} Pantau riwayat mutasi dan pengajuan produk dalam satu sistem</li>
+      </ul>
+    </div>
+    <p class="text-xs text-blue-200">© {{.Year}} MOVARA</p>
+  </aside>
+
+  <section class="flex items-center justify-center bg-slate-50 p-6 sm:p-12">
+    <div class="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/60 sm:p-9">
+      <div class="login-gradient mb-8 flex h-24 items-center justify-center overflow-hidden rounded-2xl px-8 shadow-inner">
+        <img src="/static/logomk.jpeg" alt="Manna Kampus" class="h-auto w-full max-w-md object-contain">
+      </div>
+      <div class="hidden">
+        <span class="flex h-10 w-32 items-center justify-center overflow-hidden rounded-lg border border-slate-200 px-2">
+          <img src="/static/logomk.jpeg" alt="Manna Kampus" class="h-auto w-full object-contain">
+        </span>
+        <span class="text-lg font-bold tracking-tight">MOVARA</span>
+      </div>
+      <div class="mb-1">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">MOVARA</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight">Masuk ke akun Anda</h1>
+      </div>
+      <p class="text-sm text-slate-500">Gunakan akun yang diberikan admin.</p>
+
+      {{if .Error}}
+      <div role="alert" class="mt-6 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+        {{template "i-alert"}}<span>{{.Error}}</span>
+      </div>
+      {{end}}
+
+      <form method="post" action="/login" class="mt-7 space-y-5">
+        <div>
+          <label for="username" class="text-sm font-medium">Username</label>
+          <input id="username" name="username" value="{{.Username}}" required autofocus autocomplete="username" autocapitalize="none"
+                 class="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+        </div>
+        <div>
+          <label for="password" class="text-sm font-medium">Password</label>
+          <div class="relative mt-1.5">
+            <input id="password" name="password" type="password" required autocomplete="current-password"
+                   class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-3.5 pr-11 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+            <button type="button" data-toggle-password aria-label="Tampilkan password"
+                    class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600">{{template "i-eye"}}</button>
+          </div>
+        </div>
+        <button class="w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/40">Masuk</button>
+      </form>
+
+      {{if .Demo}}
+      <div class="mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-4">
+        <p class="text-sm font-medium">Akun demo</p>
+        <p class="mt-0.5 text-xs text-slate-500">Klik untuk mengisi otomatis. Password semua akun: <span class="font-mono">demo123</span></p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" data-fill-user="puji" data-fill-pass="demo123" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50">Pramuniaga (MK 2)</button>
+          <button type="button" data-fill-user="manager" data-fill-pass="demo123" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50">Manager</button>
+          <button type="button" data-fill-user="admin.a" data-fill-pass="demo123" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50">Admin</button>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </section>
+</div>
+{{end}}

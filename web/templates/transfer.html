@@ -1,0 +1,14 @@
+{{define "content"}}
+<div class="max-w-xl">
+    <h1 class="text-2xl font-bold tracking-tight">Pengajuan Pindah Outlet</h1>
+    <p class="mt-1 text-sm text-slate-500">Pengajuan akan diproses oleh Admin.</p>
+    <form method="post" action="/pindah-outlet" class="mt-6 rounded-2xl border bg-white p-6"><label
+            class="text-sm font-medium">Outlet tujuan</label><select name="to_outlet" required
+            class="mt-2 w-full rounded-xl border px-3 py-2.5">{{range .Outlets}}{{if ne .ID $.User.Outlet.ID}}<option
+                value="{{.ID}}">{{.Name}}</option>{{end}}{{end}}</select>
+        <div class="mt-5 flex justify-end gap-2"><a href="/mutasi"
+                class="rounded-xl border px-4 py-2.5">Batal</a><button
+                class="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white">Ajukan</button></div>
+    </form>
+</div>
+{{end}}

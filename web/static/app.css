@@ -1,0 +1,399 @@
+/* Gaya tambahan. Untuk produksi, ganti CDN Tailwind dengan build lokal. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+html, body { max-width: 100%; overflow-x: clip; }
+body.overflow-x-hidden { overflow-x: clip !important; }
+.history-tab-active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, .22);
+}
+button[data-history-tab].history-tab-active,
+button[data-history-tab].history-tab-active:hover,
+button[data-history-tab].history-tab-active:focus {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #fff !important;
+}
+button[data-history-tab]:not(.history-tab-active) {
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+.kelola-audit-card nav[aria-label="Pagination audit log"] { display: none; }
+
+/* Visual system redesign: layout only, tanpa mengubah data atau alur fitur. */
+body { background: #eef2f7 !important; }
+.topbar-shell { position: sticky !important; top: 12px !important; background: transparent !important; box-shadow: none !important; }
+.topbar-shell > div { transition: box-shadow .2s ease, transform .2s ease; }
+.topbar-shell > div:hover { box-shadow: 0 12px 28px rgba(15,23,42,.12); }
+footer { background: rgba(255,255,255,.92) !important; }
+main > * { max-width: 100%; }
+.rounded-2xl.border.border-slate-200.bg-white,
+.rounded-3xl.border.border-slate-200.bg-white,
+form.rounded-2xl.border.border-slate-200.bg-white,
+section.rounded-2xl.border.border-slate-200.bg-white {
+  border-color: #dbe3ee !important;
+  box-shadow: 0 10px 26px rgba(30, 64, 175, .07) !important;
+}
+.rounded-2xl.border.border-slate-200.bg-white > .border-b,
+.rounded-3xl.border.border-slate-200.bg-white > .border-b {
+  border-color: #e5eaf2 !important;
+}
+button.rounded-xl.bg-blue-600,
+button.rounded-lg.bg-blue-600,
+a.rounded-xl.bg-blue-600 {
+  box-shadow: 0 5px 12px rgba(37,99,235,.18);
+}
+input, select, textarea { border-color: #cbd5e1; }
+
+/* Mobile layout helpers */
+@media (max-width: 640px) {
+  header > div { min-width: 0; }
+  header a { flex-shrink: 0; }
+  main { min-width: 0; }
+  section, form, .rounded-2xl { min-width: 0; }
+  h1 { font-size: 1.35rem !important; line-height: 1.35 !important; }
+  table { min-width: 720px; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  input, select, button { max-width: 100%; }
+  .print\:hidden { max-width: 100%; }
+}
+
+main > div + .print\:hidden > div:first-child,
+main > .print\:hidden > div:first-child {
+  border-color: #b9dcf6 !important;
+}
+.rounded-full { border-radius: 999px !important; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { scrollbar-width: none; }
+
+/* Arah mutasi memakai label teks; ikon dekoratif disembunyikan agar lebih bersih. */
+.direction-option > span > span:first-child { display: none; }
+.direction-option > span { display: block; }
+
+/* Jurnal rekap: urutan visual No, Outlet, Lokasi, Tgl/Jam, Barcode, Kode,
+   Nama Produk, Qty, PM, BA, Aksi tanpa mengubah data backend. */
+@media screen and (min-width: 641px) {
+  .journal-table thead tr, .journal-table tbody tr { display: flex; min-width: 0; }
+  .journal-table th, .journal-table td { display: block; }
+  .journal-table th:nth-child(1), .journal-table td:nth-child(1) { order: 1; flex: 0 0 60px; }
+  .journal-table th:nth-child(9), .journal-table td:nth-child(9) { order: 2; flex: 0 0 110px; }
+  .journal-table th:nth-child(8), .journal-table td:nth-child(8) { order: 3; flex: 0 0 150px; }
+  .journal-table th:nth-child(7), .journal-table td:nth-child(7) { order: 4; flex: 0 0 145px; }
+  .journal-table th:nth-child(2), .journal-table td:nth-child(2) { order: 5; flex: 0 0 145px; }
+  .journal-table th:nth-child(3), .journal-table td:nth-child(3) { order: 6; flex: 0 0 90px; }
+  .journal-table th:nth-child(4), .journal-table td:nth-child(4) { order: 7; flex: 1 1 260px; }
+  .journal-table th:nth-child(5), .journal-table td:nth-child(5) { order: 8; flex: 0 0 110px; }
+  .journal-table th:nth-child(6), .journal-table td:nth-child(6) { order: 9; flex: 0 0 70px; }
+  .journal-table th:nth-child(10), .journal-table td:nth-child(10) { order: 10; flex: 0 0 110px; }
+  .journal-table th:nth-child(11), .journal-table td:nth-child(11) { order: 11; flex: 0 0 120px; }
+  .journal-table th:nth-child(12), .journal-table td:nth-child(12) { order: 12; flex: 0 0 150px; }
+  .journal-table td.action-cell { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; min-height: 72px; }
+  .journal-table td.action-cell form { display: inline-flex; margin: 0; }
+
+/* Icon arah pada card pemilihan lokasi. Gunakan glyph CSS agar tidak bergantung
+   pada karakter panah yang dapat rusak karena encoding template. */
+section a[href*="/mutasi/input?direction=market_to_counter"] > span > span:first-child,
+section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first-child { display: grid; place-items: center; flex: 0 0 3rem; width: 3rem; height: 3rem; font-size: 0; line-height: 1; }
+section a[href*="/mutasi/input?direction=market_to_counter"] > span,
+section a[href*="/mutasi/input?direction=counter_to_market"] > span { align-items: center; }
+section a[href*="/mutasi/input?direction=market_to_counter"] > span > span:first-child::before,
+section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first-child::before { margin: 0; }
+section a[href*="/mutasi/input?direction=market_to_counter"] > span > span:first-child::before,
+section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first-child::before { content: ""; display: block; width: 1.6rem; height: 1.6rem; background-repeat: no-repeat; background-position: center; background-size: contain; }
+section a[href*="/mutasi/input?direction=market_to_counter"] > span > span:first-child::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23059669' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10h18l-1.5-5h-15zM4 10v9h16v-9M8 19v-5h8v5M3 10c0 1.2 1 2 2.3 2s2.3-.8 2.3-2c0 1.2 1 2 2.3 2s2.3-.8 2.3-2c0 1.2 1 2 2.3 2s2.3-.8 2.3-2c0 1.2 1 2 2.3 2s2.3-.8 2.3-2'/%3E%3C/svg%3E"); }
+section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first-child::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232565eb' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3 8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10M8 5l8 4'/%3E%3C/svg%3E"); }
+
+/* History mutasi mengikuti lebar card dan tidak membuat scroll horizontal. */
+.history-table { table-layout: fixed; width: 100%; min-width: 720px; }
+.history-table th, .history-table td { min-width: 0; overflow-wrap: anywhere; word-break: break-word; white-space: normal !important; }
+.history-table th:nth-child(1), .history-table td:nth-child(1) { width: 16%; }
+.history-table th:nth-child(2), .history-table td:nth-child(2) { width: 10%; }
+.history-table th:nth-child(3), .history-table td:nth-child(3) { width: 16%; }
+.history-table th:nth-child(4), .history-table td:nth-child(4) { width: 7%; }
+.history-table th:nth-child(5), .history-table td:nth-child(5) { width: 7%; }
+.history-table th:nth-child(6), .history-table td:nth-child(6) { width: 15%; }
+.history-table th:nth-child(7), .history-table td:nth-child(7) { width: 10%; }
+.history-table th:nth-child(8), .history-table td:nth-child(8) { width: 10%; }
+.history-table th:nth-child(9), .history-table td:nth-child(9) { width: 9%; }
+@media (max-width: 700px) {
+  .history-table { font-size: 0.7rem; }
+  .history-table th, .history-table td { padding-left: 0.4rem; padding-right: 0.4rem; }
+}
+
+/* Dua panel tetap berdampingan, tetapi tabel memiliki ruang baca yang cukup. */
+.history-table { table-layout: auto; min-width: 980px; }
+.history-table th, .history-table td { white-space: nowrap !important; overflow-wrap: normal; word-break: normal; }
+.history-table th:nth-child(1), .history-table td:nth-child(1) { min-width: 150px; }
+.history-table th:nth-child(2), .history-table td:nth-child(2) { min-width: 80px; }
+.history-table th:nth-child(3), .history-table td:nth-child(3) { min-width: 150px; }
+.history-table th:nth-child(4), .history-table td:nth-child(4) { min-width: 55px; }
+.history-table th:nth-child(5), .history-table td:nth-child(5) { min-width: 70px; }
+.history-table th:nth-child(6), .history-table td:nth-child(6) { min-width: 130px; }
+.history-table th:nth-child(7), .history-table td:nth-child(7) { min-width: 105px; }
+.history-table th:nth-child(8), .history-table td:nth-child(8) { min-width: 105px; }
+.history-table th:nth-child(9), .history-table td:nth-child(9) { min-width: 85px; }
+.history-table td:nth-child(8) span, .history-table td:nth-child(9) span { white-space: nowrap !important; display: inline-block; }
+
+/* Riwayat pada halaman input PM dibuat compact agar terbaca tanpa scroll horizontal. */
+#history-input .history-table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+  font-size: .72rem;
+}
+#history-input .history-table th,
+#history-input .history-table td {
+  min-width: 0 !important;
+  padding-left: .35rem;
+  padding-right: .35rem;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+}
+#history-input .history-table th:nth-child(1), #history-input .history-table td:nth-child(1) { width: 5%; }
+#history-input .history-table th:nth-child(2), #history-input .history-table td:nth-child(2) { width: 13%; }
+#history-input .history-table th:nth-child(3), #history-input .history-table td:nth-child(3) { width: 9%; }
+#history-input .history-table th:nth-child(4), #history-input .history-table td:nth-child(4) { width: 17%; }
+#history-input .history-table th:nth-child(5), #history-input .history-table td:nth-child(5) { width: 6%; }
+#history-input .history-table th:nth-child(6), #history-input .history-table td:nth-child(6) { width: 7%; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7) { width: 15%; }
+#history-input .history-table th:nth-child(8), #history-input .history-table td:nth-child(8) { width: 10%; }
+#history-input .history-table th:nth-child(9), #history-input .history-table td:nth-child(9) { width: 9%; }
+#history-input .history-table th:nth-child(10), #history-input .history-table td:nth-child(10) { width: 9%; }
+#history-input .history-table td:nth-child(8) span,
+#history-input .history-table td:nth-child(9) span { white-space: normal !important; display: inline; }
+
+/* Card PM menampilkan kolom operasional utama saja; detail teknis tetap tersimpan. */
+#history-input .history-table th:nth-child(3),
+#history-input .history-table td:nth-child(3),
+#history-input .history-table th:nth-child(8),
+#history-input .history-table td:nth-child(8),
+#history-input .history-table th:nth-child(10),
+#history-input .history-table td:nth-child(10) { display: none; }
+#history-input .history-table th:nth-child(1), #history-input .history-table td:nth-child(1) { width: 6%; }
+#history-input .history-table th:nth-child(2), #history-input .history-table td:nth-child(2) { width: 20%; }
+#history-input .history-table th:nth-child(4), #history-input .history-table td:nth-child(4) { width: 24%; }
+#history-input .history-table th:nth-child(5), #history-input .history-table td:nth-child(5) { width: 8%; }
+#history-input .history-table th:nth-child(6), #history-input .history-table td:nth-child(6) { width: 12%; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7) { width: 18%; }
+#history-input .history-table th:nth-child(9), #history-input .history-table td:nth-child(9) { width: 12%; }
+#history-previous .history-table { min-width: 0; width: 100%; table-layout: fixed; font-size: .72rem; }
+#history-previous .history-table th, #history-previous .history-table td { min-width: 0 !important; padding-left: .35rem; padding-right: .35rem; white-space: normal !important; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+#history-previous .history-table th:nth-child(3), #history-previous .history-table td:nth-child(3),
+#history-previous .history-table th:nth-child(8), #history-previous .history-table td:nth-child(8),
+#history-previous .history-table th:nth-child(10), #history-previous .history-table td:nth-child(10) { display: none; }
+#history-previous .history-table th:nth-child(1), #history-previous .history-table td:nth-child(1) { width: 6%; }
+#history-previous .history-table th:nth-child(2), #history-previous .history-table td:nth-child(2) { width: 20%; }
+#history-previous .history-table th:nth-child(4), #history-previous .history-table td:nth-child(4) { width: 24%; }
+#history-previous .history-table th:nth-child(5), #history-previous .history-table td:nth-child(5) { width: 8%; }
+#history-previous .history-table th:nth-child(6), #history-previous .history-table td:nth-child(6) { width: 12%; }
+#history-previous .history-table th:nth-child(7), #history-previous .history-table td:nth-child(7) { width: 18%; }
+#history-previous .history-table th:nth-child(9), #history-previous .history-table td:nth-child(9) { width: 12%; }
+
+/* Dashboard PM: kedua riwayat dibuat ringkas agar tetap terbaca berdampingan. */
+#history-counter .history-table, #history-market .history-table { min-width: 0; width: 100%; table-layout: fixed; font-size: .72rem; }
+#history-counter .history-table th, #history-counter .history-table td, #history-market .history-table th, #history-market .history-table td { min-width: 0 !important; padding-left: .35rem; padding-right: .35rem; white-space: normal !important; overflow-wrap: anywhere; word-break: break-word; vertical-align: top; }
+#history-counter .history-table th:nth-child(3), #history-counter .history-table td:nth-child(3), #history-counter .history-table th:nth-child(8), #history-counter .history-table td:nth-child(8), #history-counter .history-table th:nth-child(10), #history-counter .history-table td:nth-child(10), #history-market .history-table th:nth-child(3), #history-market .history-table td:nth-child(3), #history-market .history-table th:nth-child(8), #history-market .history-table td:nth-child(8), #history-market .history-table th:nth-child(10), #history-market .history-table td:nth-child(10) { display: none; }
+#history-counter .history-table th:nth-child(1), #history-counter .history-table td:nth-child(1), #history-market .history-table th:nth-child(1), #history-market .history-table td:nth-child(1) { width: 6%; }
+#history-counter .history-table th:nth-child(2), #history-counter .history-table td:nth-child(2), #history-market .history-table th:nth-child(2), #history-market .history-table td:nth-child(2) { width: 20%; }
+#history-counter .history-table th:nth-child(4), #history-counter .history-table td:nth-child(4), #history-market .history-table th:nth-child(4), #history-market .history-table td:nth-child(4) { width: 24%; }
+#history-counter .history-table th:nth-child(5), #history-counter .history-table td:nth-child(5), #history-market .history-table th:nth-child(5), #history-market .history-table td:nth-child(5) { width: 8%; }
+#history-counter .history-table th:nth-child(6), #history-counter .history-table td:nth-child(6), #history-market .history-table th:nth-child(6), #history-market .history-table td:nth-child(6) { width: 12%; }
+#history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7), #history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7) { width: 18%; }
+#history-counter .history-table th:nth-child(9), #history-counter .history-table td:nth-child(9), #history-market .history-table th:nth-child(9), #history-market .history-table td:nth-child(9) { width: 12%; }
+
+/* Palet biru MOVARA yang lebih lembut dan nyaman dilihat. */
+.bg-blue-600 { background-color: #5b83df !important; }
+.bg-blue-700 { background-color: #4f75cf !important; }
+.hover\:bg-blue-700:hover { background-color: #4f75cf !important; }
+.text-blue-600 { color: #5276c9 !important; }
+.text-blue-700 { color: #4668b8 !important; }
+.bg-blue-50 { background-color: #eef4ff !important; }
+.bg-blue-100 { background-color: #e0ebff !important; }
+.border-blue-200 { border-color: #c8d8f5 !important; }
+.border-blue-500 { border-color: #7395e4 !important; }
+.focus\:border-blue-500:focus { border-color: #7395e4 !important; }
+.focus\:ring-blue-500\/30:focus { --tw-ring-color: rgb(115 149 228 / 30%) !important; }
+.from-blue-600 { --tw-gradient-from: #5b83df var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(91 131 223 / 0%) var(--tw-gradient-to-position) !important; }
+.to-blue-800 { --tw-gradient-to: #7897df var(--tw-gradient-to-position) !important; }
+.text-blue-100 { color: #e5edff !important; }
+.text-blue-200 { color: #d4e1ff !important; }
+.shadow-blue-600\/20 { --tw-shadow-color: rgb(91 131 223 / 20%) !important; }
+.focus\:ring-blue-500\/40:focus { --tw-ring-color: rgb(115 149 228 / 40%) !important; }
+.login-gradient { background: linear-gradient(135deg, #466bc6 0%, #5b83df 48%, #8da8ea 100%) !important; }
+
+/* Tema visual MOVARA: warna dan navbar saja, tanpa mengubah komponen/fungsi. */
+:root {
+  --movara-primary: #1f7bd0;
+  --movara-primary-dark: #1767b5;
+  --movara-gradient: linear-gradient(135deg, #3a9bea 0%, #1f7bd0 100%);
+}
+body { background: #eef5fc !important; }
+.topbar-shell {
+  position: sticky !important;
+  top: 12px !important;
+  z-index: 40 !important;
+  align-self: stretch;
+  background: transparent !important;
+}
+.topbar-shell > div {
+  border-radius: 999px !important;
+  box-shadow: 0 10px 26px rgba(31, 123, 208, .16), 0 2px 8px rgba(15, 23, 42, .06) !important;
+}
+.topbar-shell nav a { border-radius: 999px !important; }
+.topbar-shell nav a.bg-blue-50 {
+  background: var(--movara-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(31, 123, 208, .25);
+}
+.topbar-shell nav a:hover { background: #eaf3fb !important; color: var(--movara-primary-dark) !important; }
+.topbar-shell > div > a > span:first-child {
+  background: var(--movara-primary) !important;
+}
+.topbar-shell > div > a > span:last-child {
+  color: var(--movara-primary-dark) !important;
+}
+.history-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+/* Tabel riwayat: header terpusat, isi mengikuti tipe informasinya. */
+#history-input .history-table,
+#history-counter .history-table,
+#history-market .history-table,
+#history-full .history-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+#history-input .history-table th,
+#history-input .history-table td,
+#history-counter .history-table th,
+#history-counter .history-table td,
+#history-market .history-table th,
+#history-market .history-table td,
+#history-full .history-table th,
+#history-full .history-table td {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  vertical-align: middle;
+}
+#history-input .history-table th:nth-child(1), #history-input .history-table td:nth-child(1),
+#history-counter .history-table th:nth-child(1), #history-counter .history-table td:nth-child(1),
+#history-market .history-table th:nth-child(1), #history-market .history-table td:nth-child(1),
+#history-full .history-table th:nth-child(1), #history-full .history-table td:nth-child(1) { width: 7%; text-align: center; }
+#history-input .history-table th:nth-child(2), #history-input .history-table td:nth-child(2),
+#history-counter .history-table th:nth-child(2), #history-counter .history-table td:nth-child(2),
+#history-market .history-table th:nth-child(2), #history-market .history-table td:nth-child(2),
+#history-full .history-table th:nth-child(2), #history-full .history-table td:nth-child(2) { width: 20%; text-align: left; }
+#history-input .history-table th:nth-child(4), #history-input .history-table td:nth-child(4),
+#history-counter .history-table th:nth-child(4), #history-counter .history-table td:nth-child(4),
+#history-market .history-table th:nth-child(4), #history-market .history-table td:nth-child(4),
+#history-full .history-table th:nth-child(4), #history-full .history-table td:nth-child(4) { width: 26%; text-align: left; }
+#history-input .history-table th:nth-child(5), #history-input .history-table td:nth-child(5),
+#history-counter .history-table th:nth-child(5), #history-counter .history-table td:nth-child(5),
+#history-market .history-table th:nth-child(5), #history-market .history-table td:nth-child(5),
+#history-full .history-table th:nth-child(5), #history-full .history-table td:nth-child(5) { width: 8%; text-align: center; }
+#history-input .history-table th:nth-child(6), #history-input .history-table td:nth-child(6),
+#history-counter .history-table th:nth-child(6), #history-counter .history-table td:nth-child(6),
+#history-market .history-table th:nth-child(6), #history-market .history-table td:nth-child(6),
+#history-full .history-table th:nth-child(6), #history-full .history-table td:nth-child(6) { width: 10%; text-align: center; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7),
+#history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7),
+#history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7),
+#history-full .history-table th:nth-child(7), #history-full .history-table td:nth-child(7) { width: 20%; text-align: left; }
+#history-input .history-table th:nth-child(9), #history-input .history-table td:nth-child(9),
+#history-counter .history-table th:nth-child(9), #history-counter .history-table td:nth-child(9),
+#history-market .history-table th:nth-child(9), #history-market .history-table td:nth-child(9),
+#history-full .history-table th:nth-child(9), #history-full .history-table td:nth-child(9) { width: 12%; text-align: center; }
+#history-input .history-table td:nth-child(9) span,
+#history-counter .history-table td:nth-child(9) span,
+#history-market .history-table td:nth-child(9) span,
+#history-full .history-table td:nth-child(9) span { white-space: nowrap !important; }
+main a[href="/mutasi"], main a[href="/master-data"], main a[href="/kelola"], main a[href="/rekap"] {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #334155 !important;
+  padding: .625rem 1rem !important;
+  font-size: .875rem !important;
+  font-weight: 600 !important;
+  line-height: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+/* Riwayat hari ini: seluruh kolom dan aksi muat tanpa scroll horizontal. */
+#history-input .history-table { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; font-size: .68rem; }
+#history-input .history-table th, #history-input .history-table td { min-width: 0 !important; padding-left: .28rem !important; padding-right: .28rem !important; white-space: normal !important; overflow-wrap: anywhere; word-break: break-word; }
+#history-input .history-table th:nth-child(1), #history-input .history-table td:nth-child(1) { width: 5% !important; }
+#history-input .history-table th:nth-child(2), #history-input .history-table td:nth-child(2) { width: 20% !important; }
+#history-input .history-table th:nth-child(4), #history-input .history-table td:nth-child(4) { width: 20% !important; }
+#history-input .history-table th:nth-child(5), #history-input .history-table td:nth-child(5) { width: 7% !important; }
+#history-input .history-table th:nth-child(6), #history-input .history-table td:nth-child(6) { width: 8% !important; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7) { width: 18% !important; }
+#history-input .history-table th:nth-child(9), #history-input .history-table td:nth-child(9) { width: 10% !important; }
+#history-input .history-table th:nth-child(11), #history-input .history-table td:nth-child(11) { width: 12% !important; }
+#history-input .history-table td:nth-child(11) button { height: 1.75rem; width: 1.75rem; }
+
+.floating-chat { position: fixed !important; right: 1.5rem; bottom: 4.75rem; z-index: 40; min-height: 3.25rem; padding: .875rem 1.35rem !important; font-size: 1rem !important; border-radius: 999px !important; box-shadow: 0 10px 24px rgba(15,23,42,.22) !important; }
+.floating-chat svg { width: 1.35rem; height: 1.35rem; }
+@media (max-width: 640px) { .floating-chat { right: 1rem; bottom: 4.5rem; min-height: 3rem; padding: .75rem 1.1rem !important; font-size: .95rem !important; } }
+
+/* SKU/PLU ditampilkan tepat setelah barcode pada riwayat PM. */
+#history-input .history-table th:nth-child(3), #history-input .history-table td:nth-child(3),
+#history-counter .history-table th:nth-child(3), #history-counter .history-table td:nth-child(3),
+#history-market .history-table th:nth-child(3), #history-market .history-table td:nth-child(3) { display: table-cell !important; }
+#history-input .history-table th:nth-child(1), #history-input .history-table td:nth-child(1) { width: 5% !important; }
+#history-input .history-table th:nth-child(2), #history-input .history-table td:nth-child(2) { width: 18% !important; }
+#history-input .history-table th:nth-child(3), #history-input .history-table td:nth-child(3) { width: 12% !important; }
+#history-input .history-table th:nth-child(4), #history-input .history-table td:nth-child(4) { width: 18% !important; }
+#history-input .history-table th:nth-child(5), #history-input .history-table td:nth-child(5) { width: 7% !important; }
+#history-input .history-table th:nth-child(6), #history-input .history-table td:nth-child(6) { width: 8% !important; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7) { width: 16% !important; }
+#history-input .history-table th:nth-child(9), #history-input .history-table td:nth-child(9) { width: 10% !important; }
+#history-input .history-table th:nth-child(11), #history-input .history-table td:nth-child(11) { width: 12% !important; }
+
+main a[href="/mutasi"]:hover, main a[href="/master-data"]:hover, main a[href="/kelola"]:hover, main a[href="/rekap"]:hover {
+  border-color: #93c5fd !important;
+  background: #eaf3fb !important;
+  color: var(--movara-primary-dark) !important;
+}
+button.bg-blue-600, a.bg-blue-600 { background: var(--movara-primary) !important; }
+button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary-dark) !important; }
+.login-gradient { background: var(--movara-gradient) !important; }
+.from-blue-600 { --tw-gradient-from: #3a9bea var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(58 155 234 / 0%) var(--tw-gradient-to-position) !important; }
+.to-blue-800 { --tw-gradient-to: #1f7bd0 var(--tw-gradient-to-position) !important; }
+
+@media (max-width: 640px) {
+  .topbar-shell > div { border-radius: 24px !important; }
+}
+}
+
+@media screen and (max-width: 1450px) and (min-width: 641px) {
+  .journal-table thead tr, .journal-table tbody tr { min-width: 1180px; }
+}
+
+@media print {
+  @page { size: landscape; margin: 12mm; }
+  html, body { overflow: visible !important; background: #ffffff !important; }
+  body { font-size: 10pt; }
+  header, footer, .print\:hidden { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  main > div:first-child { margin-bottom: 8px; }
+  #journal-section { display: block !important; margin: 0 !important; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+  #journal-section .overflow-x-auto { overflow: visible !important; }
+  #journal-section table { min-width: 0 !important; width: 100% !important; table-layout: auto; }
+  #journal-section th, #journal-section td { padding: 5px 6px !important; font-size: 8pt !important; }
+  #journal-section td:nth-child(4) { min-width: 180px; }
+  #journal-section tr { break-inside: avoid; }
+}
