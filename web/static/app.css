@@ -1,4 +1,4 @@
-/* Gaya tambahan. Untuk produksi, ganti CDN Tailwind dengan build lokal. */
+/* Gaya tambahan di luar utility Tailwind. */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }
@@ -31,6 +31,7 @@ body { background: #eef2f7 !important; }
 .topbar-shell > div { transition: box-shadow .2s ease, transform .2s ease; }
 .topbar-shell > div:hover { box-shadow: 0 12px 28px rgba(15,23,42,.12); }
 footer { background: rgba(255,255,255,.92) !important; }
+.footer-credit > div:last-child { display: none; }
 main > * { max-width: 100%; }
 .rounded-2xl.border.border-slate-200.bg-white,
 .rounded-3xl.border.border-slate-200.bg-white,

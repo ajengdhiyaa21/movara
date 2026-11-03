@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"movara/internal/clock"
 	"movara/internal/middleware"
 	"movara/internal/models"
 	"net/http"
@@ -57,7 +58,10 @@ func (h *PageHandler) ToggleCategory(c *gin.Context) {
 		return
 	}
 	category.IsActive = !category.IsActive
-	h.db.Model(&category).Update("is_active", category.IsActive)
+	if err := h.db.Model(&category).Update("is_active", category.IsActive).Error; err != nil {
+		c.Redirect(http.StatusFound, "/master-data/categories?message=Status+kategori+gagal+diubah")
+		return
+	}
 	action := "category_deactivate"
 	message := "Kategori+dinonaktifkan"
 	if category.IsActive {
@@ -103,9 +107,9 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	}
 	var total int64
 	auditDate := c.Query("audit_date")
-	oneMonthAgo := time.Now().AddDate(0, -1, 0)
+	oneMonthAgo := clock.Now().AddDate(0, -1, 0)
 	auditQuery := h.db.Model(&models.AuditLog{}).Where("created_at >= ?", oneMonthAgo)
-	if selected, err := time.ParseInLocation("2006-01-02", auditDate, time.Local); err == nil {
+	if selected, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		nextDay := selected.AddDate(0, 0, 1)
 		auditQuery = h.db.Model(&models.AuditLog{}).Where("created_at >= ? AND created_at < ?", selected, nextDay)
 	}
@@ -117,7 +121,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	auditPages := (int(total) + auditPerPage - 1) / auditPerPage
 	auditQuery.Order("created_at desc").Offset((page - 1) * auditPerPage).Limit(auditPerPage).Find(&logs)
 	auditPeriod := "1 bulan terakhir"
-	if _, err := time.ParseInLocation("2006-01-02", auditDate, time.Local); err == nil {
+	if _, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		auditPeriod = "tanggal " + auditDate
 	}
 	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "Message": c.Query("message")})
@@ -173,7 +177,10 @@ func (h *PageHandler) ToggleOutlet(c *gin.Context) {
 		return
 	}
 	outlet.IsActive = !outlet.IsActive
-	h.db.Model(&outlet).Update("is_active", outlet.IsActive)
+	if err := h.db.Model(&outlet).Update("is_active", outlet.IsActive).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola/outlet?message=Status+outlet+gagal+diubah")
+		return
+	}
 	action, message := "outlet_deactivate", "Outlet+dinonaktifkan"
 	if outlet.IsActive {
 		action, message = "outlet_activate", "Outlet+diaktifkan+kembali"
@@ -199,15 +206,17 @@ func (h *PageHandler) audit(c *gin.Context, action, detail string) {
 	if u == nil {
 		return
 	}
-	h.db.Create(&models.AuditLog{UserID: &u.ID, OutletID: u.OutletID, Action: action, Detail: detail, CreatedAt: time.Now()})
+	h.db.Create(&models.AuditLog{UserID: &u.ID, OutletID: u.OutletID, Action: action, Detail: detail, CreatedAt: clock.Now()})
 }
 
 func (h *PageHandler) AddOutlet(c *gin.Context) {
 	o := models.Outlet{Code: c.PostForm("code"), Name: c.PostForm("name"), Type: c.PostForm("type"), IsActive: true}
 	if o.Code != "" && o.Name != "" {
-		if h.db.Create(&o).Error == nil {
-			h.audit(c, "outlet_create", o.Code+" - "+o.Name)
+		if err := h.db.Create(&o).Error; err != nil {
+			c.Redirect(302, "/kelola/outlet?message=Outlet+gagal+disimpan")
+			return
 		}
+		h.audit(c, "outlet_create", o.Code+" - "+o.Name)
 	}
 	c.Redirect(302, "/kelola/outlet?message=Outlet+diproses")
 }
@@ -215,7 +224,7 @@ func (h *PageHandler) AddPM(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
 	pass := c.PostForm("password")
 	if pass == "" {
-		pass = "pm12345!"
+		pass = "admin123!"
 	}
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	u := models.User{Name: c.PostForm("name"), Username: c.PostForm("username"), PasswordHash: string(hash), Role: models.RolePM, IsActive: true}
@@ -228,9 +237,11 @@ func (h *PageHandler) AddPM(c *gin.Context) {
 		u.CategoryID = &id
 	}
 	if u.Name != "" && u.Username != "" && u.OutletID != nil && u.CategoryID != nil {
-		if h.db.Create(&u).Error == nil {
-			h.audit(c, "pm_create", u.Username)
+		if err := h.db.Create(&u).Error; err != nil {
+			c.Redirect(302, "/kelola/pm?message=Akun+PM+gagal+disimpan")
+			return
 		}
+		h.audit(c, "pm_create", u.Username)
 	}
 	c.Redirect(302, "/kelola/pm?message=Akun+PM+diproses")
 }
@@ -299,14 +310,20 @@ func (h *PageHandler) DecideTransfer(c *gin.Context) {
 	}
 	var tr models.OutletTransferRequest
 	if h.db.First(&tr, id).Error == nil && tr.Status == models.TransferPending {
-		now := time.Now()
+		now := clock.Now()
 		tr.Status = status
 		tr.DecidedAt = &now
 		tr.DecidedBy = &u.ID
-		h.db.Save(&tr)
+		if err := h.db.Save(&tr).Error; err != nil {
+			c.Redirect(302, "/kelola/pm?message=Pengajuan+gagal+diproses")
+			return
+		}
 		h.audit(c, "transfer_"+string(status), "user "+strconv.FormatUint(uint64(tr.UserID), 10))
 		if status == models.TransferApproved {
-			h.db.Model(&models.User{}).Where("id = ?", tr.UserID).Update("outlet_id", tr.ToOutletID)
+			if err := h.db.Model(&models.User{}).Where("id = ?", tr.UserID).Update("outlet_id", tr.ToOutletID).Error; err != nil {
+				c.Redirect(302, "/kelola/pm?message=Outlet+PM+gagal+diperbarui")
+				return
+			}
 		}
 	}
 	c.Redirect(302, "/kelola/pm?message=Pengajuan+diproses")
@@ -315,7 +332,7 @@ func (h *PageHandler) RequestTransfer(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	to, _ := strconv.ParseUint(c.PostForm("to_outlet"), 10, 64)
 	if u != nil && u.OutletID != nil && to > 0 && uint(to) != *u.OutletID {
-		h.db.Create(&models.OutletTransferRequest{UserID: u.ID, FromOutletID: *u.OutletID, ToOutletID: uint(to), Status: models.TransferPending, RequestedAt: time.Now()})
+		h.db.Create(&models.OutletTransferRequest{UserID: u.ID, FromOutletID: *u.OutletID, ToOutletID: uint(to), Status: models.TransferPending, RequestedAt: clock.Now()})
 	}
 	c.Redirect(302, "/mutasi?message=Pengajuan+pindah+outlet+terkirim")
 }
@@ -331,7 +348,10 @@ func (h *PageHandler) DeactivatePM(c *gin.Context) {
 		return
 	}
 	u.IsActive = !u.IsActive
-	h.db.Model(&u).Update("is_active", u.IsActive)
+	if err := h.db.Model(&u).Update("is_active", u.IsActive).Error; err != nil {
+		c.Redirect(302, "/kelola/pm?message=Status+akun+gagal+diubah")
+		return
+	}
 	action := "pm_deactivate"
 	message := "Akun+PM+dinonaktifkan"
 	if u.IsActive {
@@ -353,7 +373,10 @@ func (h *PageHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	hash, _ := bcrypt.GenerateFromPassword([]byte(next), bcrypt.DefaultCost)
-	h.db.Model(&models.User{}).Where("id = ?", u.ID).Update("password_hash", string(hash))
+	if err := h.db.Model(&models.User{}).Where("id = ?", u.ID).Update("password_hash", string(hash)).Error; err != nil {
+		c.Redirect(302, "/password?message=Password+gagal+diubah")
+		return
+	}
 	c.Redirect(302, "/password?message=Password+berhasil+diubah")
 }
 
@@ -379,6 +402,9 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/profile?message=Username+sudah+digunakan")
 		return
 	}
-	h.db.Model(&models.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{"name": name, "username": username})
+	if err := h.db.Model(&models.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{"name": name, "username": username}).Error; err != nil {
+		c.Redirect(http.StatusFound, "/profile?message=Profil+gagal+diperbarui")
+		return
+	}
 	c.Redirect(http.StatusFound, "/profile?message=Profil+berhasil+diperbarui")
 }

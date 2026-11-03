@@ -129,6 +129,7 @@ func (r *Renderer) prepare(c *gin.Context, page string, data gin.H) (*template.T
 	data["User"] = middleware.CurrentUser(c)
 	data["Demo"] = r.Demo
 	data["Year"] = clock.Now().Year()
+	data["CSRFToken"] = middleware.CSRFToken(c)
 	return t, data, true
 }
 

@@ -66,15 +66,15 @@ type Mutation struct {
 	Barcode     string `gorm:"size:20;not null;index"`
 	Code        string `gorm:"size:30;index"`
 	ProductName string `gorm:"size:255;not null"`
-	CategoryID  *uint  `gorm:"index"`
+	CategoryID  *uint  `gorm:"index;index:idx_mut_category_date,priority:1"`
 	Category    *ProductCategory
-	Direction   string    `gorm:"size:20;not null;default:counter_to_market;index"`
+	Direction   string    `gorm:"size:20;not null;default:counter_to_market;index;index:idx_mut_direction_date,priority:1"`
 	Status      string    `gorm:"size:20;not null;default:approved;index"`
 	Qty         int       `gorm:"not null"`
 	BAName      *string   `gorm:"size:100"`
 	OutletID    uint      `gorm:"not null;index:idx_mut_outlet_date,priority:1"`
 	UserID      uint      `gorm:"not null;index"`
-	CreatedAt   time.Time `gorm:"index:idx_mut_outlet_date,priority:2"`
+	CreatedAt   time.Time `gorm:"index:idx_mut_outlet_date,priority:2;index:idx_mut_category_date,priority:2;index:idx_mut_direction_date,priority:2"`
 
 	Outlet Outlet
 	User   User

@@ -97,12 +97,14 @@ func (s *RecapService) ExportRows(q RecapQuery) ([]models.Mutation, error) {
 
 // Summary untuk kartu ringkasan. outletID membatasi total bulan ini & hari ini;
 // "outlet teraktif" selalu dihitung dari semua outlet.
-func (s *RecapService) Summary(outletID *uint) (*RecapSummary, error) {
+func (s *RecapService) Summary(query RecapQuery) (*RecapSummary, error) {
 	now := clock.Now()
 	dayStart, dayEnd := clock.DayBounds(now)
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, clock.WIB)
 
-	month, err := s.mutations.TotalQty(repository.MutationFilter{OutletID: outletID, From: monthStart, To: dayEnd})
+	base := query.filter()
+	base.From, base.To = monthStart, dayEnd
+	month, err := s.mutations.TotalQty(base)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +115,14 @@ func (s *RecapService) Summary(outletID *uint) (*RecapSummary, error) {
 	if prevTo.After(monthStart) {
 		prevTo = monthStart
 	}
-	prev, err := s.mutations.TotalQty(repository.MutationFilter{OutletID: outletID, From: prevStart, To: prevTo})
+	base.From, base.To = prevStart, prevTo
+	prev, err := s.mutations.TotalQty(base)
 	if err != nil {
 		return nil, err
 	}
 
-	today, err := s.mutations.TotalQty(repository.MutationFilter{OutletID: outletID, From: dayStart, To: dayEnd})
+	base.From, base.To = dayStart, dayEnd
+	today, err := s.mutations.TotalQty(base)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +133,8 @@ func (s *RecapService) Summary(outletID *uint) (*RecapSummary, error) {
 		sum.Growth = float64(month-prev) / float64(prev) * 100
 	}
 
-	byOutlet, err := s.mutations.QtyByOutlet(repository.MutationFilter{From: dayStart, To: dayEnd})
+	base.From, base.To = dayStart, dayEnd
+	byOutlet, err := s.mutations.QtyByOutlet(base)
 	if err != nil {
 		return nil, err
 	}

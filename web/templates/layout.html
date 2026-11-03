@@ -3,20 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{.CSRFToken}}">
   <title>{{.Title}} · MOVARA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
-      } } }
-    }
-  </script>
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="/static/htmx.min.js"></script>
+  <link rel="stylesheet" href="/static/tailwind.css">
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
 </head>
@@ -71,12 +61,16 @@
 
 {{if .User}}
 <footer class="print:hidden border-t border-slate-200 bg-white">
-  <div class="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-8 lg:px-10">
-    <span class="flex items-center gap-2">
-      <span class="h-2 w-2 rounded-full bg-emerald-500"></span>Sistem mutasi terhubung
-      {{if .Demo}}<span class="rounded bg-amber-100 px-2 py-0.5 font-medium text-amber-800">Mode demo: data contoh, hilang saat server dimatikan</span>{{end}}
-    </span>
-    <span>© {{.Year}} MOVARA</span>
+  <div class="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-5 px-4 py-5 sm:px-8 lg:px-16">
+    <div class="leading-tight">
+      <div class="text-sm font-bold tracking-tight text-slate-800">MOVARA</div>
+      <div class="mt-1 text-xs text-slate-500">Sistem Movement Barang Manna Kampus</div>
+    </div>
+    <div class="footer-credit text-left text-xs leading-relaxed text-slate-400 sm:text-right">
+      <div>&copy; {{.Year}} Dibuat Oleh</div>
+      <div class="mt-1 font-semibold text-blue-600">Divisi Software Engineer Manna Kampus.</div>
+      <div class="mt-1">© {{.Year}}</div>
+    </div>
   </div>
 </footer>
 {{end}}

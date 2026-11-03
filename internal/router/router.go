@@ -24,7 +24,6 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 	}
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
-	r.Use(middleware.SameOrigin())
 
 	// Session cookie (SameSite=Lax membantu mengurangi risiko CSRF).
 	store := cookie.NewStore([]byte(cfg.SessionSecret))
@@ -36,6 +35,8 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 		SameSite: http.SameSiteLaxMode,
 	})
 	r.Use(sessions.Sessions("movara", store))
+	r.Use(middleware.CSRF())
+	r.Use(middleware.SameOrigin())
 	r.Use(middleware.LoadUser(repos.Users))
 
 	staticFS, err := fs.Sub(web.Static, "static")

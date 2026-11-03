@@ -72,30 +72,52 @@ func (s *Store) Search(f repository.MutationFilter, off, lim int) ([]models.Muta
 	return v, int(n), err
 }
 func (s *Store) TotalQty(f repository.MutationFilter) (int, error) {
-	v, _, err := s.Search(f, 0, 0)
-	n := 0
-	for _, m := range v {
-		n += m.Qty
+	q := s.db.Model(&models.Mutation{})
+	q = applyMutationFilter(q, f)
+	var total int64
+	if err := q.Select("COALESCE(SUM(qty), 0)").Scan(&total).Error; err != nil {
+		return 0, err
 	}
-	return n, err
+	return int(total), nil
 }
 func (s *Store) QtyByOutlet(f repository.MutationFilter) ([]repository.OutletTotal, error) {
-	v, _, err := s.Search(f, 0, 0)
-	if err != nil {
+	type row struct {
+		OutletID   uint
+		Code, Name string
+		Qty        int
+	}
+	var rows []row
+	q := s.db.Table("mutations").Select("mutations.outlet_id, outlets.code, outlets.name, SUM(mutations.qty) AS qty").Joins("JOIN outlets ON outlets.id = mutations.outlet_id")
+	q = applyMutationFilter(q, f)
+	if err := q.Group("mutations.outlet_id, outlets.code, outlets.name").Order("qty DESC").Scan(&rows).Error; err != nil {
 		return nil, err
 	}
-	m := map[uint]*repository.OutletTotal{}
-	for _, x := range v {
-		z := m[x.OutletID]
-		if z == nil {
-			z = &repository.OutletTotal{OutletID: x.OutletID, Code: x.Outlet.Code, Name: x.Outlet.Name}
-			m[x.OutletID] = z
-		}
-		z.Qty += x.Qty
-	}
-	out := make([]repository.OutletTotal, 0, len(m))
-	for _, x := range m {
-		out = append(out, *x)
+	out := make([]repository.OutletTotal, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, repository.OutletTotal{OutletID: r.OutletID, Code: r.Code, Name: r.Name, Qty: r.Qty})
 	}
 	return out, nil
+}
+
+func applyMutationFilter(q *gorm.DB, f repository.MutationFilter) *gorm.DB {
+	if f.OutletID != nil {
+		q = q.Where("mutations.outlet_id = ?", *f.OutletID)
+	}
+	if f.CategoryID != nil {
+		q = q.Where("mutations.category_id = ?", *f.CategoryID)
+	}
+	if f.Direction != "" {
+		q = q.Where("mutations.direction = ?", f.Direction)
+	}
+	if !f.From.IsZero() {
+		q = q.Where("mutations.created_at >= ?", f.From)
+	}
+	if !f.To.IsZero() {
+		q = q.Where("mutations.created_at < ?", f.To)
+	}
+	if x := strings.TrimSpace(f.Query); x != "" {
+		like := "%" + x + "%"
+		q = q.Where("(mutations.barcode LIKE ? OR mutations.code LIKE ? OR mutations.product_name LIKE ?)", like, like, like)
+	}
+	return q
 }

@@ -118,8 +118,9 @@ func (h *RecapHandler) Update(c *gin.Context) {
 	name := strings.TrimSpace(c.PostForm("product_name"))
 	ba := strings.TrimSpace(c.PostForm("ba_name"))
 	direction := c.PostForm("direction")
-	if direction != "market_to_counter" {
-		direction = "counter_to_market"
+	if direction != "market_to_counter" && direction != "counter_to_market" {
+		c.Redirect(http.StatusFound, "/rekap?message=Arah+mutasi+tidak+valid")
+		return
 	}
 	if qty < 1 || qty > 999 || name == "" {
 		c.Redirect(http.StatusFound, "/rekap?message=Data+mutasi+tidak+valid")
@@ -171,7 +172,7 @@ func (h *RecapHandler) Index(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
-	sum, err := h.svc.Summary(q.OutletID)
+	sum, err := h.svc.Summary(q)
 	if err != nil {
 		h.fail(c, err)
 		return

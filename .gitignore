@@ -2,3 +2,4 @@
 /bin
 *.log
 server.exe
+node_modules/

@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -13,13 +15,15 @@ import (
 )
 
 type AuthHandler struct {
-	r     *Renderer
-	auth  *service.AuthService
-	audit *service.AuditService
+	r        *Renderer
+	auth     *service.AuthService
+	audit    *service.AuditService
+	mu       sync.Mutex
+	failures map[string][]time.Time
 }
 
 func NewAuthHandler(r *Renderer, a *service.AuthService, au *service.AuditService) *AuthHandler {
-	return &AuthHandler{r: r, auth: a, audit: au}
+	return &AuthHandler{r: r, auth: a, audit: au, failures: make(map[string][]time.Time)}
 }
 
 func (h *AuthHandler) ShowLogin(c *gin.Context) {
@@ -34,14 +38,21 @@ func (h *AuthHandler) ShowLogin(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	username := strings.TrimSpace(c.PostForm("username"))
 	password := c.PostForm("password")
+	key := c.ClientIP() + ":" + strings.ToLower(username)
+	if !h.allowed(key) {
+		h.r.HTML(c, http.StatusTooManyRequests, "login.html", gin.H{"Title": "Masuk", "Error": "Terlalu banyak percobaan login. Coba lagi dalam satu menit.", "Username": username})
+		return
+	}
 
 	u, err := h.auth.Authenticate(username, password)
 	if err != nil {
+		h.recordFailure(key)
 		h.r.HTML(c, http.StatusUnauthorized, "login.html", gin.H{
 			"Title": "Masuk", "Error": err.Error(), "Username": username,
 		})
 		return
 	}
+	h.clearFailures(key)
 
 	s := sessions.Default(c)
 	s.Clear()
@@ -52,6 +63,32 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 	h.audit.Log(&u.ID, u.OutletID, "login", u.Name+" masuk ke sistem")
 	c.Redirect(http.StatusFound, "/")
+}
+
+func (h *AuthHandler) allowed(key string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-time.Minute)
+	kept := h.failures[key][:0]
+	for _, t := range h.failures[key] {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+	h.failures[key] = kept
+	return len(kept) < 5
+}
+
+func (h *AuthHandler) recordFailure(key string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.failures[key] = append(h.failures[key], time.Now())
+}
+func (h *AuthHandler) clearFailures(key string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	delete(h.failures, key)
 }
 
 func (h *AuthHandler) Logout(c *gin.Context) {

@@ -2,7 +2,6 @@
 {{if .InputOnly}}
 <div class="flex min-w-0 flex-wrap items-start justify-between gap-4">
   <div><a href="/mutasi" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">&larr; Kembali ke pilihan lokasi</a><div class="mt-4 flex flex-wrap items-center gap-3"><h1 class="text-2xl font-bold tracking-tight">Input Mutasi Barang Hari Ini</h1><span class="rounded-xl border-2 {{if eq .Form.Direction "market_to_counter"}}border-emerald-300 bg-emerald-50 text-emerald-800{{else}}border-blue-300 bg-blue-50 text-blue-800{{end}} px-4 py-2 text-base font-bold">{{if eq .Form.Direction "market_to_counter"}}Market ke Konter{{else}}Konter ke Market{{end}}</span></div><p class="mt-2 text-base font-medium text-slate-600">{{if eq .Form.Direction "market_to_counter"}}Barang kembali dari Market ke Konter.{{else}}Barang keluar dari Konter ke Market.{{end}}</p><p class="mt-1 text-sm text-slate-500">Scan barcode produk untuk mencatat perpindahan pada arah yang dipilih.</p></div>
-  {{if .WAURL}}<a href="{{.WAURL}}" target="_blank" rel="noopener" class="floating-chat inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-emerald-700">{{template "i-chat"}} Chat Admin</a>{{end}}
 </div>
 <div class="mt-6 grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
   <section id="scan-panel" class="min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm">{{template "scan_form" .}}</section>
@@ -27,12 +26,6 @@
     </div>
     <p class="mt-1 text-sm text-slate-500">Kelola perpindahan barang dengan cepat, terarah, dan tercatat rapi.</p>
   </div>
-  {{if .WAURL}}
-  <a href="{{.WAURL}}" target="_blank" rel="noopener"
-    class="floating-chat inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-emerald-700">
-    {{template "i-chat"}} Chat Admin
-  </a>
-  {{end}}
 </div>
 
 <section class="mx-auto mt-6 grid max-w-6xl gap-4 sm:grid-cols-3">

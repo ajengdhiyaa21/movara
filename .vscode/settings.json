@@ -1,0 +1,4 @@
+{
+    "chat.agent.sandbox.enabled": "off",
+    "chat.agent.enabled": true
+}

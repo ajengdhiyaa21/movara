@@ -178,7 +178,10 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		c.Redirect(302, "/master-data?message=Semua+field+wajib+diisi")
 		return
 	}
-	h.db.Save(&p)
+	if err := h.db.Save(&p).Error; err != nil {
+		c.Redirect(http.StatusFound, "/master-data?message=Produk+gagal+diperbarui")
+		return
+	}
 	h.audit(c, "product_update", p.Barcode)
 	h.resolvePending(c, &p)
 	c.Redirect(302, "/master-data?message=Produk+berhasil+diubah")

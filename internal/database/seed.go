@@ -81,6 +81,22 @@ func Seed(db *gorm.DB, adminPassword string) error {
 			return err
 		}
 	}
+	if err := db.Model(&models.User{}).Where("username = ?", "manager").Update("name", "Manager").Error; err != nil {
+		return err
+	}
+	// Migrasikan akun demo yang masih memakai password lama. Password yang
+	// sudah diubah Admin tidak disentuh lagi pada startup berikutnya.
+	for _, username := range []string{"admin.a", "admin.b", "manager", "pmkosmetik", "pmobat"} {
+		var existing models.User
+		if err := db.Where("username = ?", username).First(&existing).Error; err != nil {
+			continue
+		}
+		if bcrypt.CompareHashAndPassword([]byte(existing.PasswordHash), []byte("pm12345!")) == nil || bcrypt.CompareHashAndPassword([]byte(existing.PasswordHash), []byte("admin123!")) == nil {
+			if err := db.Model(&existing).Update("password_hash", string(hash)).Error; err != nil {
+				return err
+			}
+		}
+	}
 	products := []models.Product{
 		{Barcode: "8992222075220", Code: "133601", Name: "PIXY-UVP SUNSC.30G HYDRA CRM SPF50+ PA++", CategoryID: &cosmetic.ID, IsActive: true, OutletID: 2},
 		{Barcode: "8992222075213", Code: "133602", Name: "PIXY-UVP SUNSC.30G AQUA GEL SPF50+ PA+++", CategoryID: &cosmetic.ID, IsActive: true, OutletID: 2},

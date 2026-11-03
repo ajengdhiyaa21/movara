@@ -1,4 +1,17 @@
 (function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]');
+  if (csrf && csrf.content) {
+    document.querySelectorAll('form[method="post"], form:not([method])').forEach(function (form) {
+      if (!form.querySelector('input[name="csrf_token"]')) {
+        var input = document.createElement('input');
+        input.type = 'hidden'; input.name = 'csrf_token'; input.value = csrf.content;
+        form.appendChild(input);
+      }
+    });
+    document.body.addEventListener('htmx:configRequest', function (event) {
+      event.detail.headers['X-CSRF-Token'] = csrf.content;
+    });
+  }
   var $ = function (s) { return document.querySelector(s); };
   var scanTimer = null;
   var filterTimer = null;

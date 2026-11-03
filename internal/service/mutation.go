@@ -15,12 +15,13 @@ import (
 const MaxQty = 999
 
 var (
-	ErrNoOutlet        = errors.New("Akun Anda belum ditempatkan di outlet. Hubungi admin.")
-	ErrBarcodeEmpty    = errors.New("Scan atau ketik barkode produk terlebih dahulu.")
-	ErrProductNotFound = errors.New("Produk belum terdaftar di master data.")
-	ErrQtyInvalid      = errors.New("Jumlah mutasi harus antara 1 sampai 999 pcs.")
-	ErrBATooLong       = errors.New("Nama BA maksimal 100 karakter.")
-	ErrProductRequest  = errors.New("Klik tombol Ajukan Produk Baru untuk menyimpan barcode yang belum terdaftar.")
+	ErrNoOutlet         = errors.New("Akun Anda belum ditempatkan di outlet. Hubungi admin.")
+	ErrBarcodeEmpty     = errors.New("Scan atau ketik barkode produk terlebih dahulu.")
+	ErrProductNotFound  = errors.New("Produk belum terdaftar di master data.")
+	ErrQtyInvalid       = errors.New("Jumlah mutasi harus antara 1 sampai 999 pcs.")
+	ErrBATooLong        = errors.New("Nama BA maksimal 100 karakter.")
+	ErrProductRequest   = errors.New("Klik tombol Ajukan Produk Baru untuk menyimpan barcode yang belum terdaftar.")
+	ErrInvalidDirection = errors.New("Arah mutasi tidak valid.")
 )
 
 type MutationService struct {
@@ -65,10 +66,10 @@ func (s *MutationService) Period(outletID uint, categoryID *uint, q, direction s
 
 // Today mengembalikan mutasi hari ini (WIB) di satu outlet, terbaru di atas.
 func (s *MutationService) Today(outletID uint, q string) (*TodayResult, error) {
-	return s.ByDate(outletID, q, "")
+	return s.ByDate(outletID, nil, q, "")
 }
 
-func (s *MutationService) ByDate(outletID uint, q, date string) (*TodayResult, error) {
+func (s *MutationService) ByDate(outletID uint, categoryID *uint, q, date string) (*TodayResult, error) {
 	now := clock.Now()
 	if date != "" {
 		if parsed, e := time.ParseInLocation("2006-01-02", date, clock.WIB); e == nil {
@@ -76,7 +77,7 @@ func (s *MutationService) ByDate(outletID uint, q, date string) (*TodayResult, e
 		}
 	}
 	from, to := clock.DayBounds(now)
-	all, err := s.mutations.ListByOutletBetween(outletID, from, to)
+	all, _, err := s.mutations.Search(repository.MutationFilter{OutletID: &outletID, CategoryID: categoryID, From: from, To: to}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +145,8 @@ func (s *MutationService) Add(u *models.User, barcode, productName, direction st
 	}
 	p, err := s.FindProductForUser(barcode, u)
 	productName = strings.TrimSpace(productName)
-	if direction != "market_to_counter" {
-		direction = "counter_to_market"
+	if direction != "market_to_counter" && direction != "counter_to_market" {
+		return nil, ErrInvalidDirection
 	}
 	if err != nil && !errors.Is(err, ErrProductNotFound) {
 		return nil, err
