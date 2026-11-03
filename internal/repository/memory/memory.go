@@ -29,6 +29,7 @@ type Store struct {
 	audits    []models.AuditLog
 	editLogs  []models.MutationEditLog
 	nextMutID uint
+	chat      *chatStore
 }
 
 func New() (*repository.Repos, error) {
@@ -40,9 +41,10 @@ func New() (*repository.Repos, error) {
 		outlets:  map[uint]models.Outlet{},
 		users:    map[uint]models.User{},
 		products: map[string]models.Product{},
+		chat:     newChatStore(),
 	}
 	s.seed(string(hash))
-	return &repository.Repos{Users: s, Products: s, Outlets: s, Mutations: s, MutationEdits: s, Audits: s}, nil
+	return &repository.Repos{Users: s, Chat: s.chat, Products: s, Outlets: s, Mutations: s, MutationEdits: s, Audits: s}, nil
 }
 
 func uptr(v uint) *uint { return &v }
@@ -167,6 +169,18 @@ func (s *Store) ByUsername(username string) (*models.User, error) {
 	return nil, repository.ErrNotFound
 }
 
+func (s *Store) ListByRole(role models.Role) ([]models.User, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	users := make([]models.User, 0)
+	for _, user := range s.users {
+		if user.Role == role {
+			users = append(users, *s.withOutlet(user))
+		}
+	}
+	return users, nil
+}
+
 // ---- repository.Products ----
 
 func (s *Store) ByBarcode(barcode string, outletID uint) (*models.Product, error) {
@@ -181,12 +195,12 @@ func (s *Store) ByBarcode(barcode string, outletID uint) (*models.Product, error
 
 // ---- repository.Mutations ----
 
-func (s *Store) ListByOutletBetween(outletID uint, from, to time.Time) ([]models.Mutation, error) {
+func (s *Store) ListByOutletBetween(outletID uint, categoryID *uint, from, to time.Time) ([]models.Mutation, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var out []models.Mutation
 	for _, m := range s.mutations {
-		if m.OutletID != outletID || m.CreatedAt.Before(from) || !m.CreatedAt.Before(to) {
+		if m.OutletID != outletID || (categoryID != nil && (m.CategoryID == nil || *m.CategoryID != *categoryID)) || m.CreatedAt.Before(from) || !m.CreatedAt.Before(to) {
 			continue
 		}
 		m.Outlet = s.outlets[m.OutletID]

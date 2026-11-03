@@ -19,3 +19,9 @@ func (s *Store) ByUsername(v string) (*models.User, error) {
 	}
 	return &u, nil
 }
+
+func (s *Store) ListByRole(role models.Role) ([]models.User, error) {
+	var users []models.User
+	err := s.db.Where("role = ?", role).Find(&users).Error
+	return users, err
+}

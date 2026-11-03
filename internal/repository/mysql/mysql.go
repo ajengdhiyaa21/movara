@@ -9,5 +9,5 @@ type Store struct{ db *gorm.DB }
 
 func New(db *gorm.DB) *repository.Repos {
 	s := &Store{db: db}
-	return &repository.Repos{Users: s, Products: s, Outlets: s, Mutations: s, MutationEdits: s, Audits: s}
+	return &repository.Repos{Users: s, Chat: s, Products: s, Outlets: s, Mutations: s, MutationEdits: s, Audits: s}
 }

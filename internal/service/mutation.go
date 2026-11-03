@@ -65,10 +65,10 @@ func (s *MutationService) Period(outletID uint, categoryID *uint, q, direction s
 
 // Today mengembalikan mutasi hari ini (WIB) di satu outlet, terbaru di atas.
 func (s *MutationService) Today(outletID uint, q string) (*TodayResult, error) {
-	return s.ByDate(outletID, q, "")
+	return s.ByDate(outletID, nil, q, "")
 }
 
-func (s *MutationService) ByDate(outletID uint, q, date string) (*TodayResult, error) {
+func (s *MutationService) ByDate(outletID uint, categoryID *uint, q, date string) (*TodayResult, error) {
 	now := clock.Now()
 	if date != "" {
 		if parsed, e := time.ParseInLocation("2006-01-02", date, clock.WIB); e == nil {
@@ -76,7 +76,7 @@ func (s *MutationService) ByDate(outletID uint, q, date string) (*TodayResult, e
 		}
 	}
 	from, to := clock.DayBounds(now)
-	all, err := s.mutations.ListByOutletBetween(outletID, from, to)
+	all, err := s.mutations.ListByOutletBetween(outletID, categoryID, from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (s *MutationService) FindProductForUser(barcode string, u *models.User) (*m
 // DuplicateToday: berapa kali barkode ini sudah diinput hari ini di outlet tsb.
 func (s *MutationService) DuplicateToday(outletID uint, barcode string) (count, qty int) {
 	from, to := clock.DayBounds(clock.Now())
-	all, err := s.mutations.ListByOutletBetween(outletID, from, to)
+	all, err := s.mutations.ListByOutletBetween(outletID, nil, from, to)
 	if err != nil {
 		return 0, 0
 	}

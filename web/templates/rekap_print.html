@@ -1,41 +1,165 @@
 {{define "rekap_print.html"}}
 <!doctype html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8">
   <title>{{.Title}}</title>
   <style>
-    @page { size: landscape; margin: 12mm; }
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; color: #172033; font-size: 10px; margin: 0; }
-    h1 { font-size: 18px; margin: 0 0 4px; }
-    .meta { color: #64748b; margin-bottom: 14px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { border: 1px solid #cbd5e1; padding: 6px 5px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-    th { background: #e2e8f0; font-size: 9px; text-transform: uppercase; }
-    th:nth-child(1) { width: 4%; } th:nth-child(2) { width: 10%; } th:nth-child(3) { width: 14%; }
-    th:nth-child(4) { width: 13%; } th:nth-child(5) { width: 13%; } th:nth-child(6) { width: 8%; }
-    th:nth-child(7) { width: 25%; } th:nth-child(8) { width: 5%; } th:nth-child(9) { width: 8%; } th:nth-child(10) { width: 10%; }
-    .qty { text-align: right; }
-    .summary { margin-top: 10px; font-weight: bold; }
-    .actions { margin-bottom: 12px; }
-    button { padding: 7px 14px; cursor: pointer; }
-    @media print { .actions { display: none; } }
+    @page {
+      size: landscape;
+      margin: 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      color: #172033;
+      font-size: 10px;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 4px;
+    }
+
+    .meta {
+      color: #64748b;
+      margin-bottom: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 5px;
+      text-align: left;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: #e2e8f0;
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    th:nth-child(1) {
+      width: 4%;
+    }
+
+    th:nth-child(2) {
+      width: 10%;
+    }
+
+    th:nth-child(3) {
+      width: 14%;
+    }
+
+    th:nth-child(4) {
+      width: 13%;
+    }
+
+    th:nth-child(5) {
+      width: 13%;
+    }
+
+    th:nth-child(6) {
+      width: 8%;
+    }
+
+    th:nth-child(7) {
+      width: 25%;
+    }
+
+    th:nth-child(8) {
+      width: 5%;
+    }
+
+    th:nth-child(9) {
+      width: 8%;
+    }
+
+    th:nth-child(10) {
+      width: 10%;
+    }
+
+    .qty {
+      text-align: right;
+    }
+
+    .summary {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .actions {
+      margin-bottom: 12px;
+    }
+
+    button {
+      padding: 7px 14px;
+      cursor: pointer;
+    }
+
+    @media print {
+      .actions {
+        display: none;
+      }
+    }
   </style>
 </head>
+
 <body onload="setTimeout(function(){ window.print(); }, 300)">
-  <div class="actions"><button onclick="window.print()">Cetak / Simpan PDF</button> <button onclick="history.back()">Kembali</button></div>
+  <div class="actions"><button onclick="window.print()">Cetak / Simpan PDF</button> <button
+      onclick="history.back()">Kembali</button></div>
   <h1>Rekapitulasi Mutasi Barang</h1>
   <div class="meta">Periode: {{.Form.From}} s/d {{.Form.To}}{{if .Form.Q}} · Pencarian: {{.Form.Q}}{{end}}</div>
   <table>
-    <thead><tr><th>No</th><th>Outlet</th><th>Lokasi</th><th>Tgl &amp; Jam</th><th>Barkode</th><th>SKU/PLU</th><th>Nama Produk</th><th>Qty</th><th>PM</th><th>BA</th></tr></thead>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Outlet</th>
+        <th>Lokasi</th>
+        <th>Tgl &amp; Jam</th>
+        <th>Barkode</th>
+        <th>SKU/PLU</th>
+        <th>Nama Produk</th>
+        <th>Qty</th>
+        <th>PM</th>
+        <th>BA</th>
+      </tr>
+    </thead>
     <tbody>
       {{range $i, $m := .Rows}}
-      <tr><td>{{inc $i}}</td><td>{{$m.Outlet.Name}}</td><td>{{if eq $m.Direction "market_to_counter"}}Market → Konter{{else}}Konter → Market{{end}}</td><td>{{$m.CreatedAt.Format "02/01/2006 15:04"}}</td><td>{{$m.Barcode}}</td><td>{{$m.Code}}</td><td>{{$m.ProductName}}</td><td class="qty">{{$m.Qty}}</td><td>{{$m.User.Name}}</td><td>{{$m.BA}}</td></tr>
-      {{else}}<tr><td colspan="10">Tidak ada data pada periode ini.</td></tr>{{end}}
+      <tr>
+        <td>{{inc $i}}</td>
+        <td>{{$m.Outlet.Name}}</td>
+        <td>{{if eq $m.Direction "market_to_counter"}}Market → Konter{{else}}Konter → Market{{end}}</td>
+        <td>{{$m.CreatedAt.Format "02/01/2006 15:04"}}</td>
+        <td>{{$m.Barcode}}</td>
+        <td>{{$m.Code}}</td>
+        <td>{{$m.ProductName}}</td>
+        <td class="qty">{{$m.Qty}}</td>
+        <td>{{$m.User.Name}}</td>
+        <td>{{$m.BA}}</td>
+      </tr>
+      {{else}}<tr>
+        <td colspan="10">Tidak ada data pada periode ini.</td>
+      </tr>{{end}}
     </tbody>
   </table>
   <div class="summary">Total {{.Total}} transaksi · Total qty {{.TotalQty}} pcs</div>
 </body>
+
 </html>
 {{end}}

@@ -1,8 +1,97 @@
 {{define "content"}}
-<style>section table thead th:nth-child(3){font-size:0}section table thead th:nth-child(3)::after{content:"PLU/SKU";font-size:.75rem}</style>
-<div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Master Data</p><h1 class="mt-1 text-2xl font-bold tracking-tight">Master Data Produk</h1><p class="mt-1 text-sm text-slate-500">Daftar produk tersimpan per outlet dan kategori.</p></div><div class="flex flex-wrap gap-2"><a href="/master-data/import" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Import Excel</a><a href="/master-data/categories" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kategori</a><a href="/master-data/create" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+ Tambah Produk</a></div></div>
+<style>
+    section table thead th:nth-child(3) {
+        font-size: 0
+    }
+
+    section table thead th:nth-child(3)::after {
+        content: "PLU/SKU";
+        font-size: .75rem
+    }
+</style>
+<div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Master Data</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight">Master Data Produk</h1>
+        <p class="mt-1 text-sm text-slate-500">Daftar produk tersimpan per outlet dan kategori.</p>
+    </div>
+    <div class="flex flex-wrap gap-2"><a href="/master-data/import"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Import Excel</a><a
+            href="/master-data/categories"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kategori</a><a
+            href="/master-data/create" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+
+            Tambah Produk</a></div>
+</div>
 {{if .Message}}<div class="mt-5 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
-<form method="get" class="mt-7 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_180px_180px_150px_auto]"><input name="q" value="{{.Query}}" placeholder="Cari barcode, kode, atau nama produk" class="rounded-xl border px-3 py-2.5"><select name="outlet_id" class="rounded-xl border px-3 py-2.5"><option value="">Semua outlet</option>{{range .Outlets}}<option value="{{.ID}}" {{if eq (printf "%d" .ID) $.OutletID}}selected{{end}}>{{.Name}}</option>{{end}}</select><select name="category_id" class="rounded-xl border px-3 py-2.5"><option value="">Semua kategori</option>{{range .Categories}}<option value="{{.ID}}" {{if eq (printf "%d" .ID) $.CategoryID}}selected{{end}}>{{.Name}}</option>{{end}}</select><select name="per_page" class="rounded-xl border px-3 py-2.5"><option value="10" {{if eq .ProductPerPage 10}}selected{{end}}>10 data</option><option value="30" {{if eq .ProductPerPage 30}}selected{{end}}>30 data</option><option value="50" {{if eq .ProductPerPage 50}}selected{{end}}>50 data</option></select><button class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white">Terapkan</button></form>
-<section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><h2 class="font-semibold">Daftar Produk</h2><p class="mt-1 text-xs text-slate-500">{{.Total}} produk terdaftar</p></div></div><div class="overflow-x-auto"><table class="w-full min-w-[900px] text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Outlet</th><th class="px-3 py-3">Barcode</th><th class="px-3 py-3">Kode</th><th class="px-3 py-3">Nama Produk</th><th class="px-3 py-3">Kategori</th><th class="px-3 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Products}}<tr class="hover:bg-slate-50/70"><td class="px-5 py-4 font-medium">{{.Outlet.Name}}</td><td class="px-3 py-4 font-mono text-blue-600">{{.Barcode}}</td><td class="px-3 py-4 font-mono">{{.Code}}</td><td class="px-3 py-4">{{.Name}}</td><td class="px-3 py-4">{{if .Category}}<span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}-{{end}}</td><td class="px-3 py-4">{{if .IsActive}}<span class="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">Aktif</span>{{else}}<span class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">Nonaktif</span>{{end}}</td><td class="px-5 py-4"><div class="flex justify-end gap-2"><a href="/master-data/{{.ID}}/edit" class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700">Edit</a><form method="post" action="/master-data/{{.ID}}/deactivate" onsubmit="return confirm('{{if .IsActive}}Nonaktifkan{{else}}Aktifkan kembali{{end}} produk ini?')"><button class="rounded-lg border px-3 py-1.5 text-xs font-semibold">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></div></td></tr>{{else}}<tr><td colspan="7" class="px-5 py-10 text-center text-slate-400">Belum ada produk.</td></tr>{{end}}</tbody></table></div></section>
-<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"><div class="flex items-center gap-1"><a href="{{.ProductPrevURL}}" class="rounded-lg border px-3 py-1.5 {{if eq .ProductPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range .ProductPageNumbers}}{{if eq . $.ProductPage}}<span class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.}}</span>{{else}}<a href="{{call $.ProductPageURL .}}" class="rounded-lg border px-3 py-1.5">{{.}}</a>{{end}}{{end}}<a href="{{.ProductNextURL}}" class="rounded-lg border px-3 py-1.5 {{if ge .ProductPage .ProductPages}}pointer-events-none opacity-40{{end}}">›</a></div><span class="text-slate-500">Halaman {{.ProductPage}} dari {{.ProductPages}}</span></div>
+<form method="get"
+    class="mt-7 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_180px_180px_150px_auto]">
+    <input name="q" value="{{.Query}}" placeholder="Cari barcode, kode, atau nama produk"
+        class="rounded-xl border px-3 py-2.5"><select name="outlet_id" class="rounded-xl border px-3 py-2.5">
+        <option value="">Semua outlet</option>{{range .Outlets}}<option value="{{.ID}}" {{if eq (printf "%d" .ID)
+            $.OutletID}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select><select name="category_id" class="rounded-xl border px-3 py-2.5">
+        <option value="">Semua kategori</option>{{range .Categories}}<option value="{{.ID}}" {{if eq (printf "%d" .ID)
+            $.CategoryID}}selected{{end}}>{{.Name}}</option>{{end}}
+    </select><select name="per_page" class="rounded-xl border px-3 py-2.5">
+        <option value="10" {{if eq .ProductPerPage 10}}selected{{end}}>10 data</option>
+        <option value="30" {{if eq .ProductPerPage 30}}selected{{end}}>30 data</option>
+        <option value="50" {{if eq .ProductPerPage 50}}selected{{end}}>50 data</option>
+    </select><button class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white">Terapkan</button></form>
+<section class="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div>
+            <h2 class="font-semibold">Daftar Produk</h2>
+            <p class="mt-1 text-xs text-slate-500">{{.Total}} produk terdaftar</p>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px] text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-5 py-3">Outlet</th>
+                    <th class="px-3 py-3">Barcode</th>
+                    <th class="px-3 py-3">Kode</th>
+                    <th class="px-3 py-3">Nama Produk</th>
+                    <th class="px-3 py-3">Kategori</th>
+                    <th class="px-3 py-3">Status</th>
+                    <th class="px-5 py-3 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">{{range .Products}}<tr class="hover:bg-slate-50/70">
+                    <td class="px-5 py-4 font-medium">{{.Outlet.Name}}</td>
+                    <td class="px-3 py-4 font-mono text-blue-600">{{.Barcode}}</td>
+                    <td class="px-3 py-4 font-mono">{{.Code}}</td>
+                    <td class="px-3 py-4">{{.Name}}</td>
+                    <td class="px-3 py-4">{{if .Category}}<span
+                            class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}-{{end}}
+                    </td>
+                    <td class="px-3 py-4">{{if .IsActive}}<span
+                            class="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">Aktif</span>{{else}}<span
+                            class="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">Nonaktif</span>{{end}}
+                    </td>
+                    <td class="px-5 py-4">
+                        <div class="flex justify-end gap-2"><a href="/master-data/{{.ID}}/edit"
+                                class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700">Edit</a>
+                            <form method="post" action="/master-data/{{.ID}}/deactivate"
+                                onsubmit="return confirm('{{if .IsActive}}Nonaktifkan{{else}}Aktifkan kembali{{end}} produk ini?')">
+                                <button class="rounded-lg border px-3 py-1.5 text-xs font-semibold">{{if
+                                    .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form>
+                        </div>
+                    </td>
+                </tr>{{else}}<tr>
+                    <td colspan="7" class="px-5 py-10 text-center text-slate-400">Belum ada produk.</td>
+                </tr>{{end}}</tbody>
+        </table>
+    </div>
+</section>
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+    <div class="flex items-center gap-1"><a href="{{.ProductPrevURL}}"
+            class="rounded-lg border px-3 py-1.5 {{if eq .ProductPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range
+        .ProductPageNumbers}}{{if eq . $.ProductPage}}<span
+            class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.}}</span>{{else}}<a
+            href="{{call $.ProductPageURL .}}" class="rounded-lg border px-3 py-1.5">{{.}}</a>{{end}}{{end}}<a
+            href="{{.ProductNextURL}}"
+            class="rounded-lg border px-3 py-1.5 {{if ge .ProductPage .ProductPages}}pointer-events-none opacity-40{{end}}">›</a>
+    </div><span class="text-slate-500">Halaman {{.ProductPage}} dari {{.ProductPages}}</span>
+</div>
 {{end}}

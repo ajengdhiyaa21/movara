@@ -61,7 +61,12 @@
   <h2 class="font-semibold">Volume mutasi per outlet</h2>
   <p class="mt-0.5 text-sm text-slate-500">Mengikuti filter di atas, menampilkan 5 outlet terbesar.</p>
   {{if .Bars}}
-  <div class="mt-5 space-y-3">{{range .Bars}}<div class="flex items-center gap-4 text-sm"><span class="w-16 shrink-0 font-mono text-slate-600">{{.Label}}</span><div class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{.Color}}" style="width: {{.Pct}}%"></div></div><span class="w-20 shrink-0 text-right font-mono text-slate-700">{{num .Qty}} pcs</span></div>{{end}}</div>
+  <div class="mt-5 space-y-3">{{range .Bars}}<div class="flex items-center gap-4 text-sm"><span
+        class="w-16 shrink-0 font-mono text-slate-600">{{.Label}}</span>
+      <div class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div class="h-full rounded-full {{.Color}}" style="width: {{.Pct}}%"></div>
+      </div><span class="w-20 shrink-0 text-right font-mono text-slate-700">{{num .Qty}} pcs</span>
+    </div>{{end}}</div>
   {{else}}<p class="mt-5 text-sm text-slate-400">Belum ada data untuk periode ini.</p>{{end}}
 </section>
 
@@ -82,13 +87,16 @@
     <select name="direction" onchange="this.form.requestSubmit()" aria-label="Lokasi perpindahan"
       class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       <option value="">Semua lokasi</option>
-      <option value="counter_to_market" {{if eq .Form.Direction "counter_to_market"}}selected{{end}}>Konter ke Market</option>
-      <option value="market_to_counter" {{if eq .Form.Direction "market_to_counter"}}selected{{end}}>Market ke Konter</option>
+      <option value="counter_to_market" {{if eq .Form.Direction "counter_to_market" }}selected{{end}}>Konter ke Market
+      </option>
+      <option value="market_to_counter" {{if eq .Form.Direction "market_to_counter" }}selected{{end}}>Market ke Konter
+      </option>
     </select>
     <select name="category" onchange="this.form.requestSubmit()" aria-label="Kategori"
       class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       <option value="">Semua kategori</option>
-      {{range .Categories}}<option value="{{.ID}}" {{if eq .ID $.Form.CategoryID}}selected{{end}}>{{.Name}}</option>{{end}}
+      {{range .Categories}}<option value="{{.ID}}" {{if eq .ID $.Form.CategoryID}}selected{{end}}>{{.Name}}</option>
+      {{end}}
     </select>
     <div class="flex items-center gap-2 text-sm text-slate-500">
       <input type="date" name="from" value="{{.Form.From}}" onchange="this.form.requestSubmit()"
@@ -98,16 +106,25 @@
       <input type="date" name="to" value="{{.Form.To}}" onchange="this.form.requestSubmit()" aria-label="Sampai tanggal"
         class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
     </div>
-    <select name="per_page" class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="10" {{if eq .Form.PerPage 10}}selected{{end}}>10 data</option><option value="30" {{if eq .Form.PerPage 30}}selected{{end}}>30 data</option><option value="50" {{if eq .Form.PerPage 50}}selected{{end}}>50 data</option></select><button
+    <select name="per_page" class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">
+      <option value="10" {{if eq .Form.PerPage 10}}selected{{end}}>10 data</option>
+      <option value="30" {{if eq .Form.PerPage 30}}selected{{end}}>30 data</option>
+      <option value="50" {{if eq .Form.PerPage 50}}selected{{end}}>50 data</option>
+    </select><button
       class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-900">Terapkan</button>
   </div>
   <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
     <span class="text-slate-500">Periode:</span>
-    <button name="preset" value="today" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Hari ini</button>
-    <button name="preset" value="7d" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">7 hari</button>
-    <button name="preset" value="30d" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">30 hari</button>
-    <button name="preset" value="month" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Bulan ini</button>
-    <button name="preset" value="all" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Semua</button>
+    <button name="preset" value="today"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Hari ini</button>
+    <button name="preset" value="7d"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">7 hari</button>
+    <button name="preset" value="30d"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">30 hari</button>
+    <button name="preset" value="month"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Bulan ini</button>
+    <button name="preset" value="all"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Semua</button>
     <a href="/rekap" class="ml-auto text-slate-500 hover:text-slate-800">Reset filter</a>
   </div>
 </form>
@@ -148,7 +165,9 @@
           <td class="px-3 py-3.5 text-center font-mono text-xs font-medium text-blue-600">{{.Barcode}}</td>
           <td class="px-3 py-3.5 text-center font-mono text-xs text-slate-500">{{.Code}}</td>
           <td class="px-3 py-3.5 text-left text-slate-900">{{.ProductName}}</td>
-          <td class="px-3 py-3.5 text-center">{{if .Category}}<span class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}<span class="text-slate-300">—</span>{{end}}</td>
+          <td class="px-3 py-3.5 text-center">{{if .Category}}<span
+              class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}<span
+              class="text-slate-300">—</span>{{end}}</td>
           <td class="px-3 py-3.5 text-center font-semibold tabular-nums">{{.Qty}}</td>
           <td class="whitespace-nowrap px-3 py-3.5 text-center text-slate-500"><span class="font-mono text-xs">{{tgl
               .CreatedAt}}</span> <b class="font-mono text-xs text-slate-800">{{jam .CreatedAt}}</b></td>
@@ -162,11 +181,15 @@
               .User.Name}}</span></td>
           <td class="px-6 py-3.5 text-center text-slate-700">{{with .BA}}{{.}}{{else}}<span
               class="text-slate-300">&mdash;</span>{{end}}</td>
-          {{if eq $.User.Role "admin"}}<td class="action-cell flex items-center justify-center gap-2 px-6 py-3.5 print:hidden"><a
+          {{if eq $.User.Role "admin"}}<td
+            class="action-cell flex items-center justify-center gap-2 px-6 py-3.5 print:hidden"><a
               href="/rekap/mutasi/{{.ID}}/edit"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50" aria-label="Edit mutasi" title="Edit mutasi">{{template "i-edit"}}</a>
+              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50"
+              aria-label="Edit mutasi" title="Edit mutasi">{{template "i-edit"}}</a>
             <form class="inline-flex" method="post" action="/rekap/mutasi/{{.ID}}/delete" data-confirm-delete>
-              <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50" aria-label="Hapus mutasi" title="Hapus mutasi">{{template "i-trash"}}</button>
+              <button type="submit"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+                aria-label="Hapus mutasi" title="Hapus mutasi">{{template "i-trash"}}</button>
             </form>
           </td>{{end}}
         </tr>

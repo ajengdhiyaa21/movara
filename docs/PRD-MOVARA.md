@@ -128,7 +128,6 @@ PM dapat:
 - Menghubungi Admin.
 - Mengajukan produk yang belum terdaftar.
 - Mengajukan perpindahan outlet.
-- Mengubah profil dan password sendiri.
 
 PM tidak dapat:
 
@@ -137,6 +136,7 @@ PM tidak dapat:
 - Menginput produk di luar kategori akun PM.
 - Mengubah atau menghapus jurnal.
 - Mengelola master data.
+- Mengubah profil dan password sendiri.
 
 ## 6. Struktur Navigasi
 
@@ -156,9 +156,7 @@ PM tidak dapat:
 ### Navigasi PM
 
 - Dashboard/Input Mutasi.
-- Pengajuan Pindah Outlet.
 - Profil.
-- Ganti Password.
 
 ## 7. Kebutuhan Fungsional
 
@@ -526,4 +524,3 @@ Fitur dianggap selesai apabila:
 - Data audit tercatat dengan benar.
 - UI dapat digunakan pada desktop dan mobile.
 - Dokumentasi penggunaan dan deployment tersedia.
-

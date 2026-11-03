@@ -1,3 +1,25 @@
 {{define "content"}}
-<div class="mx-auto max-w-3xl"><div class="flex flex-wrap items-end justify-between gap-4"><div><a href="/kelola" class="text-sm font-medium text-blue-600">Kelola Outlet &amp; PM</a><h1 class="mt-2 text-2xl font-bold">Tambah Outlet</h1><p class="mt-1 text-sm text-slate-500">Tambahkan lokasi operasional baru.</p></div><a href="/kelola" class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">&larr; Kembali</a></div><form method="post" action="/kelola/outlet" class="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div class="grid gap-5"><label class="text-sm font-medium">Kode Outlet<input name="code" required placeholder="Contoh MK9" class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Nama Outlet<input name="name" required class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Tipe Outlet<select name="type" class="mt-2 w-full rounded-xl border px-3.5 py-3"><option>MK</option><option>MINI</option></select></label></div><div class="mt-6 flex justify-end gap-2"><a href="/kelola" class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Outlet</button></div></form></div>
+<div class="mx-auto max-w-3xl">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div><a href="/kelola" class="text-sm font-medium text-blue-600">Kelola Outlet &amp; PM</a>
+            <h1 class="mt-2 text-2xl font-bold">Tambah Outlet</h1>
+            <p class="mt-1 text-sm text-slate-500">Tambahkan lokasi operasional baru.</p>
+        </div><a href="/kelola"
+            class="inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">&larr;
+            Kembali</a>
+    </div>
+    <form method="post" action="/kelola/outlet" class="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="grid gap-5"><label class="text-sm font-medium">Kode Outlet<input name="code" required
+                    placeholder="Contoh MK9" class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label
+                class="text-sm font-medium">Nama Outlet<input name="name" required
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Tipe
+                Outlet<select name="type" class="mt-2 w-full rounded-xl border px-3.5 py-3">
+                    <option>MK</option>
+                    <option>MINI</option>
+                </select></label></div>
+        <div class="mt-6 flex justify-end gap-2"><a href="/kelola"
+                class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button
+                class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Outlet</button></div>
+    </form>
+</div>
 {{end}}

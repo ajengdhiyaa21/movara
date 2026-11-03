@@ -288,7 +288,7 @@ func (h *MutationHandler) history(c *gin.Context, u *models.User, q, date, direc
 }
 
 func (h *MutationHandler) historyPage(c *gin.Context, u *models.User, q, date, direction string, page, perPage int) (historyView, bool) {
-	res, err := h.svc.ByDate(*u.OutletID, q, date)
+	res, err := h.svc.ByDate(*u.OutletID, u.CategoryID, q, date)
 	if err != nil {
 		log.Printf("riwayat mutasi gagal: %v", err)
 		if c != nil {

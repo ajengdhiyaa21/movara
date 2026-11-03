@@ -87,11 +87,34 @@ func RequireRole(roles ...models.Role) gin.HandlerFunc {
 }
 
 // RequireOutlet: PM wajib punya outlet aktif sebelum bisa input mutasi.
-func RequireOutlet() gin.HandlerFunc {
+func RequireOutlet(outlets repository.Outlets) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		u := CurrentUser(c)
 		if u == nil || u.OutletID == nil {
 			c.String(http.StatusForbidden, "Akun Anda belum ditempatkan di outlet. Hubungi admin.")
+			c.Abort()
+			return
+		}
+		rows, err := outlets.List()
+		if err != nil {
+			c.String(http.StatusForbidden, "Outlet akun tidak dapat diverifikasi. Hubungi admin.")
+			c.Abort()
+			return
+		}
+		found := false
+		for _, outlet := range rows {
+			if outlet.ID == *u.OutletID {
+				found = true
+				if !outlet.IsActive {
+					c.String(http.StatusForbidden, "Outlet akun sedang nonaktif. Hubungi admin.")
+					c.Abort()
+					return
+				}
+				break
+			}
+		}
+		if !found {
+			c.String(http.StatusForbidden, "Outlet akun tidak ditemukan. Hubungi admin.")
 			c.Abort()
 			return
 		}

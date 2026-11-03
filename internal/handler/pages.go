@@ -20,6 +20,17 @@ type PageHandler struct {
 
 func NewPageHandler(r *Renderer, db *gorm.DB) *PageHandler { return &PageHandler{r: r, db: db} }
 
+// ChatPage renders the chat shell; messages are loaded through /chat JSON.
+func (h *PageHandler) ChatPage(c *gin.Context) {
+	var pmUsers []models.User
+	if middleware.CurrentUser(c).Role == models.RoleAdmin && h.db != nil {
+		h.db.Where("role = ?", models.RolePM).Preload("Outlet").Preload("Category").Order("id").Find(&pmUsers)
+	}
+	h.r.HTML(c, http.StatusOK, "chat.html", gin.H{
+		"Title": "Chat Internal", "Active": "chat", "PMUsers": pmUsers,
+	})
+}
+
 // TODO: tabel produk + search + pagination + import Excel/CSV.
 func (h *PageHandler) Master(c *gin.Context) {
 	h.r.HTML(c, http.StatusOK, "master.html", gin.H{"Title": "Master Data", "Active": "master"})
@@ -72,55 +83,6 @@ func (h *PageHandler) ToggleCategory(c *gin.Context) {
 func (h *PageHandler) Kelola(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/kelola/outlet")
 	return
-	/* legacy combined page retained below for compatibility */
-	var outlets []models.Outlet
-	var users []models.User
-	var transfers []models.OutletTransferRequest
-	var logs []models.AuditLog
-	var categories []models.ProductCategory
-	h.db.Order("id").Find(&outlets)
-	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
-	userPage, _ := strconv.Atoi(c.Query("user_page"))
-	if userPage < 1 {
-		userPage = 1
-	}
-	userPerPage, _ := strconv.Atoi(c.Query("user_per_page"))
-	if userPerPage != 10 && userPerPage != 30 && userPerPage != 50 {
-		userPerPage = 10
-	}
-	var userTotal int64
-	userDB := h.db.Model(&models.User{}).Where("role = ?", models.RolePM)
-	userDB.Count(&userTotal)
-	userPages := int((userTotal + int64(userPerPage) - 1) / int64(userPerPage))
-	if userPages > 0 && userPage > userPages {
-		userPage = userPages
-	}
-	userDB.Preload("Outlet").Preload("Category").Order("id").Find(&users)
-	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
-	page, _ := strconv.Atoi(c.Query("page"))
-	if page < 1 {
-		page = 1
-	}
-	var total int64
-	auditDate := c.Query("audit_date")
-	oneMonthAgo := time.Now().AddDate(0, -1, 0)
-	auditQuery := h.db.Model(&models.AuditLog{}).Where("created_at >= ?", oneMonthAgo)
-	if selected, err := time.ParseInLocation("2006-01-02", auditDate, time.Local); err == nil {
-		nextDay := selected.AddDate(0, 0, 1)
-		auditQuery = h.db.Model(&models.AuditLog{}).Where("created_at >= ? AND created_at < ?", selected, nextDay)
-	}
-	auditPerPage, _ := strconv.Atoi(c.Query("audit_per_page"))
-	if auditPerPage != 10 && auditPerPage != 30 && auditPerPage != 50 {
-		auditPerPage = 10
-	}
-	auditQuery.Count(&total)
-	auditPages := (int(total) + auditPerPage - 1) / auditPerPage
-	auditQuery.Order("created_at desc").Offset((page - 1) * auditPerPage).Limit(auditPerPage).Find(&logs)
-	auditPeriod := "1 bulan terakhir"
-	if _, err := time.ParseInLocation("2006-01-02", auditDate, time.Local); err == nil {
-		auditPeriod = "tanggal " + auditDate
-	}
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {

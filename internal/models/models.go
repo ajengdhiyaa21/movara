@@ -117,3 +117,32 @@ type AuditLog struct {
 	Detail    string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"index"`
 }
+
+// ChatConversation stores one shared Admin-PM conversation.
+type ChatConversation struct {
+	ID        uint      `gorm:"primaryKey"`
+	PMUserID  uint      `gorm:"not null;uniqueIndex"`
+	CreatedAt time.Time `gorm:"precision:6;not null"`
+	UpdatedAt time.Time `gorm:"precision:6;not null"`
+}
+
+// ChatMessage is immutable after creation in the MVP.
+type ChatMessage struct {
+	ID              uint      `gorm:"primaryKey"`
+	ConversationID  uint      `gorm:"not null;index:idx_chat_messages_conversation_id_id,priority:1;uniqueIndex:idx_chat_messages_client_id,priority:1"`
+	SenderUserID    uint      `gorm:"not null;index"`
+	ClientMessageID string    `gorm:"size:100;not null;uniqueIndex:idx_chat_messages_client_id,priority:2"`
+	Body            string    `gorm:"size:3000;not null"`
+	CreatedAt       time.Time `gorm:"precision:6;not null;index:idx_chat_messages_conversation_id_id,priority:2"`
+}
+
+// ChatReadState stores an individual user's monotonic read cursor.
+type ChatReadState struct {
+	ID                uint       `gorm:"primaryKey"`
+	ConversationID    uint       `gorm:"not null;uniqueIndex:idx_chat_read_states_conversation_user,priority:1"`
+	UserID            uint       `gorm:"not null;uniqueIndex:idx_chat_read_states_conversation_user,priority:2;index"`
+	LastReadMessageID *uint      `gorm:"index"`
+	LastReadAt        *time.Time `gorm:"precision:6"`
+	CreatedAt         time.Time  `gorm:"precision:6;not null"`
+	UpdatedAt         time.Time  `gorm:"precision:6;not null"`
+}

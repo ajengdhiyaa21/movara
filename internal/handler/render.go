@@ -105,6 +105,12 @@ func NewRenderer(adminWhatsApp string) (*Renderer, error) {
 	return r, nil
 }
 
+// NewTestRenderer creates a renderer without parsing production templates.
+// It is intended for router tests whose handlers return JSON.
+func NewTestRenderer() *Renderer {
+	return &Renderer{pages: map[string]*template.Template{}, adminWhatsApp: ""}
+}
+
 // WhatsAppURL membuat link wa.me dengan teks otomatis. Kosong jika nomor belum diatur.
 func (r *Renderer) WhatsAppURL(text string) string {
 	if r.adminWhatsApp == "" {

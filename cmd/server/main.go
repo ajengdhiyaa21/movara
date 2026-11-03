@@ -33,7 +33,7 @@ func main() {
 	}
 	repos := mysqlrepo.New(db)
 
-	engine, err := router.New(cfg, repos, db)
+	engine, chatHub, err := router.NewWithHub(cfg, repos, db)
 	if err != nil {
 		log.Fatalf("router: %v", err)
 	}
@@ -57,6 +57,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	chatHub.Shutdown()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("shutdown: %v", err)
 	}

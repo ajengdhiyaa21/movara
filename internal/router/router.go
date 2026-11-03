@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"io/fs"
 	"net/http"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"movara/internal/chat"
 	"movara/internal/config"
 	"movara/internal/handler"
 	"movara/internal/middleware"
@@ -19,6 +21,39 @@ import (
 )
 
 func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine, error) {
+	renderer, err := handler.NewRenderer(cfg.AdminWhatsApp)
+	if err != nil {
+		return nil, err
+	}
+	engine, _, err := NewWithRendererAndHub(cfg, repos, db, renderer, chat.NewDefaultHub())
+	return engine, err
+}
+
+// NewWithHub returns the engine and its hub for graceful server shutdown.
+func NewWithHub(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine, *chat.Hub, error) {
+	renderer, err := handler.NewRenderer(cfg.AdminWhatsApp)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewWithRendererAndHub(cfg, repos, db, renderer, chat.NewDefaultHub())
+}
+
+// NewWithRenderer keeps route construction testable without parsing the full
+// production template set.
+func NewWithRenderer(cfg *config.Config, repos *repository.Repos, db *gorm.DB, renderer *handler.Renderer) (*gin.Engine, error) {
+	engine, _, err := NewWithRendererAndHub(cfg, repos, db, renderer, chat.NewDefaultHub())
+	return engine, err
+}
+
+// NewWithRendererAndHub is used by the server lifecycle and tests so the hub
+// can be shut down together with the HTTP server.
+func NewWithRendererAndHub(cfg *config.Config, repos *repository.Repos, db *gorm.DB, renderer *handler.Renderer, chatHub *chat.Hub) (*gin.Engine, *chat.Hub, error) {
+	if renderer == nil {
+		return nil, nil, fmt.Errorf("renderer wajib tersedia")
+	}
+	if chatHub == nil {
+		return nil, nil, fmt.Errorf("chat hub wajib tersedia")
+	}
 	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -40,20 +75,17 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r.StaticFS("/static", http.FS(staticFS))
 
-	renderer, err := handler.NewRenderer(cfg.AdminWhatsApp)
-	if err != nil {
-		return nil, err
-	}
 	renderer.Demo = false
 
 	audit := service.NewAuditService(repos.Audits)
 	authSvc := service.NewAuthService(repos.Users)
 	mutSvc := service.NewMutationService(repos.Products, repos.Mutations, repos.MutationEdits, audit)
 	recapSvc := service.NewRecapService(repos.Mutations, repos.Outlets)
+	chatSvc := service.NewAuthorizedChatService(repos.Chat, repos.Users, chat.NewHubNotifier(chatHub, repos.Users))
 
 	authH := handler.NewAuthHandler(renderer, authSvc, audit)
 	pageH := handler.NewPageHandler(renderer, db)
@@ -61,6 +93,8 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 	productH.SetRenderer(renderer)
 	mutH := handler.NewMutationHandler(renderer, mutSvc)
 	recapH := handler.NewRecapHandler(renderer, recapSvc, audit, db)
+	chatH := handler.NewChatHandler(chatSvc)
+	chatWSH := handler.NewChatWebSocketHandler(chatHub, cfg.Port)
 
 	// Publik
 	r.GET("/login", authH.ShowLogin)
@@ -71,9 +105,17 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 	{
 		authed.GET("/", handler.Home)
 		authed.POST("/logout", authH.Logout)
+		chat := authed.Group("/chat", middleware.RequireRole(models.RoleAdmin, models.RolePM))
+		{
+			chat.GET("/page", pageH.ChatPage)
+			chat.GET("/ws", chatWSH.Serve)
+			chat.GET("", chatH.Index)
+			chat.POST("/messages", middleware.RequireCSRF(), chatH.SendMessage)
+			chat.POST("/read", middleware.RequireCSRF(), chatH.MarkRead)
+		}
 
 		// PM: input mutasi di outlet sendiri
-		pm := authed.Group("/", middleware.RequireRole(models.RolePM), middleware.RequireOutlet())
+		pm := authed.Group("/", middleware.RequireRole(models.RolePM), middleware.RequireOutlet(repos.Outlets))
 		{
 			pm.GET("/mutasi", mutH.Index)
 			pm.GET("/mutasi/input", mutH.Input)
@@ -135,5 +177,5 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 		}
 	}
 
-	return r, nil
+	return r, chatHub, nil
 }

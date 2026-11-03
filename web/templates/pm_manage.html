@@ -1,5 +1,53 @@
 {{define "content"}}
-<div class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-sm font-semibold text-blue-600">ADMINISTRATION</p><h1 class="mt-1 text-2xl font-bold tracking-tight">Kelola Akun PM</h1><p class="mt-2 text-sm text-slate-500">Kelola akun pramuniaga, outlet, kategori, dan status akses.</p></div><a href="/kelola/pm/create" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+ Tambah Akun PM</a></div>
+<div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <p class="text-sm font-semibold text-blue-600">ADMINISTRATION</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight">Kelola Akun PM</h1>
+        <p class="mt-2 text-sm text-slate-500">Kelola akun pramuniaga, outlet, kategori, dan status akses.</p>
+    </div><a href="/kelola/pm/create" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+
+        Tambah Akun PM</a>
+</div>
 {{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
-<section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div class="border-b border-slate-200 px-5 py-4"><h2 class="font-semibold">Daftar Akun PM</h2><p class="mt-1 text-sm text-slate-500">{{len .Users}} akun PM terdaftar.</p></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3">No</th><th class="px-5 py-3">Nama</th><th class="px-5 py-3">Username</th><th class="px-5 py-3">Outlet</th><th class="px-5 py-3">Kategori</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range $i, $u := .Users}}<tr class="hover:bg-slate-50"><td class="px-5 py-3">{{add $i 1}}</td><td class="px-5 py-3 font-medium">{{$u.Name}}</td><td class="px-5 py-3 font-mono text-xs">{{$u.Username}}</td><td class="px-5 py-3">{{if $u.Outlet}}{{$u.Outlet.Name}}{{else}}—{{end}}</td><td class="px-5 py-3">{{if $u.Category}}{{$u.Category.Name}}{{else}}—{{end}}</td><td class="px-5 py-3">{{if $u.IsActive}}<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Aktif</span>{{else}}<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Nonaktif</span>{{end}}</td><td class="px-5 py-3 text-right"><a href="/kelola/pm/{{$u.ID}}/edit" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium">Edit</a> <form method="post" action="/kelola/pm/{{$u.ID}}/deactivate" class="inline" data-confirm-action><button class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium">{{if $u.IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></td></tr>{{else}}<tr><td colspan="7" class="px-5 py-12 text-center text-slate-500">Belum ada akun PM.</td></tr>{{end}}</tbody></table></div></section>
+<section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 px-5 py-4">
+        <h2 class="font-semibold">Daftar Akun PM</h2>
+        <p class="mt-1 text-sm text-slate-500">{{len .Users}} akun PM terdaftar.</p>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+                <tr>
+                    <th class="px-5 py-3">No</th>
+                    <th class="px-5 py-3">Nama</th>
+                    <th class="px-5 py-3">Username</th>
+                    <th class="px-5 py-3">Outlet</th>
+                    <th class="px-5 py-3">Kategori</th>
+                    <th class="px-5 py-3">Status</th>
+                    <th class="px-5 py-3 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">{{range $i, $u := .Users}}<tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3">{{add $i 1}}</td>
+                    <td class="px-5 py-3 font-medium">{{$u.Name}}</td>
+                    <td class="px-5 py-3 font-mono text-xs">{{$u.Username}}</td>
+                    <td class="px-5 py-3">{{if $u.Outlet}}{{$u.Outlet.Name}}{{else}}—{{end}}</td>
+                    <td class="px-5 py-3">{{if $u.Category}}{{$u.Category.Name}}{{else}}—{{end}}</td>
+                    <td class="px-5 py-3">{{if $u.IsActive}}<span
+                            class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Aktif</span>{{else}}<span
+                            class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Nonaktif</span>{{end}}
+                    </td>
+                    <td class="px-5 py-3 text-right"><a href="/kelola/pm/{{$u.ID}}/edit"
+                            class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium">Edit</a>
+                        <form method="post" action="/kelola/pm/{{$u.ID}}/deactivate" class="inline" data-confirm-action>
+                            <button
+                                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium">{{if
+                                $u.IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button>
+                        </form>
+                    </td>
+                </tr>{{else}}<tr>
+                    <td colspan="7" class="px-5 py-12 text-center text-slate-500">Belum ada akun PM.</td>
+                </tr>{{end}}</tbody>
+        </table>
+    </div>
+</section>
 {{end}}

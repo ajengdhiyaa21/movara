@@ -35,7 +35,9 @@
           .Outlets}}<option value="{{.ID}}" {{if eq .ID $.PMOutletID}}selected{{end}}>{{.Name}}</option>
           {{end}}</select></label>
       <label class="block text-sm font-semibold text-slate-700">Kategori PM<select name="category_id" required
-          class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">{{range .Categories}}<option value="{{.ID}}" {{if and $.UserPM.Category (eq .ID $.UserPM.Category.ID)}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+          class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 font-normal focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">{{range
+          .Categories}}<option value="{{.ID}}" {{if and $.UserPM.Category (eq .ID
+            $.UserPM.Category.ID)}}selected{{end}}>{{.Name}}</option>{{end}}</select></label>
       <div class="sm:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <div class="flex items-start gap-3"><span class="mt-0.5 text-amber-600">●</span>
           <div class="w-full">

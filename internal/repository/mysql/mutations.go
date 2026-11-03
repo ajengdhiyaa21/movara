@@ -31,9 +31,13 @@ func (s *Store) ListByMutation(mutationID, outletID uint) ([]models.MutationEdit
 	return v, err
 }
 
-func (s *Store) ListByOutletBetween(id uint, from, to time.Time) ([]models.Mutation, error) {
+func (s *Store) ListByOutletBetween(id uint, categoryID *uint, from, to time.Time) ([]models.Mutation, error) {
 	var v []models.Mutation
-	err := s.db.Preload("Outlet").Preload("User").Preload("Category").Where("outlet_id = ? AND created_at >= ? AND created_at < ?", id, from, to).Order("created_at DESC").Order("id DESC").Find(&v).Error
+	q := s.db.Preload("Outlet").Preload("User").Preload("Category").Where("outlet_id = ? AND created_at >= ? AND created_at < ?", id, from, to)
+	if categoryID != nil {
+		q = q.Where("category_id = ?", *categoryID)
+	}
+	err := q.Order("created_at DESC").Order("id DESC").Find(&v).Error
 	return v, err
 }
 func (s *Store) Create(m *models.Mutation) error { return s.db.Create(m).Error }

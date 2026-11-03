@@ -1,0 +1,134 @@
+{{define "content"}}
+<section class="mx-auto max-w-6xl" data-chat-app data-role="{{.User.Role}}">
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[.18em] text-blue-600">Komunikasi internal</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">Chat MOVARA</h1>
+      <p class="mt-1 text-sm text-slate-500">Komunikasi langsung antara Admin dan Pramuniaga.</p>
+    </div>
+    <span class="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">Pesan tersimpan di sistem</span>
+  </div>
+
+  <div class="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
+    {{if eq .User.Role "admin"}}
+    <aside class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 class="text-sm font-semibold text-slate-900">Daftar PM</h2>
+      <p class="mt-1 text-xs text-slate-500">Pilih pramuniaga untuk membuka percakapan.</p>
+      <div class="mt-4 space-y-2" data-pm-list>
+        {{range .PMUsers}}
+        <button type="button" class="chat-pm-button w-full rounded-xl border border-slate-200 p-3 text-left transition hover:border-blue-300 hover:bg-blue-50" data-pm-id="{{.ID}}">
+          <span class="block text-sm font-semibold text-slate-800">{{.Name}}</span>
+          <span class="mt-1 block text-xs text-slate-500">{{if .Outlet}}{{.Outlet.Name}}{{else}}Outlet belum diatur{{end}}{{if .Category}} · {{.Category.Name}}{{end}}</span>
+        </button>
+        {{else}}
+        <p class="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">Belum ada akun PM.</p>
+        {{end}}
+      </div>
+    </aside>
+    {{end}}
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div>
+          <h2 class="font-semibold text-slate-900" data-chat-title>{{if eq .User.Role "pm"}}Percakapan dengan Admin{{else}}Pilih PM{{end}}</h2>
+          <p class="mt-1 text-xs text-slate-500" data-chat-subtitle>{{if eq .User.Role "pm"}}Riwayat komunikasi akun Anda.{{else}}Riwayat percakapan akan tampil di sini.{{end}}</p>
+        </div>
+        <span class="hidden rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700" data-chat-status>Terhubung</span>
+      </div>
+      <div class="chat-messages min-h-[24rem] max-h-[34rem] space-y-3 overflow-y-auto bg-slate-50/70 p-5" data-chat-messages>
+        <div class="grid min-h-[20rem] place-items-center text-center text-sm text-slate-400" data-chat-empty>Pilih percakapan untuk mulai melihat pesan.</div>
+      </div>
+      <div class="border-t border-slate-200 p-4">
+        <div class="mb-2 hidden rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700" data-chat-error role="alert"></div>
+        <form class="flex items-end gap-2" data-chat-form>
+          <textarea class="min-h-11 flex-1 resize-y rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100" name="body" rows="1" maxlength="3000" placeholder="Tulis pesan..." disabled required></textarea>
+          <button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled data-chat-submit>Kirim</button>
+        </form>
+        <p class="mt-2 text-[11px] text-slate-400">Maksimal 3.000 karakter. Isi pesan tidak dikirim sebelum tombol Kirim ditekan.</p>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script>
+(function () {
+  var app = document.querySelector('[data-chat-app]');
+  if (!app) return;
+  var role = app.dataset.role;
+  var conversationID = 0, csrfToken = '', loading = false, lastMessageID = 0;
+  var seenMessageIDs = {}, socket = null, reconnectTimer = null, reconnectDelay = 1000, pageClosing = false;
+  var messages = app.querySelector('[data-chat-messages]');
+  var empty = app.querySelector('[data-chat-empty]');
+  var form = app.querySelector('[data-chat-form]');
+  var body = form.querySelector('[name="body"]');
+  var submit = app.querySelector('[data-chat-submit]');
+  var errorBox = app.querySelector('[data-chat-error]');
+  var title = app.querySelector('[data-chat-title]');
+  var subtitle = app.querySelector('[data-chat-subtitle]');
+
+  function showError(message) { errorBox.textContent = message || 'Terjadi kesalahan. Silakan coba lagi.'; errorBox.classList.remove('hidden'); }
+  function clearError() { errorBox.textContent = ''; errorBox.classList.add('hidden'); }
+  function escapeHTML(value) { var el = document.createElement('div'); el.textContent = value == null ? '' : value; return el.innerHTML; }
+  function messageTime(value) { if (!value) return ''; var date = new Date(value); return isNaN(date) ? '' : date.toLocaleString('id-ID', {hour: '2-digit', minute: '2-digit'}); }
+  function render(items, replace) {
+    if (replace) seenMessageIDs = {};
+    (items || []).forEach(function (item) { if (item && item.id) seenMessageIDs[String(item.id)] = item; });
+    var rows = Object.keys(seenMessageIDs).map(function (id) { return seenMessageIDs[id]; }).sort(function (a, b) { return Number(a.id) - Number(b.id); });
+    if (!rows.length) { messages.innerHTML = '<div class="grid min-h-[20rem] place-items-center text-center text-sm text-slate-400">Belum ada pesan. Mulai percakapan ini.</div>'; return; }
+    lastMessageID = Number(rows[rows.length - 1].id) || lastMessageID;
+    messages.innerHTML = rows.map(function (item) {
+      var outgoing = item.sender_user_id && String(item.sender_user_id) === String({{.User.ID}});
+      return '<div data-message class="flex ' + (outgoing ? 'justify-end' : 'justify-start') + '"><div class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ' + (outgoing ? 'rounded-br-md bg-blue-600 text-white' : 'rounded-bl-md border border-slate-200 bg-white text-slate-700') + '"><p class="whitespace-pre-wrap break-words">' + escapeHTML(item.body) + '</p><span class="mt-1 block text-[10px] opacity-70">' + messageTime(item.created_at) + '</span></div></div>';
+    }).join('');
+    messages.scrollTop = messages.scrollHeight;
+  }
+  function setReady(ready) { body.disabled = !ready; submit.disabled = !ready; }
+  function markLatestRead(items) {
+    if (!items || !items.length || !conversationID || !csrfToken) return;
+    var latest = items[items.length - 1];
+    if (!latest || !latest.id) return;
+    fetch('/chat/read', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, body: JSON.stringify({conversation_id: conversationID, message_id: latest.id})}).catch(function () { /* read state is best effort */ });
+  }
+  function load(pmID) {
+    if (loading) return; loading = true; clearError(); setReady(false); conversationID = 0; lastMessageID = 0; seenMessageIDs = {};
+    var query = pmID ? '?pm_id=' + encodeURIComponent(pmID) : '';
+    fetch('/chat' + query, {headers: {'Accept': 'application/json'}}).then(function (response) {
+      return response.json().then(function (data) { if (!response.ok) throw new Error(data.error || 'Percakapan tidak dapat dimuat.'); return data; });
+    }).then(function (data) {
+      conversationID = data.conversation_id; csrfToken = data.csrf_token || ''; render(data.messages, true); markLatestRead(data.messages);
+      title.textContent = pmID ? (document.querySelector('[data-pm-id="' + pmID + '"] span') || {}).textContent || 'Percakapan' : 'Percakapan dengan Admin';
+      subtitle.textContent = 'Riwayat komunikasi tersimpan di sistem.'; setReady(Boolean(conversationID && csrfToken));
+    }).catch(function (err) { render([]); showError(err.message); }).finally(function () { loading = false; });
+  }
+  app.querySelectorAll('[data-pm-id]').forEach(function (button) { button.addEventListener('click', function () { app.querySelectorAll('[data-pm-id]').forEach(function (b) { b.classList.remove('border-blue-500', 'bg-blue-50'); }); button.classList.add('border-blue-500', 'bg-blue-50'); load(button.dataset.pmId); }); });
+  function syncCurrent() {
+    if (!conversationID) return Promise.resolve();
+    var query = '/chat?conversation_id=' + encodeURIComponent(conversationID);
+    if (lastMessageID) query += '&after_id=' + encodeURIComponent(lastMessageID);
+    return fetch(query, {headers: {'Accept': 'application/json'}}).then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.error || 'Sinkronisasi gagal.'); return data; }); }).then(function (data) { csrfToken = data.csrf_token || csrfToken; render(data.messages, false); });
+  }
+  function reconnect() {
+    if (pageClosing || reconnectTimer) return;
+    reconnectTimer = window.setTimeout(function () { reconnectTimer = null; connectSocket(); }, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+  }
+  function connectSocket() {
+    if (pageClosing || socket || !window.WebSocket) return;
+    socket = new WebSocket((window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/chat/ws');
+    socket.onopen = function () { reconnectDelay = 1000; syncCurrent().catch(function (err) { showError(err.message); }); };
+    socket.onmessage = function (event) { var data; try { data = JSON.parse(event.data); } catch (_) { return; } if (!data || data.type !== 'chat.message.created') return; var cid = Number(data.conversation_id), mid = Number(data.message_id); if (!Number.isInteger(cid) || !Number.isInteger(mid) || cid !== Number(conversationID) || mid <= lastMessageID) return; syncCurrent().catch(function (err) { showError(err.message); }); };
+    socket.onerror = function () { if (socket) socket.close(); };
+    socket.onclose = function () { socket = null; reconnect(); };
+  }
+  form.addEventListener('submit', function (event) {
+    event.preventDefault(); if (!conversationID || !csrfToken || loading || !body.value.trim()) return;
+    clearError(); submit.disabled = true; body.disabled = true;
+    var clientID = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 3 | 8); return v.toString(16); });
+    fetch('/chat/messages', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken}, body: JSON.stringify({conversation_id: conversationID, client_message_id: clientID, body: body.value})}).then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.error || 'Pesan gagal dikirim.'); return data; }); }).then(function (data) { var item = data.message; if (data.existing) return; var current = messages.querySelectorAll('[data-message]').length; if (current === 0) render([item]); else { var wrapper = document.createElement('div'); wrapper.setAttribute('data-message', ''); wrapper.className = 'flex justify-end'; wrapper.innerHTML = '<div class="max-w-[85%] rounded-2xl rounded-br-md bg-blue-600 px-4 py-2.5 text-sm text-white"><p class="whitespace-pre-wrap break-words">' + escapeHTML(item.body) + '</p><span class="mt-1 block text-[10px] opacity-70">' + messageTime(item.created_at) + '</span></div>'; messages.appendChild(wrapper); messages.scrollTop = messages.scrollHeight; } body.value = ''; }).catch(function (err) { showError(err.message); }).finally(function () { setReady(Boolean(conversationID && csrfToken)); });
+  });
+  window.addEventListener('beforeunload', function () { pageClosing = true; if (reconnectTimer) window.clearTimeout(reconnectTimer); if (socket) socket.close(); });
+  connectSocket();
+  if (role === 'pm') load('');
+})();
+</script>
+{{end}}

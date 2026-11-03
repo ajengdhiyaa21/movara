@@ -16,6 +16,7 @@ var ErrNotFound = errors.New("data tidak ditemukan")
 type Users interface {
 	ByID(id uint) (*models.User, error)
 	ByUsername(username string) (*models.User, error)
+	ListByRole(role models.Role) ([]models.User, error)
 }
 
 type Products interface {
@@ -45,7 +46,7 @@ type OutletTotal struct {
 
 type Mutations interface {
 	// ListByOutletBetween: from inklusif, to eksklusif. Terbaru di atas.
-	ListByOutletBetween(outletID uint, from, to time.Time) ([]models.Mutation, error)
+	ListByOutletBetween(outletID uint, categoryID *uint, from, to time.Time) ([]models.Mutation, error)
 	Create(m *models.Mutation) error
 
 	// Search: terbaru di atas. limit <= 0 berarti semua baris (untuk export).
@@ -67,6 +68,7 @@ type Audits interface {
 
 type Repos struct {
 	Users         Users
+	Chat          ChatRepository
 	Products      Products
 	Outlets       Outlets
 	Mutations     Mutations
