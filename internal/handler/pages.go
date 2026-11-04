@@ -7,7 +7,9 @@ import (
 	"movara/internal/clock"
 	"movara/internal/middleware"
 	"movara/internal/models"
+	"movara/internal/security"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -74,11 +76,10 @@ func (h *PageHandler) ToggleCategory(c *gin.Context) {
 
 // TODO: tab Outlet, Akun PM, Audit Log, persetujuan pindah outlet.
 func (h *PageHandler) Kelola(c *gin.Context) {
-	c.Redirect(http.StatusFound, "/kelola/outlet")
-	return
-	/* legacy combined page retained below for compatibility */
+	/* Halaman administrasi terpadu: akun, outlet, dan Aktivitas Aplikasi. */
 	var outlets []models.Outlet
 	var users []models.User
+	var managers []models.User
 	var transfers []models.OutletTransferRequest
 	var logs []models.AuditLog
 	var categories []models.ProductCategory
@@ -100,6 +101,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		userPage = userPages
 	}
 	userDB.Preload("Outlet").Preload("Category").Order("id").Find(&users)
+	h.db.Where("role = ?", models.RoleManager).Order("id").Find(&managers)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
@@ -109,6 +111,16 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	auditDate := c.Query("audit_date")
 	oneMonthAgo := clock.Now().AddDate(0, -1, 0)
 	auditQuery := h.db.Model(&models.AuditLog{}).Where("created_at >= ?", oneMonthAgo)
+	if q := strings.TrimSpace(c.Query("audit_q")); q != "" {
+		like := "%" + q + "%"
+		auditQuery = auditQuery.Where("detail LIKE ? OR action LIKE ?", like, like)
+	}
+	if role := strings.TrimSpace(c.Query("audit_role")); role != "" {
+		auditQuery = auditQuery.Joins("JOIN users audit_users ON audit_users.id = audit_logs.user_id").Where("audit_users.role = ?", role)
+	}
+	if outlet := strings.TrimSpace(c.Query("audit_outlet")); outlet != "" {
+		auditQuery = auditQuery.Where("audit_logs.outlet_id = ?", outlet)
+	}
 	if selected, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		nextDay := selected.AddDate(0, 0, 1)
 		auditQuery = h.db.Model(&models.AuditLog{}).Where("created_at >= ? AND created_at < ?", selected, nextDay)
@@ -119,12 +131,12 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	}
 	auditQuery.Count(&total)
 	auditPages := (int(total) + auditPerPage - 1) / auditPerPage
-	auditQuery.Order("created_at desc").Offset((page - 1) * auditPerPage).Limit(auditPerPage).Find(&logs)
+	auditQuery.Preload("User").Preload("User.Outlet").Order("audit_logs.created_at desc").Offset((page - 1) * auditPerPage).Limit(auditPerPage).Find(&logs)
 	auditPeriod := "1 bulan terakhir"
 	if _, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		auditPeriod = "tanggal " + auditDate
 	}
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "Message": c.Query("message")})
+	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {
@@ -198,7 +210,7 @@ func (h *PageHandler) AddPMForm(c *gin.Context) {
 	var categories []models.ProductCategory
 	h.db.Where("is_active = ?", true).Order("id").Find(&outlets)
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
-	h.r.HTML(c, http.StatusOK, "pm_create.html", gin.H{"Title": "Tambah Akun PM", "Active": "pm", "Outlets": outlets, "Categories": categories})
+	h.r.HTML(c, http.StatusOK, "pm_create.html", gin.H{"Title": "Tambah Akun", "Active": "kelola", "Outlets": outlets, "Categories": categories})
 }
 
 func (h *PageHandler) audit(c *gin.Context, action, detail string) {
@@ -222,28 +234,39 @@ func (h *PageHandler) AddOutlet(c *gin.Context) {
 }
 func (h *PageHandler) AddPM(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
+	role := models.Role(strings.TrimSpace(c.PostForm("role")))
+	if role != models.RoleManager {
+		role = models.RolePM
+	}
 	pass := c.PostForm("password")
 	if pass == "" {
 		pass = "admin123!"
 	}
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	u := models.User{Name: c.PostForm("name"), Username: c.PostForm("username"), PasswordHash: string(hash), Role: models.RolePM, IsActive: true}
-	if outlet > 0 {
-		x := uint(outlet)
-		u.OutletID = &x
-	}
-	if category, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64); category > 0 {
-		id := uint(category)
-		u.CategoryID = &id
-	}
-	if u.Name != "" && u.Username != "" && u.OutletID != nil && u.CategoryID != nil {
-		if err := h.db.Create(&u).Error; err != nil {
-			c.Redirect(302, "/kelola/pm?message=Akun+PM+gagal+disimpan")
+	cipherText, _ := security.EncryptPassword(os.Getenv("SESSION_SECRET"), pass)
+	u := models.User{Name: c.PostForm("name"), Username: c.PostForm("username"), PasswordHash: string(hash), Role: role, IsActive: true, PasswordCiphertext: cipherText}
+	if role == models.RolePM {
+		if outlet == 0 {
+			c.Redirect(302, "/kelola/pm?message=Outlet+wajib+untuk+pramuniaga")
 			return
 		}
-		h.audit(c, "pm_create", u.Username)
+		x := uint(outlet)
+		u.OutletID = &x
+		if category, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64); category > 0 {
+			id := uint(category)
+			u.CategoryID = &id
+		}
 	}
-	c.Redirect(302, "/kelola/pm?message=Akun+PM+diproses")
+	if u.Name == "" || u.Username == "" || (role == models.RolePM && u.CategoryID == nil) {
+		c.Redirect(302, "/kelola/pm?message=Data+akun+belum+lengkap")
+		return
+	}
+	if err := h.db.Create(&u).Error; err != nil {
+		c.Redirect(302, "/kelola/pm?message=Username+sudah+digunakan")
+		return
+	}
+	h.audit(c, "user_create", u.Username)
+	c.Redirect(302, "/kelola?message=Akun+berhasil+ditambahkan")
 }
 
 func (h *PageHandler) EditPM(c *gin.Context) {
@@ -292,6 +315,7 @@ func (h *PageHandler) UpdatePM(c *gin.Context) {
 		}
 		hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 		u.PasswordHash = string(hash)
+		u.PasswordCiphertext, _ = security.EncryptPassword(os.Getenv("SESSION_SECRET"), pass)
 	}
 	if err := h.db.Save(&u).Error; err != nil {
 		c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Username+sudah+digunakan")
@@ -407,4 +431,108 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/profile?message=Profil+berhasil+diperbarui")
+}
+
+func (h *PageHandler) AddManager(c *gin.Context) {
+	name, username, password := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username")), c.PostForm("password")
+	if name == "" || username == "" || len(password) < 8 {
+		c.Redirect(http.StatusFound, "/kelola?message=Data+Manager+belum+lengkap+atau+password+minimal+8+karakter")
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+diproses")
+		return
+	}
+	cipherText, err := security.EncryptPassword(os.Getenv("SESSION_SECRET"), password)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+dienkripsi")
+		return
+	}
+	u := models.User{Name: name, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, IsActive: true}
+	if err = h.db.Create(&u).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Username+Manager+sudah+digunakan")
+		return
+	}
+	h.audit(c, "manager_create", username)
+	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manager+berhasil+ditambahkan")
+}
+
+func (h *PageHandler) ResetManagerPassword(c *gin.Context) {
+	var u models.User
+	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+		return
+	}
+	password := c.PostForm("password")
+	if len(password) < 8 {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+minimal+8+karakter")
+		return
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+diproses")
+		return
+	}
+	cipherText, err := security.EncryptPassword(os.Getenv("SESSION_SECRET"), password)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+dienkripsi")
+		return
+	}
+	if err = h.db.Model(&u).Updates(map[string]interface{}{"password_hash": string(hash), "password_ciphertext": cipherText}).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+diubah")
+		return
+	}
+	h.audit(c, "manager_password_reset", u.Username)
+	c.Redirect(http.StatusFound, "/kelola?message=Password+Manager+berhasil+direset")
+}
+
+func (h *PageHandler) ToggleManager(c *gin.Context) {
+	var u models.User
+	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+		return
+	}
+	u.IsActive = !u.IsActive
+	if err := h.db.Model(&u).Update("is_active", u.IsActive).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Status+gagal+diubah")
+		return
+	}
+	h.audit(c, "manager_status", u.Username)
+	c.Redirect(http.StatusFound, "/kelola?message=Status+Manager+berhasil+diubah")
+}
+
+func (h *PageHandler) RevealLatestPassword(c *gin.Context) {
+	var u models.User
+	if h.db.Where("id = ? AND role IN ?", c.Param("id"), []models.Role{models.RolePM, models.RoleManager}).First(&u).Error != nil || u.PasswordCiphertext == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Password terbaru belum tersedia"})
+		return
+	}
+	password, err := security.DecryptPassword(os.Getenv("SESSION_SECRET"), u.PasswordCiphertext)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password tidak dapat dibuka"})
+		return
+	}
+	h.audit(c, "password_reveal", u.Username)
+	c.JSON(http.StatusOK, gin.H{"password": password})
+}
+
+func (h *PageHandler) UpdateManager(c *gin.Context) {
+	var u models.User
+	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+		return
+	}
+	name, username := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username"))
+	if name == "" || username == "" {
+		c.Redirect(http.StatusFound, "/kelola?message=Nama+dan+username+wajib+diisi")
+		return
+	}
+	u.Name, u.Username = name, username
+	if err := h.db.Save(&u).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message=Username+Manager+sudah+digunakan")
+		return
+	}
+	h.audit(c, "manager_update", u.Username)
+	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manager+berhasil+diperbarui")
 }

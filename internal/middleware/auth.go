@@ -98,3 +98,17 @@ func RequireOutlet() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// RequireSuperAdmin membatasi operasi sensitif ke akun admin.a.
+// Role admin saja tidak cukup karena admin.b juga memiliki RoleAdmin.
+func RequireSuperAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		u := CurrentUser(c)
+		if u == nil || u.Role != models.RoleAdmin || u.Username != "admin.a" {
+			c.String(http.StatusForbidden, "Fitur ini hanya tersedia untuk Super Admin.")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

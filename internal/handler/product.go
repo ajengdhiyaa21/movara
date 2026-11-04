@@ -109,6 +109,23 @@ func (h *ProductHandler) ImportForm(c *gin.Context) {
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
 	h.r.HTML(c, http.StatusOK, "product_import.html", gin.H{"Title": "Import Produk", "Active": "master", "Outlets": outlets, "Categories": categories})
 }
+func (h *ProductHandler) duplicateProduct(outlet, exclude uint, p models.Product) string {
+	q := h.db.Where("outlet_id = ? AND (barcode = ? OR code = ? OR name = ?)", outlet, p.Barcode, p.Code, p.Name)
+	if exclude > 0 {
+		q = q.Where("id <> ?", exclude)
+	}
+	var existing models.Product
+	if q.First(&existing).Error != nil {
+		return ""
+	}
+	if existing.Barcode == p.Barcode {
+		return "barcode"
+	}
+	if existing.Code == p.Code {
+		return "plu/sku"
+	}
+	return "nama produk"
+}
 func (h *ProductHandler) Create(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
 	category, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
@@ -122,7 +139,15 @@ func (h *ProductHandler) Create(c *gin.Context) {
 		p.CategoryID = &id
 	}
 	if p.Barcode == "" || p.Code == "" || p.Name == "" {
+		if len(p.Code) < 6 {
+			c.Redirect(302, "/master-data?message=PLU%2FSKU+minimal+6+karakter")
+			return
+		}
 		c.Redirect(302, "/master-data?message=Semua+field+wajib+diisi")
+		return
+	}
+	if duplicate := h.duplicateProduct(uint(outlet), 0, p); duplicate != "" {
+		c.Redirect(302, "/master-data?message="+url.QueryEscape("Produk ditolak: "+duplicate+" sudah tersedia di master pada outlet yang sama"))
 		return
 	}
 	if err := h.db.Create(&p).Error; err != nil {
@@ -175,7 +200,15 @@ func (h *ProductHandler) Update(c *gin.Context) {
 		p.OutletID = uint(outlet)
 	}
 	if p.Barcode == "" || p.Code == "" || p.Name == "" {
+		if len(p.Code) < 6 {
+			c.Redirect(302, "/master-data?message=PLU%2FSKU+minimal+6+karakter")
+			return
+		}
 		c.Redirect(302, "/master-data?message=Semua+field+wajib+diisi")
+		return
+	}
+	if duplicate := h.duplicateProduct(p.OutletID, p.ID, p); duplicate != "" {
+		c.Redirect(http.StatusFound, "/master-data?message="+url.QueryEscape("Perubahan ditolak: "+duplicate+" sudah tersedia di master pada outlet yang sama"))
 		return
 	}
 	if err := h.db.Save(&p).Error; err != nil {
@@ -218,8 +251,18 @@ func (h *ProductHandler) Deactivate(c *gin.Context) {
 }
 func (h *ProductHandler) Import(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
+	defaultCategory, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
 	if outlet == 0 {
 		c.Redirect(302, "/master-data?message=Pilih+outlet+untuk+import")
+		return
+	}
+	if defaultCategory == 0 {
+		c.Redirect(302, "/master-data?message=Pilih+kategori+default+untuk+import")
+		return
+	}
+	var defaultCategoryRow models.ProductCategory
+	if err := h.db.Where("id = ? AND is_active = ?", defaultCategory, true).First(&defaultCategoryRow).Error; err != nil {
+		c.Redirect(302, "/master-data?message=Kategori+default+tidak+valid+atau+nonaktif")
 		return
 	}
 	f, e := c.FormFile("file")
@@ -248,13 +291,23 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		c.Redirect(302, "/master-data?message=Excel+tidak+bisa+dibaca")
 		return
 	}
-	n := 0
+	n, updated, skipped := 0, 0, 0
+	var errors []string
 	for i, row := range rows {
-		if i == 0 || len(row) < 3 {
+		line := i + 1
+		if i == 0 {
+			continue
+		}
+		if len(row) == 0 || (len(row) >= 3 && strings.TrimSpace(row[0]) == "" && strings.TrimSpace(row[1]) == "" && strings.TrimSpace(row[2]) == "") {
+			continue
+		}
+		if len(row) < 3 {
+			skipped++
+			errors = append(errors, fmt.Sprintf("baris %d: kolom wajib tidak lengkap", line))
 			continue
 		}
 		p := models.Product{Barcode: strings.TrimSpace(row[0]), Code: strings.TrimSpace(row[1]), Name: strings.TrimSpace(row[2]), IsActive: true, OutletID: uint(outlet)}
-		var categoryID uint
+		categoryID := uint(defaultCategory)
 		categoryValue := ""
 		if len(row) >= 4 && strings.TrimSpace(row[3]) != "" {
 			var rowCategory models.ProductCategory
@@ -267,18 +320,80 @@ func (h *ProductHandler) Import(c *gin.Context) {
 			}
 			if lookup.First(&rowCategory).Error == nil {
 				categoryID = rowCategory.ID
+			} else {
+				categoryID = 0
 			}
 		}
 		if p.Barcode == "" || p.Code == "" || p.Name == "" || categoryID == 0 {
+			if len(p.Code) < 6 {
+				skipped++
+				errors = append(errors, fmt.Sprintf("baris %d: PLU/SKU minimal 6 karakter", line))
+				continue
+			}
+			skipped++
+			missing := make([]string, 0, 4)
+			if p.Barcode == "" {
+				missing = append(missing, "barcode")
+			}
+			if p.Code == "" {
+				missing = append(missing, "plu_sku/kode")
+			}
+			if p.Name == "" {
+				missing = append(missing, "nama_produk")
+			}
+			if categoryID == 0 {
+				missing = append(missing, "kategori valid")
+			}
+			errors = append(errors, fmt.Sprintf("baris %d: %s", line, strings.Join(missing, ", ")))
 			continue
 		}
 		p.CategoryID = &categoryID
-		if err = h.db.Where("barcode = ? AND outlet_id = ?", p.Barcode, outlet).Assign(map[string]interface{}{"code": p.Code, "name": p.Name, "category_id": categoryID, "is_active": true, "outlet_id": outlet}).FirstOrCreate(&p).Error; err == nil {
+		duplicateID := uint(0)
+		var existing models.Product
+		findErr := h.db.Where("barcode = ? AND outlet_id = ?", p.Barcode, outlet).First(&existing).Error
+		if findErr == nil {
+			duplicateID = existing.ID
+		}
+		if duplicate := h.duplicateProduct(uint(outlet), duplicateID, p); duplicate != "" {
+			skipped++
+			errors = append(errors, fmt.Sprintf("baris %d: %s sudah tersedia di master pada outlet yang sama", line, duplicate))
+			continue
+		}
+		if findErr == nil {
+			err = h.db.Model(&existing).Updates(map[string]interface{}{"code": p.Code, "name": p.Name, "category_id": categoryID, "is_active": true}).Error
+			if err == nil {
+				p = existing
+				p.Code, p.Name, p.CategoryID, p.IsActive = strings.TrimSpace(row[1]), strings.TrimSpace(row[2]), &categoryID, true
+				updated++
+			}
+		} else if findErr == gorm.ErrRecordNotFound {
+			err = h.db.Create(&p).Error
+		} else {
+			err = findErr
+		}
+		if err == nil {
 			n++
 			h.resolvePending(c, &p)
+		} else {
+			skipped++
+			errors = append(errors, fmt.Sprintf("baris %d: gagal disimpan (%s)", line, err.Error()))
 		}
 	}
-	c.Redirect(302, "/master-data?message="+url.QueryEscape(fmt.Sprintf("%d produk berhasil diimport", n)))
+	message := fmt.Sprintf("Import selesai: %d berhasil, %d dilewati", n, skipped)
+	if updated > 0 {
+		message += fmt.Sprintf(" (%d diperbarui)", updated)
+	}
+	if len(errors) > 0 {
+		limit := len(errors)
+		if limit > 5 {
+			limit = 5
+		}
+		message += ". Detail: " + strings.Join(errors[:limit], "; ")
+		if len(errors) > limit {
+			message += fmt.Sprintf("; dan %d error lainnya", len(errors)-limit)
+		}
+	}
+	c.Redirect(302, "/master-data?message="+url.QueryEscape(message))
 }
 
 // Lookup dipanggil saat scanner menekan Enter di kolom barkode.

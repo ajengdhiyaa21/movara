@@ -108,8 +108,9 @@
       return;
     }
     if (e.target.closest('[data-toggle-password]')) {
-      var p = $('#password');
-      p.type = p.type === 'password' ? 'text' : 'password';
+      var wrapper = e.target.closest('.relative') || e.target.parentElement;
+      var p = wrapper ? wrapper.querySelector('input[type=password], input[type=text]') : document.querySelector('#password');
+      if (p) { p.type = p.type === 'password' ? 'text' : 'password'; }
     }
   });
 
@@ -216,3 +217,13 @@
   });
   document.body.addEventListener('htmx:afterRequest', function (e) { if (e.detail && e.detail.xhr && e.detail.xhr.getResponseHeader('HX-Trigger') === 'mutation-edit-saved') modal('mutation-edit-modal', false); });
 })();
+
+document.addEventListener("click", async function (e) {
+  var button = e.target.closest("[data-reveal-password]");
+  if (!button) return;
+  var id = button.getAttribute("data-reveal-password");
+  var value = document.querySelector("[data-password-value=\"" + id + "\"]");
+  if (!value) return;
+  if (value.dataset.revealed === "true") { value.textContent = "••••••••"; value.dataset.revealed = "false"; return; }
+  try { var response = await fetch("/kelola/account/" + id + "/password", {credentials: "same-origin"}); var data = await response.json(); if (!response.ok) throw new Error(data.error || "Gagal membuka password"); value.textContent = data.password; value.dataset.revealed = "true"; } catch (err) { window.alert(err.message); }
+});

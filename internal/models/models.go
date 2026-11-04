@@ -29,28 +29,29 @@ type ProductCategory struct {
 }
 
 type User struct {
-	ID           uint   `gorm:"primaryKey"`
-	Name         string `gorm:"size:100;not null"`
-	Username     string `gorm:"size:50;uniqueIndex;not null"`
-	PasswordHash string `gorm:"size:100;not null"`
-	Role         Role   `gorm:"size:20;not null;index"`
-	OutletID     *uint  `gorm:"index"` // wajib untuk PM
-	Outlet       *Outlet
-	CategoryID   *uint `gorm:"index"`
-	Category     *ProductCategory
-	IsActive     bool `gorm:"not null;default:true"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID                 uint   `gorm:"primaryKey"`
+	Name               string `gorm:"size:100;not null"`
+	Username           string `gorm:"size:50;uniqueIndex;not null"`
+	PasswordHash       string `gorm:"size:100;not null"`
+	PasswordCiphertext string `gorm:"size:512"`
+	Role               Role   `gorm:"size:20;not null;index"`
+	OutletID           *uint  `gorm:"index"` // wajib untuk PM
+	Outlet             *Outlet
+	CategoryID         *uint `gorm:"index"`
+	Category           *ProductCategory
+	IsActive           bool `gorm:"not null;default:true"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // Barcode & Code bertipe string: ada kode berawalan nol (mis. 070068).
 type Product struct {
 	ID         uint   `gorm:"primaryKey"`
-	Barcode    string `gorm:"size:20;not null;uniqueIndex:idx_product_outlet_barcode,priority:2"`
-	Code       string `gorm:"size:30;index;not null"`
-	Name       string `gorm:"size:255;not null"`
+	Barcode    string `gorm:"size:20;not null;uniqueIndex:idx_product_outlet_barcode,priority:2;uniqueIndex:idx_product_outlet_code,priority:2;uniqueIndex:idx_product_outlet_name,priority:2"`
+	Code       string `gorm:"size:30;index;not null;uniqueIndex:idx_product_outlet_code,priority:3"`
+	Name       string `gorm:"size:255;not null;uniqueIndex:idx_product_outlet_name,priority:3"`
 	IsActive   bool   `gorm:"not null;default:true"`
-	OutletID   uint   `gorm:"not null;uniqueIndex:idx_product_outlet_barcode,priority:1"`
+	OutletID   uint   `gorm:"not null;uniqueIndex:idx_product_outlet_barcode,priority:1;uniqueIndex:idx_product_outlet_code,priority:1;uniqueIndex:idx_product_outlet_name,priority:1"`
 	Outlet     Outlet
 	CategoryID *uint `gorm:"index"`
 	Category   *ProductCategory
@@ -110,9 +111,10 @@ type OutletTransferRequest struct {
 }
 
 type AuditLog struct {
-	ID        uint      `gorm:"primaryKey"`
-	UserID    *uint     `gorm:"index"`
-	OutletID  *uint     `gorm:"index"`
+	ID        uint  `gorm:"primaryKey"`
+	UserID    *uint `gorm:"index"`
+	OutletID  *uint `gorm:"index"`
+	User      *User
 	Action    string    `gorm:"size:50;not null"`
 	Detail    string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"index"`

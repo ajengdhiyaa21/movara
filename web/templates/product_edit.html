@@ -29,7 +29,7 @@
         <input name="barcode" required value="{{.Product.Barcode}}" inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       </label>
       <label class="block text-sm font-medium text-slate-700">PLU/SKU
-        <input name="code" required value="{{.Product.Code}}" class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+        <input name="code" required minlength="6" value="{{.Product.Code}}" class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 font-mono text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       </label>
       <label class="block text-sm font-medium text-slate-700 md:col-span-2">Nama Produk Resmi
         <input name="name" required value="{{.Product.Name}}" class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
