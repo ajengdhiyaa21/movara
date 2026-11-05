@@ -24,7 +24,8 @@
       if (q) { q.focus(); q.select(); }
     } else {
       var b = $('#barcode');
-      if (b) { b.focus(); b.select(); }
+      var mode = $('#barcode-mode');
+      if (b && (!mode || mode.value === 'scanner')) { b.focus(); b.select(); }
     }
   }
 
@@ -170,6 +171,8 @@
       }, 350);
     }
     if (!e.target || e.target.id !== 'barcode') return;
+    var barcodeMode = $('#barcode-mode');
+    if (barcodeMode && barcodeMode.value === 'manual') return;
     clearTimeout(scanTimer);
     var delay = 180;
     scanTimer = setTimeout(function () { lookupBarcode(e.target); }, delay);
@@ -196,7 +199,21 @@
   });
 
   var barcode = $('#barcode');
-  if (barcode) barcode.focus();
+  var barcodeMode = $('#barcode-mode');
+  function updateBarcodePlaceholder() {
+    var input = $('#barcode');
+    var mode = $('#barcode-mode');
+    if (input && mode) input.placeholder = mode.value === 'manual' ? 'Ketik barcode lalu tekan Enter' : 'Arahkan scanner ke barcode';
+  }
+  updateBarcodePlaceholder();
+  if (barcode && (!barcodeMode || barcodeMode.value === 'scanner')) barcode.focus();
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.id === 'barcode-mode') {
+      updateBarcodePlaceholder();
+      var input = $('#barcode');
+      if (e.target.value === 'scanner' && input) { input.focus(); input.select(); }
+    }
+  });
   refreshDirectionToggle();
 
   // Paksa validasi ulang saat browser mengembalikan halaman dari back-forward cache.
@@ -226,4 +243,22 @@ document.addEventListener("click", async function (e) {
   if (!value) return;
   if (value.dataset.revealed === "true") { value.textContent = "••••••••"; value.dataset.revealed = "false"; return; }
   try { var response = await fetch("/kelola/account/" + id + "/password", {credentials: "same-origin"}); var data = await response.json(); if (!response.ok) throw new Error(data.error || "Gagal membuka password"); value.textContent = data.password; value.dataset.revealed = "true"; } catch (err) { window.alert(err.message); }
+});
+
+// Perbarui badge pengajuan produk tanpa menunggu admin me-refresh halaman.
+document.addEventListener('DOMContentLoaded', function () {
+  var badge = document.getElementById('product-request-badge');
+  if (!badge) return;
+  var refreshProductRequestBadge = function () {
+    fetch('/notifications/product-requests', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (!data) return;
+        var pending = Number(data.pending || 0);
+        badge.textContent = pending > 99 ? '99+' : String(pending);
+        badge.style.display = pending > 0 ? 'inline-flex' : 'none';
+      }).catch(function () {});
+  };
+  refreshProductRequestBadge();
+  window.setInterval(refreshProductRequestBadge, 15000);
 });

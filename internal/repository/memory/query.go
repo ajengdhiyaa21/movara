@@ -104,21 +104,23 @@ func (s *Store) QtyByOutlet(f repository.MutationFilter) ([]repository.OutletTot
 	defer s.mu.RUnlock()
 	q := strings.ToLower(strings.TrimSpace(f.Query))
 	sums := map[uint]int{}
+	counts := map[uint]int{}
 	for i := range s.mutations {
 		if matches(&s.mutations[i], f, q) {
 			sums[s.mutations[i].OutletID] += s.mutations[i].Qty
+			counts[s.mutations[i].OutletID]++
 		}
 	}
 	out := make([]repository.OutletTotal, 0, len(sums))
 	for id, qty := range sums {
 		o := s.outlets[id]
-		out = append(out, repository.OutletTotal{OutletID: id, Code: o.Code, Name: o.Name, Qty: qty})
+		out = append(out, repository.OutletTotal{OutletID: id, Code: o.Code, Name: o.Name, Qty: qty, Count: counts[id]})
 	}
 	sort.Slice(out, func(i, j int) bool {
-		if out[i].Qty == out[j].Qty {
+		if out[i].Count == out[j].Count {
 			return out[i].OutletID < out[j].OutletID
 		}
-		return out[i].Qty > out[j].Qty
+		return out[i].Count > out[j].Count
 	})
 	return out, nil
 }

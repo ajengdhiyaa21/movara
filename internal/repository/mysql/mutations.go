@@ -18,10 +18,11 @@ func (s *Store) UpdateQty(mutationID, outletID, userID uint, qty int, now time.T
 		if m.Qty == qty {
 			return nil
 		}
+		oldQty := m.Qty
 		if err := tx.Model(&m).Update("qty", qty).Error; err != nil {
 			return err
 		}
-		return tx.Create(&models.MutationEditLog{MutationID: m.ID, UserID: userID, OldQty: m.Qty, NewQty: qty, CreatedAt: now}).Error
+		return tx.Create(&models.MutationEditLog{MutationID: m.ID, UserID: userID, OldQty: oldQty, NewQty: qty, CreatedAt: now}).Error
 	})
 }
 
@@ -85,16 +86,17 @@ func (s *Store) QtyByOutlet(f repository.MutationFilter) ([]repository.OutletTot
 		OutletID   uint
 		Code, Name string
 		Qty        int
+		Count      int
 	}
 	var rows []row
-	q := s.db.Table("mutations").Select("mutations.outlet_id, outlets.code, outlets.name, SUM(mutations.qty) AS qty").Joins("JOIN outlets ON outlets.id = mutations.outlet_id")
+	q := s.db.Table("mutations").Select("mutations.outlet_id, outlets.code, outlets.name, SUM(mutations.qty) AS qty, COUNT(mutations.id) AS count").Joins("JOIN outlets ON outlets.id = mutations.outlet_id")
 	q = applyMutationFilter(q, f)
-	if err := q.Group("mutations.outlet_id, outlets.code, outlets.name").Order("qty DESC").Scan(&rows).Error; err != nil {
+	if err := q.Group("mutations.outlet_id, outlets.code, outlets.name").Order("count DESC").Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]repository.OutletTotal, 0, len(rows))
 	for _, r := range rows {
-		out = append(out, repository.OutletTotal{OutletID: r.OutletID, Code: r.Code, Name: r.Name, Qty: r.Qty})
+		out = append(out, repository.OutletTotal{OutletID: r.OutletID, Code: r.Code, Name: r.Name, Qty: r.Qty, Count: r.Count})
 	}
 	return out, nil
 }

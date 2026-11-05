@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"movara/internal/clock"
 	"movara/internal/middleware"
@@ -74,6 +75,20 @@ var funcs = template.FuncMap{
 		}
 		return string(r)
 	},
+	"auditLabel": func(action string) string {
+		labels := map[string]string{
+			"product_request_create":  "Pengajuan produk baru",
+			"product_request_approve": "Produk baru disetujui",
+			"product_request_reject":  "Pengajuan produk baru ditolak",
+			"mutation_qty_update":     "Perubahan jumlah mutasi",
+			"product_activate":        "Produk diaktifkan",
+			"product_deactivate":      "Produk dinonaktifkan",
+		}
+		if label, ok := labels[action]; ok {
+			return label
+		}
+		return action
+	},
 }
 
 // Renderer menyimpan satu template set per halaman (layout + ikon + halaman),
@@ -81,15 +96,16 @@ var funcs = template.FuncMap{
 type Renderer struct {
 	pages         map[string]*template.Template
 	adminWhatsApp string
+	db            *gorm.DB
 	Demo          bool // true selama masih memakai data contoh
 }
 
-func NewRenderer(adminWhatsApp string) (*Renderer, error) {
+func NewRenderer(adminWhatsApp string, db *gorm.DB) (*Renderer, error) {
 	entries, err := fs.ReadDir(web.Templates, "templates")
 	if err != nil {
 		return nil, err
 	}
-	r := &Renderer{pages: map[string]*template.Template{}, adminWhatsApp: digitsOnly(adminWhatsApp)}
+	r := &Renderer{pages: map[string]*template.Template{}, adminWhatsApp: digitsOnly(adminWhatsApp), db: db}
 	for _, e := range entries {
 		name := e.Name()
 		if e.IsDir() || sharedTemplates[name] || !strings.HasSuffix(name, ".html") {
@@ -130,6 +146,13 @@ func (r *Renderer) prepare(c *gin.Context, page string, data gin.H) (*template.T
 	data["Demo"] = r.Demo
 	data["Year"] = clock.Now().Year()
 	data["CSRFToken"] = middleware.CSRFToken(c)
+	var pending int64
+	if r.db != nil {
+		if user, ok := data["User"].(*models.User); ok && user != nil && user.Role == models.RoleAdmin {
+			r.db.Model(&models.ProductRequest{}).Where("status = ?", "pending").Count(&pending)
+		}
+	}
+	data["PendingProductRequests"] = pending
 	return t, data, true
 }
 

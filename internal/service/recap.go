@@ -3,7 +3,6 @@ package service
 import (
 	"time"
 
-	"movara/internal/clock"
 	"movara/internal/models"
 	"movara/internal/repository"
 )
@@ -26,6 +25,7 @@ type RecapQuery struct {
 	From, To      time.Time // To eksklusif; zero = tanpa batas
 	Q             string
 	Page, PerPage int
+	All           bool
 }
 
 func (q RecapQuery) filter() repository.MutationFilter {
@@ -66,6 +66,16 @@ func (s *RecapService) Search(q RecapQuery) (*RecapResult, error) {
 	if err != nil {
 		return nil, err
 	}
+	if q.All {
+		rows, _, err = s.mutations.Search(f, 0, total)
+		if err != nil {
+			return nil, err
+		}
+		q.PerPage = total
+		if q.PerPage < 1 {
+			q.PerPage = 1
+		}
+	}
 	pages := (total + q.PerPage - 1) / q.PerPage
 	if pages < 1 {
 		pages = 1
@@ -98,56 +108,37 @@ func (s *RecapService) ExportRows(q RecapQuery) ([]models.Mutation, error) {
 // Summary untuk kartu ringkasan. outletID membatasi total bulan ini & hari ini;
 // "outlet teraktif" selalu dihitung dari semua outlet.
 func (s *RecapService) Summary(query RecapQuery) (*RecapSummary, error) {
-	now := clock.Now()
-	dayStart, dayEnd := clock.DayBounds(now)
-	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, clock.WIB)
-
 	base := query.filter()
-	base.From, base.To = monthStart, dayEnd
-	month, err := s.mutations.TotalQty(base)
+	selected, err := s.mutations.TotalQty(base)
 	if err != nil {
 		return nil, err
 	}
-
-	// Bandingkan dengan rentang hari yang sama di bulan lalu (adil untuk tengah bulan).
-	prevStart := monthStart.AddDate(0, -1, 0)
-	prevTo := prevStart.Add(dayEnd.Sub(monthStart))
-	if prevTo.After(monthStart) {
-		prevTo = monthStart
-	}
-	base.From, base.To = prevStart, prevTo
-	prev, err := s.mutations.TotalQty(base)
-	if err != nil {
-		return nil, err
-	}
-
-	base.From, base.To = dayStart, dayEnd
-	today, err := s.mutations.TotalQty(base)
-	if err != nil {
-		return nil, err
-	}
-
-	sum := &RecapSummary{MonthQty: month, TodayQty: today}
-	if prev > 0 {
-		sum.HasGrowth = true
-		sum.Growth = float64(month-prev) / float64(prev) * 100
-	}
-
-	base.From, base.To = dayStart, dayEnd
 	byOutlet, err := s.mutations.QtyByOutlet(base)
 	if err != nil {
 		return nil, err
 	}
-	if len(byOutlet) > 0 {
-		top := byOutlet[0]
-		sum.TopOutlet = &top
+	sum := &RecapSummary{MonthQty: selected, TodayQty: selected, TopOutlet: topOutlet(byOutlet)}
+	inputCount := 0
+	for _, row := range byOutlet {
+		inputCount += row.Count
+	}
+	sum.MonthQty = inputCount
+	if sum.TopOutlet != nil {
 		all := 0
-		for _, o := range byOutlet {
-			all += o.Qty
+		for _, row := range byOutlet {
+			all += row.Count
 		}
 		if all > 0 {
-			sum.TopShare = float64(top.Qty) / float64(all) * 100
+			sum.TopShare = float64(sum.TopOutlet.Count) / float64(all) * 100
 		}
 	}
 	return sum, nil
+}
+
+func topOutlet(rows []repository.OutletTotal) *repository.OutletTotal {
+	if len(rows) == 0 {
+		return nil
+	}
+	top := rows[0]
+	return &top
 }

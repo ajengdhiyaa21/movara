@@ -91,7 +91,16 @@ func (h *ProductHandler) Index(c *gin.Context) {
 		v.Set("page", strconv.Itoa(n))
 		return "/master-data?" + v.Encode()
 	}
-	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageNumbers": pageNumbers, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1), "ProductPageURL": pageURL})
+	successRows := splitImportDetails(c.Query("import_success_rows"))
+	failedRows := splitImportDetails(c.Query("import_errors"))
+	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ImportMessage": c.Query("import") == "1", "ImportSuccess": c.Query("import_success"), "ImportSkipped": c.Query("import_skipped"), "ImportUpdated": c.Query("import_updated"), "ImportSuccessRows": successRows, "ImportErrors": failedRows, "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageNumbers": pageNumbers, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1), "ProductPageURL": pageURL})
+}
+
+func splitImportDetails(value string) []string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return strings.Split(value, "\n")
 }
 
 func (h *ProductHandler) CreateForm(c *gin.Context) {
@@ -234,7 +243,7 @@ func (h *ProductHandler) Edit(c *gin.Context) {
 }
 func (h *ProductHandler) Deactivate(c *gin.Context) {
 	var p models.Product
-	if h.db.First(&p, c.Param("id")).Error != nil {
+	if h.db.Preload("Outlet").First(&p, c.Param("id")).Error != nil {
 		c.Redirect(302, "/master-data?message=Produk+tidak+ditemukan")
 		return
 	}
@@ -246,23 +255,13 @@ func (h *ProductHandler) Deactivate(c *gin.Context) {
 		action = "product_activate"
 		message = "Produk+diaktifkan+kembali"
 	}
-	h.audit(c, action, c.Param("id"))
+	h.audit(c, action, fmt.Sprintf("Barcode %s di outlet %s", p.Barcode, p.Outlet.Name))
 	c.Redirect(302, "/master-data?message="+message)
 }
 func (h *ProductHandler) Import(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
-	defaultCategory, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
 	if outlet == 0 {
 		c.Redirect(302, "/master-data?message=Pilih+outlet+untuk+import")
-		return
-	}
-	if defaultCategory == 0 {
-		c.Redirect(302, "/master-data?message=Pilih+kategori+default+untuk+import")
-		return
-	}
-	var defaultCategoryRow models.ProductCategory
-	if err := h.db.Where("id = ? AND is_active = ?", defaultCategory, true).First(&defaultCategoryRow).Error; err != nil {
-		c.Redirect(302, "/master-data?message=Kategori+default+tidak+valid+atau+nonaktif")
 		return
 	}
 	f, e := c.FormFile("file")
@@ -291,27 +290,53 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		c.Redirect(302, "/master-data?message=Excel+tidak+bisa+dibaca")
 		return
 	}
-	n, updated, skipped := 0, 0, 0
+	if len(rows) == 0 {
+		c.Redirect(302, "/master-data?message=File+Excel+tidak+memiliki+data")
+		return
+	}
+	columns := map[string]int{}
+	for i, header := range rows[0] {
+		columns[strings.ToLower(strings.TrimSpace(strings.TrimPrefix(header, "\\ufeff")))] = i
+	}
+	column := func(names ...string) int {
+		for _, name := range names {
+			if index, ok := columns[name]; ok {
+				return index
+			}
+		}
+		return -1
+	}
+	barcodeColumn := column("barcode", "barkode")
+	codeColumn := column("plu_sku", "plu/sku", "kode", "kode_barang")
+	nameColumn := column("nama_produk", "nama produk", "nama")
+	categoryColumn := column("kategori", "category")
+	if barcodeColumn < 0 || codeColumn < 0 || nameColumn < 0 {
+		c.Redirect(302, "/master-data?message=Header+wajib+Excel:+barcode,+plu_sku,+nama_produk")
+		return
+	}
+	cell := func(row []string, index int) string {
+		if index < 0 || index >= len(row) {
+			return ""
+		}
+		return strings.TrimSpace(row[index])
+	}
+	n, skipped := 0, 0
 	var errors []string
+	var successRows []string
 	for i, row := range rows {
-		line := i + 1
 		if i == 0 {
 			continue
 		}
+		line := i
 		if len(row) == 0 || (len(row) >= 3 && strings.TrimSpace(row[0]) == "" && strings.TrimSpace(row[1]) == "" && strings.TrimSpace(row[2]) == "") {
 			continue
 		}
-		if len(row) < 3 {
-			skipped++
-			errors = append(errors, fmt.Sprintf("baris %d: kolom wajib tidak lengkap", line))
-			continue
-		}
-		p := models.Product{Barcode: strings.TrimSpace(row[0]), Code: strings.TrimSpace(row[1]), Name: strings.TrimSpace(row[2]), IsActive: true, OutletID: uint(outlet)}
-		categoryID := uint(defaultCategory)
+		p := models.Product{Barcode: cell(row, barcodeColumn), Code: cell(row, codeColumn), Name: cell(row, nameColumn), IsActive: true, OutletID: uint(outlet)}
+		categoryID := uint(0)
 		categoryValue := ""
-		if len(row) >= 4 && strings.TrimSpace(row[3]) != "" {
+		if categoryColumn >= 0 && cell(row, categoryColumn) != "" {
 			var rowCategory models.ProductCategory
-			categoryValue = strings.TrimSpace(row[3])
+			categoryValue = cell(row, categoryColumn)
 			lookup := h.db.Where("is_active = ?", true)
 			if parsed, parseErr := strconv.ParseUint(categoryValue, 10, 64); parseErr == nil && parsed > 0 {
 				lookup = lookup.Where("id = ?", parsed)
@@ -348,31 +373,25 @@ func (h *ProductHandler) Import(c *gin.Context) {
 			continue
 		}
 		p.CategoryID = &categoryID
-		duplicateID := uint(0)
 		var existing models.Product
-		findErr := h.db.Where("barcode = ? AND outlet_id = ?", p.Barcode, outlet).First(&existing).Error
-		if findErr == nil {
-			duplicateID = existing.ID
-		}
-		if duplicate := h.duplicateProduct(uint(outlet), duplicateID, p); duplicate != "" {
+		findErr := h.db.Where("barcode = ? AND outlet_id = ?", p.Barcode, p.OutletID).First(&existing).Error
+		if duplicate := h.duplicateProduct(p.OutletID, 0, p); duplicate != "" {
 			skipped++
 			errors = append(errors, fmt.Sprintf("baris %d: %s sudah tersedia di master pada outlet yang sama", line, duplicate))
 			continue
 		}
-		if findErr == nil {
-			err = h.db.Model(&existing).Updates(map[string]interface{}{"code": p.Code, "name": p.Name, "category_id": categoryID, "is_active": true}).Error
-			if err == nil {
-				p = existing
-				p.Code, p.Name, p.CategoryID, p.IsActive = strings.TrimSpace(row[1]), strings.TrimSpace(row[2]), &categoryID, true
-				updated++
-			}
-		} else if findErr == gorm.ErrRecordNotFound {
+		if findErr == gorm.ErrRecordNotFound {
 			err = h.db.Create(&p).Error
 		} else {
-			err = findErr
+			if findErr == nil {
+				err = fmt.Errorf("data sudah tersedia di master data")
+			} else {
+				err = findErr
+			}
 		}
 		if err == nil {
 			n++
+			successRows = append(successRows, fmt.Sprintf("baris %d: %s", line, p.Name))
 			h.resolvePending(c, &p)
 		} else {
 			skipped++
@@ -380,20 +399,25 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		}
 	}
 	message := fmt.Sprintf("Import selesai: %d berhasil, %d dilewati", n, skipped)
-	if updated > 0 {
-		message += fmt.Sprintf(" (%d diperbarui)", updated)
-	}
 	if len(errors) > 0 {
 		limit := len(errors)
-		if limit > 5 {
-			limit = 5
+		if limit > 20 {
+			limit = 20
 		}
 		message += ". Detail: " + strings.Join(errors[:limit], "; ")
 		if len(errors) > limit {
 			message += fmt.Sprintf("; dan %d error lainnya", len(errors)-limit)
 		}
 	}
-	c.Redirect(302, "/master-data?message="+url.QueryEscape(message))
+	redirect := "/master-data?message=" + url.QueryEscape(message) + "&import=1"
+	redirect += "&import_success=" + strconv.Itoa(n) + "&import_skipped=" + strconv.Itoa(skipped)
+	if len(successRows) > 0 {
+		redirect += "&import_success_rows=" + url.QueryEscape(strings.Join(successRows, "\n"))
+	}
+	if len(errors) > 0 {
+		redirect += "&import_errors=" + url.QueryEscape(strings.Join(errors, "\n"))
+	}
+	c.Redirect(302, redirect)
 }
 
 // Lookup dipanggil saat scanner menekan Enter di kolom barkode.

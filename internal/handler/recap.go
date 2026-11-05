@@ -29,6 +29,7 @@ type recapForm struct {
 	Direction    string
 	From, To     string
 	PerPage      int
+	AllData      bool
 	ActivePreset string
 	ScopeLabel   string
 }
@@ -53,6 +54,9 @@ func (f recapForm) values() url.Values {
 	v.Set("to", f.To)
 	if f.PerPage > 0 {
 		v.Set("per_page", strconv.Itoa(f.PerPage))
+	}
+	if f.AllData {
+		v.Set("per_page", "all")
 	}
 	return v
 }
@@ -276,16 +280,16 @@ func (h *RecapHandler) fail(c *gin.Context, err error) {
 // readRecapFilter membaca query string. Tanpa parameter periode, defaultnya hari ini.
 // from/to kosong tetapi ada di URL = semua periode.
 func readRecapFilter(c *gin.Context) (service.RecapQuery, recapForm) {
-	today, _ := clock.DayBounds(clock.Now())
-	monthStart := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, clock.WIB)
+	dayStart, dayEnd := clock.DayBounds(clock.Now())
+	monthStart := time.Date(dayStart.Year(), dayStart.Month(), 1, 0, 0, 0, 0, clock.WIB)
 
-	from, to := today, today
+	from, to := dayStart, dayEnd
 	switch c.Query("preset") {
 	case "today":
 	case "7d":
-		from = today.AddDate(0, 0, -6)
+		from = dayStart.AddDate(0, 0, -6)
 	case "30d":
-		from = today.AddDate(0, 0, -29)
+		from = dayStart.AddDate(0, 0, -29)
 	case "month":
 		from = monthStart
 	case "all":
@@ -295,6 +299,9 @@ func readRecapFilter(c *gin.Context) (service.RecapQuery, recapForm) {
 		_, tok := c.GetQuery("to")
 		if fok || tok {
 			from, to = parseDate(c.Query("from")), parseDate(c.Query("to"))
+			if !to.IsZero() {
+				to = to.AddDate(0, 0, 1)
+			}
 		}
 	}
 	if !from.IsZero() && !to.IsZero() && to.Before(from) {
@@ -310,12 +317,16 @@ func readRecapFilter(c *gin.Context) (service.RecapQuery, recapForm) {
 		q.CategoryID = &id
 	}
 	if !to.IsZero() {
-		q.To = to.AddDate(0, 0, 1) // eksklusif
+		q.To = to // sudah eksklusif: awal hari berikutnya
 	}
 	q.Page, _ = strconv.Atoi(c.Query("page"))
-	q.PerPage, _ = strconv.Atoi(c.Query("per_page"))
+	perPage := c.Query("per_page")
+	q.All = perPage == "all"
+	if !q.All {
+		q.PerPage, _ = strconv.Atoi(perPage)
+	}
 
-	form := recapForm{Q: q.Q, PerPage: q.PerPage, Direction: q.Direction}
+	form := recapForm{Q: q.Q, PerPage: q.PerPage, AllData: q.All, Direction: q.Direction}
 	if q.CategoryID != nil {
 		form.CategoryID = *q.CategoryID
 	}
@@ -326,18 +337,18 @@ func readRecapFilter(c *gin.Context) (service.RecapQuery, recapForm) {
 		form.From = from.Format(dateLayout)
 	}
 	if !to.IsZero() {
-		form.To = to.Format(dateLayout)
+		form.To = to.AddDate(0, 0, -1).Format(dateLayout)
 	}
 	switch {
 	case from.IsZero() && to.IsZero():
 		form.ActivePreset = "all"
-	case to.Equal(today) && from.Equal(today):
+	case to.Equal(dayEnd) && from.Equal(dayStart):
 		form.ActivePreset = "today"
-	case to.Equal(today) && from.Equal(today.AddDate(0, 0, -6)):
+	case to.Equal(dayEnd) && from.Equal(dayStart.AddDate(0, 0, -6)):
 		form.ActivePreset = "7d"
-	case to.Equal(today) && from.Equal(today.AddDate(0, 0, -29)):
+	case to.Equal(dayEnd) && from.Equal(dayStart.AddDate(0, 0, -29)):
 		form.ActivePreset = "30d"
-	case to.Equal(today) && from.Equal(monthStart):
+	case to.Equal(dayEnd) && from.Equal(monthStart):
 		form.ActivePreset = "month"
 	}
 	return q, form
@@ -361,7 +372,7 @@ func newSummaryView(s *service.RecapSummary) summaryView {
 	if s.TopOutlet != nil {
 		v.HasTop = true
 		v.TopName = shortOutlet(s.TopOutlet.Code)
-		v.TopQty = s.TopOutlet.Qty
+		v.TopQty = s.TopOutlet.Count
 		v.TopShare = strings.Replace(fmt.Sprintf("%.1f%%", s.TopShare), ".", ",", 1)
 	}
 	return v
@@ -370,8 +381,8 @@ func newSummaryView(s *service.RecapSummary) summaryView {
 func newBars(res *service.RecapResult) []barRow {
 	max := 0
 	for _, b := range res.ByOutlet {
-		if b.Qty > max {
-			max = b.Qty
+		if b.Count > max {
+			max = b.Count
 		}
 	}
 	colors := []string{"bg-blue-600", "bg-sky-500", "bg-slate-400"}
@@ -386,9 +397,9 @@ func newBars(res *service.RecapResult) []barRow {
 		}
 		pct := 0
 		if max > 0 {
-			pct = b.Qty * 100 / max
+			pct = b.Count * 100 / max
 		}
-		bars = append(bars, barRow{Label: shortOutlet(b.Code), Qty: b.Qty, Pct: pct, Color: colors[ci]})
+		bars = append(bars, barRow{Label: shortOutlet(b.Code), Qty: b.Count, Pct: pct, Color: colors[ci]})
 	}
 	return bars
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"movara/internal/clock"
 	"movara/internal/middleware"
@@ -49,10 +50,11 @@ type historyView struct {
 type MutationHandler struct {
 	r   *Renderer
 	svc *service.MutationService
+	db  *gorm.DB
 }
 
-func NewMutationHandler(r *Renderer, svc *service.MutationService) *MutationHandler {
-	return &MutationHandler{r: r, svc: svc}
+func NewMutationHandler(r *Renderer, svc *service.MutationService, db *gorm.DB) *MutationHandler {
+	return &MutationHandler{r: r, svc: svc, db: db}
 }
 
 // GET /mutasi : halaman penuh.
@@ -161,12 +163,16 @@ func (h *MutationHandler) HistoryPage(c *gin.Context) {
 func (h *MutationHandler) Lookup(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	barcode := strings.TrimSpace(c.Query("barcode"))
-	form := scanForm{Barcode: barcode, Qty: 1}
+	qty, _ := strconv.Atoi(strings.TrimSpace(c.Query("qty")))
+	if qty < 1 {
+		qty = 1
+	}
+	form := scanForm{Barcode: barcode, ProductName: strings.TrimSpace(c.Query("product_name")), Qty: qty, BA: c.Query("ba_name"), Direction: normalizeDirection(c.Query("direction"))}
 
 	p, err := h.svc.FindProductForUser(barcode, u)
 	if err != nil {
 		form.Error, form.WAURL = h.explain(u, barcode, err)
-		h.r.Partial(c, http.StatusOK, "mutasi.html", "product_fields", gin.H{"Form": form})
+		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 		return
 	}
 	form.Product = p
@@ -175,7 +181,7 @@ func (h *MutationHandler) Lookup(c *gin.Context) {
 			"Produk ini sudah diinput %d kali hari ini di outlet ini (total %d pcs). Pastikan bukan input ganda dari shift lain.",
 			n, qty)
 	}
-	h.r.Partial(c, http.StatusOK, "mutasi.html", "product_fields", gin.H{"Form": form})
+	h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 }
 
 // GET /mutasi/riwayat?q=... : pencarian riwayat hari ini.
@@ -220,6 +226,27 @@ func (h *MutationHandler) Create(c *gin.Context) {
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 		return
 	}
+	if errors.Is(lookupErr, service.ErrProductNotFound) {
+		ba = strings.ToUpper(strings.TrimSpace(ba))
+		req := &models.ProductRequest{Barcode: barcode, ProductName: productName, Qty: qty, Direction: direction, OutletID: *u.OutletID, UserID: u.ID, Status: "pending", RequestedAt: clock.Now()}
+		if ba != "" {
+			req.BAName = &ba
+		}
+		if qty < 1 || qty > service.MaxQty {
+			form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrQtyInvalid.Error()}
+			h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
+			return
+		}
+		if err := h.db.Create(req).Error; err != nil {
+			form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Pengajuan produk gagal disimpan."}
+			h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
+			return
+		}
+		h.db.Create(&models.AuditLog{UserID: &u.ID, OutletID: u.OutletID, Action: "product_request_create", Detail: fmt.Sprintf("Produk: %s | Barcode: %s | Outlet: %s | Pengaju: %s | Jumlah: %d pcs | Arah: %s", req.ProductName, req.Barcode, outletName(u), u.Name, req.Qty, req.Direction), CreatedAt: clock.Now()})
+		form := scanForm{Qty: 1, BA: ba, Direction: direction, Success: fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Super Admin melengkapi data.", qty)}
+		h.r.Partial(c, http.StatusOK, "mutasi.html", "mutasi_saved", gin.H{"Form": form})
+		return
+	}
 
 	m, err := h.svc.Add(u, barcode, productName, direction, qty, ba)
 	if err != nil {
@@ -259,9 +286,20 @@ func (h *MutationHandler) UpdateQty(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	id, _ := strconv.ParseUint(c.PostForm("mutation_id"), 10, 64)
 	qty, _ := strconv.ParseUint(c.PostForm("qty"), 10, 64)
+	var before models.Mutation
+	oldQty := -1
+	if u != nil && u.OutletID != nil && h.db.Preload("Outlet").Where("id = ? AND outlet_id = ?", uint(id), *u.OutletID).First(&before).Error == nil {
+		oldQty = before.Qty
+	}
 	if err := h.svc.UpdateQtyForPM(u, uint(id), uint(qty)); err != nil {
 		c.String(http.StatusBadRequest, "Gagal menyimpan perubahan qty.")
 		return
+	}
+	if oldQty >= 0 && oldQty != int(qty) {
+		h.db.Create(&models.AuditLog{
+			UserID: &u.ID, OutletID: u.OutletID, Action: "mutation_qty_update",
+			Detail: fmt.Sprintf("Produk: %s | Barcode: %s | Outlet: %s | Dari %d pcs menjadi %d pcs | Arah: %s", before.ProductName, before.Barcode, before.Outlet.Name, oldQty, qty, before.Direction), CreatedAt: clock.Now(),
+		})
 	}
 	hist, ok := h.history(c, u, "", "", normalizeDirection(c.PostForm("direction")))
 	if !ok {
@@ -300,6 +338,27 @@ func (h *MutationHandler) historyPage(c *gin.Context, u *models.User, q, date, d
 	for _, row := range res.Rows {
 		if row.Direction == direction {
 			rows = append(rows, row)
+		}
+	}
+	// Pengajuan produk baru dicatat atas nama PM, lalu kategorinya dapat
+	// dilengkapi admin saat approval. Jika kategori approval berbeda dari
+	// kategori akun PM, tetap tampilkan mutasi milik PM tersebut berdasarkan
+	// outlet, arah, dan tanggal pengajuan.
+	hasOwnMutation := false
+	for _, row := range rows {
+		if row.UserID == u.ID {
+			hasOwnMutation = true
+			break
+		}
+	}
+	if !hasOwnMutation && u.Role == models.RolePM && u.CategoryID != nil {
+		all, fallbackErr := h.svc.ByDate(*u.OutletID, nil, q, date)
+		if fallbackErr == nil {
+			for _, row := range all.Rows {
+				if row.Direction == direction && row.UserID == u.ID {
+					rows = append(rows, row)
+				}
+			}
 		}
 	}
 	totalQty := 0

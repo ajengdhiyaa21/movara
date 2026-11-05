@@ -7,8 +7,8 @@
   <title>{{.Title}} · MOVARA</title>
   <script src="/static/htmx.min.js"></script>
   <link rel="stylesheet" href="/static/tailwind.css">
-  <link rel="stylesheet" href="/static/app.css">
-  <script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=20261105-5">
+  <script src="/static/app.js?v=20261105-4" defer></script>
 </head>
 <body class="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 antialiased">
 
@@ -28,6 +28,7 @@
       {{if eq .User.Role "admin"}}
       <a href="/master-data" class="rounded-lg px-3.5 py-2 {{if eq .Active "master"}}bg-blue-50 text-blue-600{{else}}text-slate-600 hover:bg-slate-100 hover:text-slate-900{{end}}">Master Data</a>
       <a href="/kelola/outlet" class="rounded-lg px-3.5 py-2 {{if eq .Active "outlet"}}bg-blue-50 text-blue-600{{else}}text-slate-600 hover:bg-slate-100 hover:text-slate-900{{end}}">Kelola Outlet</a>
+      <a id="product-request-nav" href="/kelola/produk-baru" class="relative rounded-lg px-3.5 py-2 {{if eq .Active "produk-baru"}}bg-blue-50 text-blue-600{{else}}text-slate-600 hover:bg-slate-100 hover:text-slate-900{{end}}">Produk Baru{{if gt .PendingProductRequests 0}}<span id="product-request-badge" style="display:inline-flex; min-width:20px; margin-left:4px; align-items:center; justify-content:center; border-radius:999px; background:#dc2626 !important; color:#fff !important; padding:3px 6px; font-size:10px; font-weight:700; line-height:1;">{{.PendingProductRequests}}</span>{{else}}<span id="product-request-badge" style="display:none; min-width:20px; margin-left:4px; border-radius:999px; background:#dc2626 !important; color:#fff !important; padding:3px 6px; font-size:10px; font-weight:700; line-height:1;"></span>{{end}}</a>
       <a href="/kelola" class="rounded-lg px-3.5 py-2 {{if eq .Active "kelola"}}bg-blue-50 text-blue-600{{else}}text-slate-600 hover:bg-slate-100 hover:text-slate-900{{end}}">Kelola Akun & Aktivitas</a>
       {{end}}
     </nav>

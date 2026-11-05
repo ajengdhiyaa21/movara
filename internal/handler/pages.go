@@ -95,12 +95,21 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	}
 	var userTotal int64
 	userDB := h.db.Model(&models.User{}).Where("role = ?", models.RolePM)
+	pmQuery := strings.TrimSpace(c.Query("pm_q"))
+	pmOutlet := strings.TrimSpace(c.Query("pm_outlet"))
+	if pmQuery != "" {
+		like := "%" + pmQuery + "%"
+		userDB = userDB.Where("name LIKE ? OR username LIKE ?", like, like)
+	}
+	if pmOutlet != "" {
+		userDB = userDB.Where("outlet_id = ?", pmOutlet)
+	}
 	userDB.Count(&userTotal)
 	userPages := int((userTotal + int64(userPerPage) - 1) / int64(userPerPage))
 	if userPages > 0 && userPage > userPages {
 		userPage = userPages
 	}
-	userDB.Preload("Outlet").Preload("Category").Order("id").Find(&users)
+	userDB.Preload("Outlet").Preload("Category").Order("id").Offset((userPage - 1) * userPerPage).Limit(userPerPage).Find(&users)
 	h.db.Where("role = ?", models.RoleManager).Order("id").Find(&managers)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
@@ -136,7 +145,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	if _, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		auditPeriod = "tanggal " + auditDate
 	}
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "Message": c.Query("message")})
+	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {

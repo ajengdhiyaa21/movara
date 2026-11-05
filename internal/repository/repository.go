@@ -41,6 +41,7 @@ type OutletTotal struct {
 	Code     string
 	Name     string
 	Qty      int
+	Count    int // jumlah input/transaksi, bukan total PCS
 }
 
 type Mutations interface {

@@ -45,7 +45,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 	}
 	r.StaticFS("/static", http.FS(staticFS))
 
-	renderer, err := handler.NewRenderer(cfg.AdminWhatsApp)
+	renderer, err := handler.NewRenderer(cfg.AdminWhatsApp, db)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 	pageH := handler.NewPageHandler(renderer, db)
 	productH := handler.NewProductHandler(db)
 	productH.SetRenderer(renderer)
-	mutH := handler.NewMutationHandler(renderer, mutSvc)
+	mutH := handler.NewMutationHandler(renderer, mutSvc, db)
 	recapH := handler.NewRecapHandler(renderer, recapSvc, audit, db)
 
 	// Publik
@@ -126,6 +126,10 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 			admin.POST("/kelola/outlet/:id/edit", pageH.UpdateOutlet)
 			admin.POST("/kelola/outlet/:id/toggle", pageH.ToggleOutlet)
 			admin.GET("/kelola/pm", middleware.RequireSuperAdmin(), pageH.KelolaPM)
+			admin.GET("/kelola/produk-baru", pageH.ProductRequests)
+			admin.GET("/notifications/product-requests", pageH.ProductRequestNotification)
+			admin.POST("/kelola/produk-baru/:id/approve", pageH.ApproveProductRequest)
+			admin.POST("/kelola/produk-baru/:id/reject", pageH.RejectProductRequest)
 			admin.POST("/kelola/manager", middleware.RequireSuperAdmin(), pageH.AddManager)
 			admin.POST("/kelola/manager/:id/password", middleware.RequireSuperAdmin(), pageH.ResetManagerPassword)
 			admin.POST("/kelola/manager/:id/edit", middleware.RequireSuperAdmin(), pageH.UpdateManager)

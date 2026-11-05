@@ -384,6 +384,35 @@ button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary
   .journal-table thead tr, .journal-table tbody tr { min-width: 1180px; }
 }
 
+.product-request-table { table-layout: fixed; min-width: 0 !important; }
+
+/* Rekap: filter tampil sebelum kartu ringkasan. */
+main:has(#journal-section) { display:flex; flex-direction:column; }
+main:has(#journal-section) > .rekap-header { order:1 !important; }
+main:has(#journal-section) > form { order:2 !important; }
+main:has(#journal-section) > .rekap-summary { order:3 !important; }
+main:has(#journal-section) > section:not(#journal-section) { order:4 !important; }
+main:has(#journal-section) > #journal-section { order:5 !important; }
+.product-request-table th:nth-child(1), .product-request-table td:nth-child(1) { width: 17%; }
+.product-request-table th:nth-child(2), .product-request-table td:nth-child(2) { width: 10%; }
+.product-request-table th:nth-child(3), .product-request-table td:nth-child(3) { width: 9%; }
+.product-request-table th:nth-child(4), .product-request-table td:nth-child(4) { width: 10%; }
+.product-request-table th:nth-child(5), .product-request-table td:nth-child(5) { width: 5%; text-align: center; }
+.product-request-table th:nth-child(6), .product-request-table td:nth-child(6) { width: 49%; min-width: 0; }
+.product-request-table th, .product-request-table td { overflow-wrap:anywhere; word-break:break-word; }
+.product-request-actions { display:flex; align-items:flex-end; justify-content:center; gap:.75rem; white-space:normal; }
+.product-request-form { display:grid !important; grid-template-columns:144px 176px max-content; flex:0 0 560px; align-items:end; gap:.75rem; width:560px; min-width:560px; }
+.product-request-form label { display:flex; flex-direction:column; gap:.3rem; color:#475569; font-size:.72rem; font-weight:600; white-space:nowrap; }
+.product-request-form input, .product-request-form select { width:100%; min-width:0; border:1px solid #cbd5e1; border-radius:.55rem; background:#fff; padding:.55rem .65rem; color:#334155; font-size:.8rem; }
+.product-request-form button { white-space:nowrap; }
+.product-request-form label { min-width:0; }
+.product-request-form label:first-child, .product-request-form label:nth-child(2) { width:auto !important; min-width:0 !important; }
+.product-request-reject { margin:0; align-self:end; }
+.product-request-actions > div { width:100% !important; justify-content:space-between !important; }
+.product-request-actions > div > form:first-child { width:auto !important; flex:1 !important; grid-template-columns:144px 176px minmax(180px,1fr) !important; }
+.product-request-actions > div > form:first-child button { width:100%; }
+.product-request-actions > div > form:last-child { margin-left:auto !important; }
+@media (max-width:900px) { .product-request-table { font-size:.75rem; } .product-request-form { grid-template-columns:120px 150px max-content; width:470px; min-width:470px; } }
 @media print {
   @page { size: landscape; margin: 12mm; }
   html, body { overflow: visible !important; background: #ffffff !important; }

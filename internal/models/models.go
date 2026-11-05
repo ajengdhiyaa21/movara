@@ -59,6 +59,29 @@ type Product struct {
 	UpdatedAt  time.Time
 }
 
+// ProductRequest menampung pengajuan produk baru dari PM sebelum diverifikasi.
+// Data ini sengaja dipisahkan dari Product dan Mutation agar belum tampil di
+// master data maupun jurnal mutasi sebelum Super Admin menyelesaikannya.
+type ProductRequest struct {
+	ID          uint      `gorm:"primaryKey"`
+	Barcode     string    `gorm:"size:20;not null;index"`
+	ProductName string    `gorm:"size:255;not null"`
+	Code        string    `gorm:"size:30"`
+	CategoryID  *uint     `gorm:"index"`
+	Qty         int       `gorm:"not null"`
+	BAName      *string   `gorm:"size:100"`
+	Direction   string    `gorm:"size:20;not null"`
+	OutletID    uint      `gorm:"not null;index"`
+	UserID      uint      `gorm:"not null;index"`
+	Status      string    `gorm:"size:20;not null;default:pending;index"`
+	RequestedAt time.Time `gorm:"index"`
+	ReviewedAt  *time.Time
+	ReviewedBy  *uint
+	Outlet      Outlet
+	User        User
+	Category    *ProductCategory
+}
+
 // Mutation menyimpan snapshot produk agar riwayat tidak berubah
 // saat master data diedit.
 type Mutation struct {
