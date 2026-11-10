@@ -83,7 +83,7 @@ func (h *MutationHandler) Index(c *gin.Context) {
 
 // GET /mutasi/form : form kosong (tombol Reset / Esc).
 func (h *MutationHandler) Form(c *gin.Context) {
-	h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": scanForm{Qty: 1, Direction: normalizeDirection(c.Query("direction"))}})
+	h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": scanForm{Qty: 0, Direction: normalizeDirection(c.Query("direction"))}})
 }
 
 // GET /mutasi/input : halaman khusus untuk scan dan menyimpan mutasi.
@@ -107,7 +107,7 @@ func (h *MutationHandler) Input(c *gin.Context) {
 		"Title":           "Input Mutasi Barang",
 		"Active":          "mutasi",
 		"InputOnly":       true,
-		"Form":            scanForm{Qty: 1, Direction: direction},
+		"Form":            scanForm{Qty: 0, Direction: direction},
 		"History":         hist,
 		"PreviousHistory": previous,
 		"WAURL": h.r.WhatsAppURL(fmt.Sprintf(
@@ -164,8 +164,8 @@ func (h *MutationHandler) Lookup(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	barcode := strings.TrimSpace(c.Query("barcode"))
 	qty, _ := strconv.Atoi(strings.TrimSpace(c.Query("qty")))
-	if qty < 1 {
-		qty = 1
+	if qty < 0 {
+		qty = 0
 	}
 	form := scanForm{Barcode: barcode, ProductName: strings.TrimSpace(c.Query("product_name")), Qty: qty, BA: c.Query("ba_name"), Direction: normalizeDirection(c.Query("direction"))}
 
@@ -176,7 +176,7 @@ func (h *MutationHandler) Lookup(c *gin.Context) {
 		return
 	}
 	form.Product = p
-	if n, qty := h.svc.DuplicateToday(*u.OutletID, barcode); n > 0 {
+	if n, qty := h.svc.DuplicateTodayByDirection(*u.OutletID, barcode, form.Direction); n > 0 {
 		form.Warning = fmt.Sprintf(
 			"Produk ini sudah diinput %d kali hari ini di outlet ini (total %d pcs). Pastikan bukan input ganda dari shift lain.",
 			n, qty)
@@ -215,7 +215,15 @@ func (h *MutationHandler) Create(c *gin.Context) {
 	direction := normalizeDirection(c.PostForm("direction"))
 	qty, _ := strconv.Atoi(strings.TrimSpace(c.PostForm("qty")))
 	ba := c.PostForm("ba_name")
-	_, lookupErr := h.svc.FindProductForUser(barcode, u)
+	product, lookupErr := h.svc.FindProductForUser(barcode, u)
+	if qty == 0 {
+		form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Jumlah mutasi tidak boleh 0."}
+		if lookupErr == nil {
+			form.Product = product
+		}
+		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
+		return
+	}
 	if errors.Is(lookupErr, service.ErrProductNotFound) && c.PostForm("request_new_product") != "1" {
 		form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrProductRequest.Error()}
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
@@ -243,7 +251,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 			return
 		}
 		h.db.Create(&models.AuditLog{UserID: &u.ID, OutletID: u.OutletID, Action: "product_request_create", Detail: fmt.Sprintf("Produk: %s | Barcode: %s | Outlet: %s | Pengaju: %s | Jumlah: %d pcs | Arah: %s", req.ProductName, req.Barcode, outletName(u), u.Name, req.Qty, req.Direction), CreatedAt: clock.Now()})
-		form := scanForm{Qty: 1, BA: ba, Direction: direction, Success: fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Super Admin melengkapi data.", qty)}
+		form := scanForm{Qty: 0, Direction: direction, Success: fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Super Admin melengkapi data.", qty)}
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "mutasi_saved", gin.H{"Form": form})
 		return
 	}
@@ -264,9 +272,9 @@ func (h *MutationHandler) Create(c *gin.Context) {
 	}
 	direction = m.Direction
 
-	// Sukses: form baru (BA dipertahankan karena biasanya satu BA untuk banyak produk).
+	// Sukses: form baru dengan input BA yang sudah dikosongkan.
 	form := scanForm{
-		Qty: 1, BA: strings.ToUpper(strings.TrimSpace(ba)), Direction: direction,
+		Qty: 0, Direction: direction,
 		Success: func() string {
 			if m.Status == "pending_code" {
 				return fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Admin melengkapi data produk.", m.Qty)

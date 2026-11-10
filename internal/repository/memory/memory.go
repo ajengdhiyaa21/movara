@@ -67,6 +67,7 @@ func (s *Store) seed(hash string) {
 		{ID: 5, Name: "Rina Wardani", Username: "rina", Role: models.RolePM, OutletID: uptr(5)},
 	}
 	for _, u := range users {
+		u.UserCode = u.Username
 		u.PasswordHash = hash
 		u.IsActive = true
 		s.users[u.ID] = u
@@ -161,6 +162,17 @@ func (s *Store) ByUsername(username string) (*models.User, error) {
 	defer s.mu.RUnlock()
 	for _, u := range s.users {
 		if u.Username == username {
+			return s.withOutlet(u), nil
+		}
+	}
+	return nil, repository.ErrNotFound
+}
+
+func (s *Store) ByUserCode(code string) (*models.User, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, u := range s.users {
+		if u.UserCode == code {
 			return s.withOutlet(u), nil
 		}
 	}

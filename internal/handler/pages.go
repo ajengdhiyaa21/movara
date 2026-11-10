@@ -253,7 +253,12 @@ func (h *PageHandler) AddPM(c *gin.Context) {
 	}
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	cipherText, _ := security.EncryptPassword(os.Getenv("SESSION_SECRET"), pass)
-	u := models.User{Name: c.PostForm("name"), Username: c.PostForm("username"), PasswordHash: string(hash), Role: role, IsActive: true, PasswordCiphertext: cipherText}
+	username := strings.TrimSpace(c.PostForm("username"))
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
+	if userCode == "" {
+		userCode = username
+	}
+	u := models.User{Name: c.PostForm("name"), UserCode: userCode, Username: username, PasswordHash: string(hash), Role: role, IsActive: true, PasswordCiphertext: cipherText}
 	if role == models.RolePM {
 		if outlet == 0 {
 			c.Redirect(302, "/kelola/pm?message=Outlet+wajib+untuk+pramuniaga")
@@ -303,11 +308,15 @@ func (h *PageHandler) UpdatePM(c *gin.Context) {
 	}
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
 	name, username := c.PostForm("name"), c.PostForm("username")
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
+	if userCode == "" {
+		userCode = username
+	}
 	if name == "" || username == "" || outlet == 0 {
 		c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Data+PM+belum+lengkap")
 		return
 	}
-	u.Name, u.Username = name, username
+	u.Name, u.UserCode, u.Username = name, userCode, username
 	u.OutletID = func() *uint { v := uint(outlet); return &v }()
 	if category, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64); category > 0 {
 		id := uint(category)
@@ -458,7 +467,11 @@ func (h *PageHandler) AddManager(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+dienkripsi")
 		return
 	}
-	u := models.User{Name: name, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, IsActive: true}
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
+	if userCode == "" {
+		userCode = username
+	}
+	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, IsActive: true}
 	if err = h.db.Create(&u).Error; err != nil {
 		c.Redirect(http.StatusFound, "/kelola?message=Username+Manager+sudah+digunakan")
 		return

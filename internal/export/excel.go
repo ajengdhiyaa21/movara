@@ -40,7 +40,7 @@ func RecapXLSX(rows []models.Mutation, from, to time.Time) (*bytes.Buffer, error
 	}
 	setText(1, 1, "Periode Jurnal")
 	setText(2, 1, period)
-	headers := []string{"No", "Outlet", "Lokasi Perpindahan", "Tanggal & Jam", "Barkode", "SKU/PLU", "Nama Produk", "Kategori", "Qty", "Pramuniaga", "Nama BA"}
+	headers := []string{"No", "Barkode", "SKU/PLU", "Nama Produk", "Kategori", "Qty", "Tgl & Jam", "Lokasi Perpindahan", "Outlet", "PM", "BA"}
 	for i, h := range headers {
 		set(i+1, 3, h)
 	}
@@ -56,30 +56,30 @@ func RecapXLSX(rows []models.Mutation, from, to time.Time) (*bytes.Buffer, error
 		r := i + 4
 		t := m.CreatedAt.In(clock.WIB)
 		set(1, r, i+1)
-		set(2, r, m.Outlet.Name)
-		direction := "Konter → Market"
-		if m.Direction == "market_to_counter" {
-			direction = "Market → Konter"
-		}
-		set(3, r, direction)
-		set(4, r, t.Format("02/01/2006 15:04"))
-		setText(5, r, m.Barcode)
-		setText(6, r, m.Code)
-		set(7, r, m.ProductName)
+		setText(2, r, m.Barcode)
+		setText(3, r, m.Code)
+		set(4, r, m.ProductName)
 		categoryName := ""
 		if m.Category != nil {
 			categoryName = m.Category.Name
 		}
-		set(8, r, categoryName)
-		set(9, r, m.Qty)
+		set(5, r, categoryName)
+		set(6, r, m.Qty)
+		direction := "Konter → Market"
+		if m.Direction == "market_to_counter" {
+			direction = "Market → Konter"
+		}
+		set(7, r, t.Format("02/01/2006 15:04"))
+		set(8, r, direction)
+		set(9, r, m.Outlet.Name)
 		set(10, r, m.User.Name)
 		set(11, r, m.BA())
 		total += m.Qty
 	}
-	set(8, len(rows)+5, "TOTAL")
-	set(9, len(rows)+5, total)
+	set(5, len(rows)+5, "TOTAL")
+	set(6, len(rows)+5, total)
 
-	widths := map[string]float64{"A": 6, "B": 14, "C": 20, "D": 18, "E": 16, "F": 10, "G": 42, "H": 18, "I": 8, "J": 18, "K": 14}
+	widths := map[string]float64{"A": 6, "B": 16, "C": 12, "D": 30, "E": 18, "F": 8, "G": 18, "H": 20, "I": 14, "J": 18, "K": 14}
 	for col, w := range widths {
 		_ = f.SetColWidth(sheet, col, col, w)
 	}

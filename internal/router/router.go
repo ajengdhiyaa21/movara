@@ -65,6 +65,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 
 	// Publik
 	r.GET("/login", authH.ShowLogin)
+	r.GET("/login/user", authH.LookupUser)
 	r.POST("/login", authH.Login)
 
 	// Wajib login
@@ -94,6 +95,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 		{
 			view.GET("/rekap", recapH.Index)
 			view.GET("/rekap/cetak", recapH.Print)
+			view.GET("/rekap/export", recapH.Export)
 		}
 
 		// Admin saja
@@ -103,7 +105,6 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 			admin.POST("/password", pageH.ChangePassword)
 			admin.GET("/profile", pageH.ProfileForm)
 			admin.POST("/profile", pageH.UpdateProfile)
-			admin.GET("/rekap/export", recapH.Export)
 			admin.GET("/rekap/mutasi/:id/edit", recapH.Edit)
 			admin.POST("/rekap/mutasi/:id/edit", recapH.Update)
 			admin.POST("/rekap/mutasi/:id/delete", recapH.Delete)

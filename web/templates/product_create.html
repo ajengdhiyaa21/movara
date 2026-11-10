@@ -1,5 +1,53 @@
 {{define "content"}}
-<style>main > .mx-auto.max-w-3xl > a:first-child{display:none}label:has(input[name="code"]){font-size:0}label:has(input[name="code"])::before{content:"PLU/SKU";font-size:.875rem}label:has(input[name="code"]) input{font-size:.875rem}</style>
-<div class="mx-auto max-w-3xl"><a href="/master-data" class="text-sm font-medium text-blue-600">Master Data / Produk</a><div class="mt-2 flex items-end justify-between gap-3"><div><h1 class="text-2xl font-bold">Tambah Produk</h1><p class="mt-1 text-sm text-slate-500">Daftarkan produk baru pada outlet dan kategori yang sesuai.</p></div><a href="/master-data" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kembali</a></div>
-<form method="post" action="/master-data" class="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div class="border-b bg-blue-600 px-6 py-5 text-white"><p class="text-xs font-semibold uppercase tracking-wider text-blue-100">Master Data</p><h2 class="mt-1 text-lg font-semibold">Informasi Produk</h2></div><div class="grid gap-5 p-6 sm:grid-cols-2"><label class="text-sm font-medium">Outlet<select name="outlet_id" required class="mt-2 w-full rounded-xl border px-3.5 py-3"><option value="">Pilih outlet</option>{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label><label class="text-sm font-medium">Kategori<select name="category_id" required class="mt-2 w-full rounded-xl border px-3.5 py-3"><option value="">Pilih kategori</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label><label class="text-sm font-medium">Barcode<input name="barcode" required class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label class="text-sm font-medium">Kode Barang<input name="code" required minlength="6" class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label class="text-sm font-medium sm:col-span-2">Nama Produk<input name="name" required class="mt-2 w-full rounded-xl border px-3.5 py-3"></label></div><div class="flex justify-end gap-2 border-t bg-slate-50 px-6 py-4"><a href="/master-data" class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Produk</button></div></form></div>
+<style>
+    main>.mx-auto.max-w-3xl>a:first-child {
+        display: none
+    }
+
+    label:has(input[name="code"]) {
+        font-size: 0
+    }
+
+    label:has(input[name="code"])::before {
+        content: "PLU/SKU";
+        font-size: .875rem
+    }
+
+    label:has(input[name="code"]) input {
+        font-size: .875rem
+    }
+</style>
+<div class="mx-auto max-w-3xl"><a href="/master-data" class="text-sm font-medium text-blue-600">Master Data / Produk</a>
+    <div class="mt-2 flex items-end justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-bold">Tambah Produk</h1>
+            <p class="mt-1 text-sm text-slate-500">Daftarkan produk baru pada outlet dan kategori yang sesuai.</p>
+        </div><a href="/master-data"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kembali</a>
+    </div>
+    <form method="post" action="/master-data"
+        class="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b bg-blue-600 px-6 py-5 text-white">
+            <p class="text-xs font-semibold uppercase tracking-wider text-blue-100">Master Data</p>
+            <h2 class="mt-1 text-lg font-semibold">Informasi Produk</h2>
+        </div>
+        <div class="grid gap-5 p-6 sm:grid-cols-2"><label class="text-sm font-medium">Outlet<select name="outlet_id"
+                    required class="mt-2 w-full rounded-xl border px-3.5 py-3">
+                    <option value="">Pilih outlet</option>{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>
+                    {{end}}
+                </select></label><label class="text-sm font-medium">Kategori<select name="category_id" required
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3">
+                    <option value="">Pilih kategori</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}
+                    </option>{{end}}
+                </select></label><label class="text-sm font-medium">Barcode<input name="barcode" required
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label
+                class="text-sm font-medium">Kode Barang<input name="code" required minlength="6"
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label
+                class="text-sm font-medium sm:col-span-2">Nama Produk<input name="name" required
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3"></label></div>
+        <div class="flex justify-end gap-2 border-t bg-slate-50 px-6 py-4"><a href="/master-data"
+                class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button
+                class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Produk</button></div>
+    </form>
+</div>
 {{end}}

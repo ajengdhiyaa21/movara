@@ -78,18 +78,18 @@ type summaryView struct {
 	TopShare  string
 }
 
-type barRow struct {
-	Label string
-	Qty   int
-	Pct   int
-	Color string
-}
-
 type pageItem struct {
 	Label   string
 	URL     string
 	Current bool
 	Gap     bool
+}
+
+type barRow struct {
+	Label string
+	Qty   int
+	Pct   int
+	Color string
 }
 
 type RecapHandler struct {
@@ -181,6 +181,11 @@ func (h *RecapHandler) Index(c *gin.Context) {
 		h.fail(c, err)
 		return
 	}
+	volume, err := h.svc.Volume(q)
+	if err != nil {
+		h.fail(c, err)
+		return
+	}
 
 	form.ScopeLabel = "Semua outlet"
 	for _, o := range outlets {
@@ -218,11 +223,42 @@ func (h *RecapHandler) Index(c *gin.Context) {
 		"PrevURL":    prev,
 		"NextURL":    next,
 		"Bars":       newBars(res),
+		"Volume":     volume,
 		"ExportURL":  "/rekap/export?" + base.Encode(),
+		"PrintURL":   "/rekap/cetak?" + base.Encode(),
 	})
 }
 
-// GET /rekap/export : hanya Admin. Memakai filter yang sama dengan halaman rekap.
+func newBars(res *service.RecapResult) []barRow {
+	max := 0
+	for _, b := range res.ByOutlet {
+		if b.Count > max {
+			max = b.Count
+		}
+	}
+	colors := []string{"bg-blue-600", "bg-sky-500", "bg-slate-400"}
+	var bars []barRow
+	for i, b := range res.ByOutlet {
+		if i >= 5 {
+			break
+		}
+		pct := 0
+		if max > 0 {
+			pct = b.Count * 100 / max
+		}
+		bars = append(bars, barRow{Label: shortOutlet(b.Code), Qty: b.Count, Pct: pct, Color: colors[min(i, len(colors)-1)]})
+	}
+	return bars
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// GET /rekap/export : Manager dan Admin, memakai filter yang sama dengan halaman rekap.
 func (h *RecapHandler) Export(c *gin.Context) {
 	q, _ := readRecapFilter(c)
 	rows, err := h.svc.ExportRows(q)
@@ -246,16 +282,12 @@ func (h *RecapHandler) Export(c *gin.Context) {
 // Print menampilkan seluruh jurnal sesuai periode yang dipilih, tanpa pagination.
 func (h *RecapHandler) Print(c *gin.Context) {
 	q, form := readRecapFilter(c)
-	if q.From.IsZero() || q.To.IsZero() {
-		c.String(http.StatusBadRequest, "Periode mulai dan sampai wajib dipilih sebelum mencetak.")
-		return
-	}
 	rows, err := h.svc.ExportRows(q)
 	if err != nil {
 		h.fail(c, err)
 		return
 	}
-	h.r.HTML(c, http.StatusOK, "rekap_print.html", gin.H{
+	h.r.StandaloneHTML(c, http.StatusOK, "rekap_print.html", gin.H{
 		"Title":    "Cetak Rekapitulasi Mutasi",
 		"Rows":     rows,
 		"Form":     form,
@@ -376,32 +408,6 @@ func newSummaryView(s *service.RecapSummary) summaryView {
 		v.TopShare = strings.Replace(fmt.Sprintf("%.1f%%", s.TopShare), ".", ",", 1)
 	}
 	return v
-}
-
-func newBars(res *service.RecapResult) []barRow {
-	max := 0
-	for _, b := range res.ByOutlet {
-		if b.Count > max {
-			max = b.Count
-		}
-	}
-	colors := []string{"bg-blue-600", "bg-sky-500", "bg-slate-400"}
-	var bars []barRow
-	for i, b := range res.ByOutlet {
-		if i >= 5 {
-			break
-		}
-		ci := i
-		if ci > 2 {
-			ci = 2
-		}
-		pct := 0
-		if max > 0 {
-			pct = b.Count * 100 / max
-		}
-		bars = append(bars, barRow{Label: shortOutlet(b.Code), Qty: b.Count, Pct: pct, Color: colors[ci]})
-	}
-	return bars
 }
 
 // buildPages membuat nomor halaman ringkas: 1 … 4 5 6 … 15.

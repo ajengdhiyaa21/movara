@@ -127,7 +127,7 @@
         class="mt-2 flex items-center overflow-hidden rounded-xl border border-slate-300 bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/30">
         <button type="button" data-qty-step="-1" aria-label="Kurangi"
           class="px-4 py-2.5 text-lg font-medium text-slate-600 hover:bg-slate-100">&minus;</button>
-        <input id="qty" name="qty" type="number" min="1" max="999" value="{{$f.Qty}}" inputmode="numeric"
+        <input id="qty" name="qty" type="number" min="0" max="999" value="{{$f.Qty}}" inputmode="numeric"
           class="w-full border-x border-slate-200 py-2.5 text-center text-base font-semibold tabular-nums focus:outline-none">
         <button type="button" data-qty-step="1" aria-label="Tambah"
           class="px-4 py-2.5 text-lg font-medium text-slate-600 hover:bg-slate-100">+</button>
@@ -145,7 +145,7 @@
           class="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-11 pr-3 text-sm uppercase placeholder:normal-case focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       </div>
     </div>
-    {{if and $f.Error (not $f.Product)}}
+    {{if $f.Error}}
     <div role="alert" class="md:col-start-2 md:col-span-2 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700">
       {{template "i-alert"}}<span>{{$f.Error}}</span>
     </div>
@@ -175,10 +175,11 @@
   </div>
 </div>
 <div class="md:col-span-2">
-  <div class="flex items-baseline justify-between gap-3"><p class="text-sm font-medium">Nama produk resmi {{if and $f.Barcode (not $f.Product)}}<span class="text-red-500">*</span>{{end}}</p>{{if and $f.Barcode (not $f.Product)}}<span class="text-xs font-medium text-amber-600">Wajib untuk produk baru</span>{{end}}</div>
+            <div class="flex items-baseline justify-between gap-3"><p class="text-sm font-medium">Nama produk resmi {{if and $f.Barcode (not $f.Product)}}<span class="text-red-500">*</span>{{end}}</p>{{if $f.Product}}<span class="text-xs font-medium text-slate-500">Otomatis</span>{{else if $f.Barcode}}<span class="text-xs font-medium text-amber-600">Wajib untuk produk baru</span>{{end}}</div>
   <input id="product_name" name="product_name" value="{{if $f.Product}}{{$f.Product.Name}}{{else}}{{$f.ProductName}}{{end}}" maxlength="255" {{if and $f.Barcode (not $f.Product)}}required{{end}}
+    {{if $f.Product}}readonly aria-readonly="true" title="Nama produk mengikuti master data"{{end}}
     placeholder="{{if and $f.Barcode (not $f.Product)}}Contoh: Sabun wajah 100 ml{{else}}Otomatis dari master atau isi untuk pengajuan baru{{end}}"
-    class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+    class="mt-2 w-full rounded-xl border border-slate-300 {{if $f.Product}}cursor-not-allowed bg-slate-50 text-slate-500{{else}}bg-white{{end}} px-3.5 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
   {{if and $f.Barcode (not $f.Product)}}<p class="mt-1.5 text-xs text-slate-500">Panduan: tulis nama yang tertera pada kemasan agar admin mudah memverifikasi produk.</p>{{end}}
 </div>
 {{if $f.Product}}<span data-found hidden></span>{{end}}

@@ -5,12 +5,14 @@
     <p class="mt-1 text-sm text-slate-500">Monitoring pergerakan stok antar outlet secara konsolidasi.</p>
   </div>
   <div class="flex items-center gap-2 print:hidden">
-    {{if eq .User.Role "admin"}}
     <a href="{{.ExportURL}}"
       class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
       {{template "i-download"}} Export Excel (.xlsx)
     </a>
-    {{end}}
+    <a href="{{.PrintURL}}" target="_blank" rel="noopener"
+      class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
+      {{template "i-printer"}} Cetak / PDF
+    </a>
   </div>
 </div>
 
@@ -37,7 +39,7 @@
     </div>
     <p class="mt-2 text-3xl font-bold tabular-nums text-blue-600">{{num .Summary.TodayQty}} <span
         class="text-sm font-normal text-slate-400">pcs</span></p>
-      <p class="mt-2 text-sm text-slate-500">{{.Form.ScopeLabel}} · Mengikuti filter yang dipilih</p>
+    <p class="mt-2 text-sm text-slate-500">{{.Form.ScopeLabel}} · Mengikuti filter yang dipilih</p>
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -47,7 +49,8 @@
     </div>
     {{if .Summary.HasTop}}
     <p class="mt-2 flex items-baseline gap-2 text-3xl font-bold">{{.Summary.TopName}} <span
-        class="rounded-md bg-blue-50 px-2 py-0.5 text-sm font-semibold text-blue-700">{{num .Summary.TopQty}} input</span>
+        class="rounded-md bg-blue-50 px-2 py-0.5 text-sm font-semibold text-blue-700">{{num .Summary.TopQty}}
+        input</span>
     </p>
     <p class="mt-2 text-sm text-slate-500">Menyumbang {{.Summary.TopShare}} dari total input periode terpilih</p>
     {{else}}
@@ -58,12 +61,265 @@
 </div>
 
 <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
-  <h2 class="font-semibold">Volume mutasi per outlet</h2>
-  <p class="mt-0.5 text-sm text-slate-500">Jumlah input transaksi pada periode dan filter yang dipilih.</p>
-  {{if .Bars}}
-  <div class="mt-5 space-y-3">{{range .Bars}}<div class="flex items-center gap-4 text-sm"><span class="w-16 shrink-0 font-mono text-slate-600">{{.Label}}</span><div class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full {{.Color}}" style="width: {{.Pct}}%"></div></div><span class="w-20 shrink-0 text-right font-mono text-slate-700">{{num .Qty}} input</span></div>{{end}}</div>
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div><h2 class="font-semibold">Volume mutasi per outlet</h2><p class="mt-0.5 text-sm text-slate-500">Mengikuti filter di atas, menampilkan 5 outlet terbesar.</p></div>
+    <div id="volume-metric" class="flex rounded-lg bg-slate-100 p-1 text-xs font-medium"><button type="button" data-volume-mode="pcs" class="rounded-md bg-white px-3 py-2 text-slate-700 shadow-sm">Jumlah pcs</button><button type="button" data-volume-mode="transactions" class="rounded-md px-3 py-2 text-slate-500">Jumlah transaksi</button><button type="button" data-volume-mode="both" class="rounded-md px-3 py-2 text-slate-500">Keduanya</button></div>
+  </div>
+  {{if .Volume}}
+  <div class="mt-4 flex flex-wrap gap-5 text-xs text-slate-600"><span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-blue-600"></i>Konter → Market</span><span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>Market → Konter</span></div>
+  <div class="mt-3 flex gap-3"><div class="flex h-48 w-8 shrink-0 flex-col justify-between text-right text-[10px] font-mono text-slate-400"><span data-volume-axis="100">100</span><span data-volume-axis="75">75</span><span data-volume-axis="50">50</span><span data-volume-axis="25">25</span><span>0</span></div><div class="relative h-48 min-w-0 flex-1 overflow-x-auto"><div class="pointer-events-none absolute inset-0 flex flex-col justify-between"><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t-2 border-slate-300"></i></div><div class="relative z-10 flex h-full min-w-max items-end justify-around gap-10 px-5">{{range .Volume}}<div class="flex h-full w-24 flex-col items-center justify-end"><div class="flex h-44 items-end justify-center gap-1.5"> <div class="volume-bar flex h-44 w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.CounterToMarket.PCS}}" title="Konter → Market: {{.CounterToMarket.PCS}} pcs"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .CounterToMarket.PCS}}</span><div class="rounded-t-md bg-blue-600"></div></div><div class="volume-bar flex h-44 w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.MarketToCounter.PCS}}" title="Market → Konter: {{.MarketToCounter.PCS}} pcs"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .MarketToCounter.PCS}}</span><div class="rounded-t-md bg-emerald-500"></div></div><div class="volume-bar hidden h-44 w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.CounterToMarket.Transactions}}" title="Konter → Market: {{.CounterToMarket.Transactions}} transaksi"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .CounterToMarket.Transactions}}</span><div class="rounded-t-md bg-blue-600"></div></div><div class="volume-bar hidden h-44 w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.MarketToCounter.Transactions}}" title="Market → Konter: {{.MarketToCounter.Transactions}} transaksi"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .MarketToCounter.Transactions}}</span><div class="rounded-t-md bg-emerald-500"></div></div></div><span class="mt-1 text-xs font-mono text-slate-600">{{.Code}}</span></div>{{end}}</div></div></div>
   {{else}}<p class="mt-5 text-sm text-slate-400">Belum ada data untuk periode ini.</p>{{end}}
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const buttons = document.querySelectorAll('[data-volume-mode]');
+  const bars = document.querySelectorAll('[data-volume-kind]');
+  function render(mode) {
+    const visible = Array.from(bars).filter(function (bar) { return mode === 'both' || bar.dataset.volumeKind === mode; });
+    const max = Math.max.apply(null, visible.map(function (bar) { return Number(bar.dataset.volumeValue || 0); }).concat([1]));
+    bars.forEach(function (bar) {
+      const show = mode === 'both' || bar.dataset.volumeKind === mode;
+      bar.classList.toggle('hidden', !show);
+      bar.classList.toggle('flex', show);
+      if (show) {
+        const fill = bar.lastElementChild;
+        if (!fill) return;
+        fill.style.display = 'block';
+        fill.style.width = '100%';
+        fill.style.height = Math.max(Number(bar.dataset.volumeValue || 0) / max * 176, Number(bar.dataset.volumeValue || 0) > 0 ? 3 : 0) + 'px';
+      }
+    });
+    buttons.forEach(function (button) { const active = button.dataset.volumeMode === mode; button.classList.toggle('bg-white', active); button.classList.toggle('shadow-sm', active); button.classList.toggle('text-slate-700', active); button.classList.toggle('text-slate-500', !active); });
+  }
+  buttons.forEach(function (button) { button.addEventListener('click', function () { render(button.dataset.volumeMode); }); });
+  render('pcs');
+});
+</script>
+
+{{if false}}
+{{if index .VolumeCharts "pcs"}}
+<div class="mt-5 grid gap-4 lg:grid-cols-2">
+
+  <!-- Total PCS -->
+  <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+    <h3 class="text-sm font-semibold text-slate-700">Total PCS</h3>
+
+    <div class="mt-4 flex gap-3">
+      <!-- Sumbu Y -->
+      <div class="flex h-48 w-8 shrink-0 flex-col justify-between text-right text-[10px] font-mono text-slate-400">
+        <span data-y-label="pcs">100</span>
+        <span data-y-label="pcs">75</span>
+        <span data-y-label="pcs">50</span>
+        <span data-y-label="pcs">25</span>
+        <span>0</span>
+      </div>
+
+      <!-- Area plot yang dapat scroll -->
+      <div class="volume-chart-plot relative h-48 min-w-0 flex-1 overflow-x-auto">
+        <div class="relative h-full min-w-max">
+
+          <!-- Gridline -->
+          <div class="pointer-events-none absolute inset-0 flex flex-col justify-between">
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t-2 border-slate-300"></div>
+          </div>
+
+          <!-- Bars -->
+          <div class="relative z-10 flex h-full items-end gap-6 px-3">
+            {{range (index .VolumeCharts "pcs")}}
+            <div class="flex h-48 min-w-16 flex-col items-center justify-end">
+              <div class="flex h-48 items-end gap-1">
+                <div class="relative flex h-48 w-4 items-end">
+                  <span
+                    class="volume-value absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono text-slate-500"
+                    data-value="{{.CounterToMarket.Value}}" data-percentage="{{.CounterToMarket.Percentage}}">
+                    {{num .CounterToMarket.Value}}
+                  </span>
+                  <div class="volume-bar w-full rounded-t-md bg-blue-600" data-value="{{.CounterToMarket.Value}}"
+                    data-percentage="{{.CounterToMarket.Percentage}}"
+                    title="Konter ke Market: {{num .CounterToMarket.Value}} pcs">
+                  </div>
+                </div>
+
+                <div class="relative flex h-48 w-4 items-end">
+                  <span
+                    class="volume-value absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono text-slate-500"
+                    data-value="{{.MarketToCounter.Value}}" data-percentage="{{.MarketToCounter.Percentage}}">
+                    {{num .MarketToCounter.Value}}
+                  </span>
+                  <div class="volume-bar w-full rounded-t-md bg-emerald-500" data-value="{{.MarketToCounter.Value}}"
+                    data-percentage="{{.MarketToCounter.Percentage}}"
+                    title="Market ke Konter: {{num .MarketToCounter.Value}} pcs">
+                  </div>
+                </div>
+              </div>
+
+              <span class="mt-2 text-xs font-mono text-slate-600">
+                {{.Code}}
+              </span>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+      <span>
+        <i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-blue-600"></i>
+        Konter → Market
+      </span>
+      <span>
+        <i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>
+        Market → Konter
+      </span>
+    </div>
+  </div>
+
+  <!-- Jumlah Transaksi -->
+  <div class="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+    <h3 class="text-sm font-semibold text-slate-700">Jumlah transaksi</h3>
+
+    <div class="mt-4 flex gap-3">
+      <!-- Sumbu Y -->
+      <div class="flex h-48 w-8 shrink-0 flex-col justify-between text-right text-[10px] font-mono text-slate-400">
+        <span>100</span>
+        <span>75</span>
+        <span>50</span>
+        <span>25</span>
+        <span>0</span>
+      </div>
+
+      <!-- Area plot yang dapat scroll -->
+      <div class="volume-chart-plot relative h-48 min-w-0 flex-1 overflow-x-auto">
+        <div class="relative h-full min-w-max">
+
+          <!-- Gridline -->
+          <div class="pointer-events-none absolute inset-0 flex flex-col justify-between">
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t border-slate-200"></div>
+            <div class="border-t-2 border-slate-300"></div>
+          </div>
+
+          <!-- Bars -->
+          <div class="relative z-10 flex h-full items-end gap-6 px-3">
+            {{range (index .VolumeCharts "input")}}
+            <div class="flex h-48 min-w-16 flex-col items-center justify-end">
+              <div class="flex h-48 items-end gap-1">
+                <div class="relative flex h-48 w-4 items-end">
+                  <span
+                    class="volume-value absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono text-slate-500"
+                    data-value="{{.CounterToMarket.Value}}" data-percentage="{{.CounterToMarket.Percentage}}">
+                    {{num .CounterToMarket.Value}}
+                  </span>
+                  <div class="volume-bar w-full rounded-t-md bg-blue-600" data-value="{{.CounterToMarket.Value}}"
+                    data-percentage="{{.CounterToMarket.Percentage}}"
+                    title="Konter ke Market: {{num .CounterToMarket.Value}} input">
+                  </div>
+                </div>
+
+                <div class="relative flex h-48 w-4 items-end">
+                  <span
+                    class="volume-value absolute left-1/2 z-20 -translate-x-1/2 whitespace-nowrap text-[10px] font-mono text-slate-500"
+                    data-value="{{.MarketToCounter.Value}}" data-percentage="{{.MarketToCounter.Percentage}}">
+                    {{num .MarketToCounter.Value}}
+                  </span>
+                  <div class="volume-bar w-full rounded-t-md bg-emerald-500" data-value="{{.MarketToCounter.Value}}"
+                    data-percentage="{{.MarketToCounter.Percentage}}"
+                    title="Market ke Konter: {{num .MarketToCounter.Value}} input">
+                  </div>
+                </div>
+              </div>
+
+              <span class="mt-2 text-xs font-mono text-slate-600">
+                {{.Code}}
+              </span>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+      <span>
+        <i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-blue-600"></i>
+        Konter → Market
+      </span>
+      <span>
+        <i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>
+        Market → Konter
+      </span>
+    </div>
+  </div>
+</div>
+
+{{else}}
+<p class="mt-5 text-sm text-slate-400">
+  Belum ada data untuk periode ini.
+</p>
+{{end}}
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const metric = document.getElementById("volume-metric");
+    const series = Array.from(document.querySelectorAll(".volume-series"));
+    function renderVolume() {
+      const selected = metric ? metric.value : "both";
+      const visible = series.filter(function (item) {
+        return selected === "both" || item.dataset.volumeKind === selected;
+      });
+      const max = Math.max.apply(null, visible.map(function (item) { return Number(item.dataset.value || 0); }).concat([1]));
+      series.forEach(function (item) {
+        const show = selected === "both" || item.dataset.volumeKind === selected;
+        item.classList.add("h-full");
+        item.classList.toggle("hidden", !show);
+        item.classList.toggle("flex", show);
+        if (show) item.querySelector("div").style.height = Math.max(Number(item.dataset.value || 0) / max * 192, Number(item.dataset.value || 0) > 0 ? 3 : 0) + "px";
+      });
+    }
+    metric?.addEventListener("change", renderVolume);
+    renderVolume();
+
+    document.querySelectorAll(".volume-bar").forEach(function (bar) {
+      const value = Number(bar.dataset.value || 0);
+      const percentage = Number(bar.dataset.percentage || 0);
+      const chart = bar.closest(".volume-chart-plot");
+
+      if (!chart) return;
+
+      const values = Array.from(
+        chart.querySelectorAll(".volume-bar")
+      ).map(function (item) {
+        const itemValue = Number(item.dataset.value || 0);
+        const itemPercentage = Number(item.dataset.percentage || 0);
+
+        if (itemPercentage <= 0) return 0;
+
+        return (itemValue / itemPercentage) * 100;
+      });
+
+      const maxValue = Math.max(...values, value, 1);
+      const height = Math.max((value / maxValue) * 100, value > 0 ? 2 : 0);
+
+      bar.style.height = height + "%";
+
+      const label = bar.parentElement.querySelector(".volume-value");
+      if (label) {
+        label.style.bottom = `calc(${height}% + 4px)`;
+      }
+    });
+  });
+</script>
+
+{{end}}
 
 {{/* Filter. Form GET biasa: hasilnya bisa di-bookmark dan dipakai ulang oleh export. */}}
 <form method="get" action="/rekap" class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:hidden">
@@ -82,13 +338,16 @@
     <select name="direction" onchange="this.form.requestSubmit()" aria-label="Lokasi perpindahan"
       class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       <option value="">Semua lokasi</option>
-      <option value="counter_to_market" {{if eq .Form.Direction "counter_to_market"}}selected{{end}}>Konter ke Market</option>
-      <option value="market_to_counter" {{if eq .Form.Direction "market_to_counter"}}selected{{end}}>Market ke Konter</option>
+      <option value="counter_to_market" {{if eq .Form.Direction "counter_to_market" }}selected{{end}}>Konter ke Market
+      </option>
+      <option value="market_to_counter" {{if eq .Form.Direction "market_to_counter" }}selected{{end}}>Market ke Konter
+      </option>
     </select>
     <select name="category" onchange="this.form.requestSubmit()" aria-label="Kategori"
       class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
       <option value="">Semua kategori</option>
-      {{range .Categories}}<option value="{{.ID}}" {{if eq .ID $.Form.CategoryID}}selected{{end}}>{{.Name}}</option>{{end}}
+      {{range .Categories}}<option value="{{.ID}}" {{if eq .ID $.Form.CategoryID}}selected{{end}}>{{.Name}}</option>
+      {{end}}
     </select>
     <div class="flex items-center gap-2 text-sm text-slate-500">
       <input type="date" name="from" value="{{.Form.From}}" onchange="this.form.requestSubmit()"
@@ -98,16 +357,24 @@
       <input type="date" name="to" value="{{.Form.To}}" onchange="this.form.requestSubmit()" aria-label="Sampai tanggal"
         class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
     </div>
-    <select name="per_page" class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="10" {{if and (not .Form.AllData) (eq .Form.PerPage 10)}}selected{{end}}>10 data</option><option value="all" {{if .Form.AllData}}selected{{end}}>Semua data</option></select><button
+    <select name="per_page" class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">
+      <option value="10" {{if and (not .Form.AllData) (eq .Form.PerPage 10)}}selected{{end}}>10 data</option>
+      <option value="all" {{if .Form.AllData}}selected{{end}}>Semua data</option>
+    </select><button
       class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-900">Terapkan</button>
   </div>
   <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
     <span class="text-slate-500">Periode:</span>
-    <button name="preset" value="today" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Hari ini</button>
-    <button name="preset" value="7d" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">7 hari</button>
-    <button name="preset" value="30d" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">30 hari</button>
-    <button name="preset" value="month" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Bulan ini</button>
-    <button name="preset" value="all" class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Semua</button>
+    <button name="preset" value="today"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Hari ini</button>
+    <button name="preset" value="7d"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">7 hari</button>
+    <button name="preset" value="30d"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">30 hari</button>
+    <button name="preset" value="month"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Bulan ini</button>
+    <button name="preset" value="all"
+      class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 hover:bg-slate-50">Semua</button>
     <a href="/rekap" class="ml-auto text-slate-500 hover:text-slate-800">Reset filter</a>
   </div>
 </form>
@@ -148,7 +415,9 @@
           <td class="px-3 py-3.5 text-center font-mono text-xs font-medium text-blue-600">{{.Barcode}}</td>
           <td class="px-3 py-3.5 text-center font-mono text-xs text-slate-500">{{.Code}}</td>
           <td class="px-3 py-3.5 text-left text-slate-900">{{.ProductName}}</td>
-          <td class="px-3 py-3.5 text-center">{{if .Category}}<span class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}<span class="text-slate-300">—</span>{{end}}</td>
+          <td class="px-3 py-3.5 text-center">{{if .Category}}<span
+              class="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}<span
+              class="text-slate-300">—</span>{{end}}</td>
           <td class="px-3 py-3.5 text-center font-semibold tabular-nums">{{.Qty}}</td>
           <td class="whitespace-nowrap px-3 py-3.5 text-center text-slate-500"><span class="font-mono text-xs">{{tgl
               .CreatedAt}}</span> <b class="font-mono text-xs text-slate-800">{{jam .CreatedAt}}</b></td>
@@ -162,17 +431,21 @@
               .User.Name}}</span></td>
           <td class="px-6 py-3.5 text-center text-slate-700">{{with .BA}}{{.}}{{else}}<span
               class="text-slate-300">&mdash;</span>{{end}}</td>
-          {{if eq $.User.Role "admin"}}<td class="action-cell flex items-center justify-center gap-2 px-6 py-3.5 print:hidden"><a
+          {{if eq $.User.Role "admin"}}<td
+            class="action-cell flex items-center justify-center gap-2 px-6 py-3.5 print:hidden"><a
               href="/rekap/mutasi/{{.ID}}/edit"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50" aria-label="Edit mutasi" title="Edit mutasi">{{template "i-edit"}}</a>
+              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50"
+              aria-label="Edit mutasi" title="Edit mutasi">{{template "i-edit"}}</a>
             <form class="inline-flex" method="post" action="/rekap/mutasi/{{.ID}}/delete" data-confirm-delete>
-              <button type="submit" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50" aria-label="Hapus mutasi" title="Hapus mutasi">{{template "i-trash"}}</button>
+              <button type="submit"
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+                aria-label="Hapus mutasi" title="Hapus mutasi">{{template "i-trash"}}</button>
             </form>
           </td>{{end}}
         </tr>
         {{else}}
         <tr>
-          <td colspan="{{if eq $.User.Role "admin"}}12{{else}}11{{end}}" class="px-6 py-14 text-center text-slate-400">
+          <td colspan="{{if eq $.User.Role " admin"}}12{{else}}11{{end}}" class="px-6 py-14 text-center text-slate-400">
             Tidak ada mutasi yang cocok dengan filter ini. Coba perluas periode atau hapus kata kunci pencarian.
           </td>
         </tr>

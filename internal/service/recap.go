@@ -1,6 +1,7 @@
 package service
 
 import (
+	"sort"
 	"time"
 
 	"movara/internal/models"
@@ -40,6 +41,17 @@ type RecapResult struct {
 	Pages    int
 	PerPage  int
 	ByOutlet []repository.OutletTotal
+}
+
+type VolumeValue struct {
+	PCS          int
+	Transactions int
+}
+
+type VolumeChart struct {
+	Code            string
+	CounterToMarket VolumeValue
+	MarketToCounter VolumeValue
 }
 
 type RecapSummary struct {
@@ -103,6 +115,40 @@ func (s *RecapService) Search(q RecapQuery) (*RecapResult, error) {
 func (s *RecapService) ExportRows(q RecapQuery) ([]models.Mutation, error) {
 	rows, _, err := s.mutations.Search(q.filter(), 0, 0)
 	return rows, err
+}
+
+func (s *RecapService) Volume(q RecapQuery) ([]VolumeChart, error) {
+	result := make(map[uint]*VolumeChart)
+	for _, direction := range []string{"counter_to_market", "market_to_counter"} {
+		if q.Direction != "" && q.Direction != direction {
+			continue
+		}
+		query := q
+		query.Direction = direction
+		rows, err := s.mutations.QtyByOutlet(query.filter())
+		if err != nil {
+			return nil, err
+		}
+		for _, row := range rows {
+			chart := result[row.OutletID]
+			if chart == nil {
+				chart = &VolumeChart{Code: row.Code}
+				result[row.OutletID] = chart
+			}
+			value := VolumeValue{PCS: row.Qty, Transactions: row.Count}
+			if direction == "counter_to_market" {
+				chart.CounterToMarket = value
+			} else {
+				chart.MarketToCounter = value
+			}
+		}
+	}
+	charts := make([]VolumeChart, 0, len(result))
+	for _, chart := range result {
+		charts = append(charts, *chart)
+	}
+	sort.Slice(charts, func(i, j int) bool { return charts[i].Code < charts[j].Code })
+	return charts, nil
 }
 
 // Summary untuk kartu ringkasan. outletID membatasi total bulan ini & hari ini;

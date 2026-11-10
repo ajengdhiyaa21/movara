@@ -19,3 +19,10 @@ func (s *Store) ByUsername(v string) (*models.User, error) {
 	}
 	return &u, nil
 }
+func (s *Store) ByUserCode(v string) (*models.User, error) {
+	var u models.User
+	if err := s.db.Preload("Outlet").Preload("Category").Where("user_code = ?", v).First(&u).Error; err != nil {
+		return nil, repository.ErrNotFound
+	}
+	return &u, nil
+}

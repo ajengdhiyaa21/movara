@@ -16,6 +16,7 @@ var ErrNotFound = errors.New("data tidak ditemukan")
 type Users interface {
 	ByID(id uint) (*models.User, error)
 	ByUsername(username string) (*models.User, error)
+	ByUserCode(code string) (*models.User, error)
 }
 
 type Products interface {

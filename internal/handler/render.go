@@ -169,6 +169,20 @@ func (r *Renderer) HTML(c *gin.Context, status int, page string, data gin.H) {
 	}
 }
 
+// StandaloneHTML merender dokumen HTML mandiri tanpa layout aplikasi.
+// Digunakan untuk halaman cetak yang memiliki struktur HTML dan CSS sendiri.
+func (r *Renderer) StandaloneHTML(c *gin.Context, status int, page string, data gin.H) {
+	t, data, ok := r.prepare(c, page, data)
+	if !ok {
+		return
+	}
+	c.Status(status)
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := t.ExecuteTemplate(c.Writer, page, data); err != nil {
+		_ = c.Error(err)
+	}
+}
+
 // Partial merender satu potongan template (untuk respons HTMX).
 func (r *Renderer) Partial(c *gin.Context, status int, page, name string, data gin.H) {
 	t, data, ok := r.prepare(c, page, data)

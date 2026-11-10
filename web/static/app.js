@@ -98,8 +98,8 @@
     var step = e.target.closest('[data-qty-step]');
     if (step) {
       var qty = $('#qty');
-      var next = (parseInt(qty.value, 10) || 1) + parseInt(step.dataset.qtyStep, 10);
-      qty.value = Math.min(999, Math.max(1, next));
+      var next = (parseInt(qty.value, 10) || 0) + parseInt(step.dataset.qtyStep, 10);
+      qty.value = Math.min(999, Math.max(0, next));
       return;
     }
     var fill = e.target.closest('[data-fill-user]');

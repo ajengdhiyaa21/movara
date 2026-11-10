@@ -123,13 +123,19 @@ func (s *MutationService) FindProductForUser(barcode string, u *models.User) (*m
 
 // DuplicateToday: berapa kali barkode ini sudah diinput hari ini di outlet tsb.
 func (s *MutationService) DuplicateToday(outletID uint, barcode string) (count, qty int) {
+	return s.DuplicateTodayByDirection(outletID, barcode, "")
+}
+
+// DuplicateTodayByDirection menghitung input barcode pada hari ini untuk arah tertentu.
+// Direction kosong mempertahankan perilaku lama: menghitung semua arah.
+func (s *MutationService) DuplicateTodayByDirection(outletID uint, barcode, direction string) (count, qty int) {
 	from, to := clock.DayBounds(clock.Now())
 	all, err := s.mutations.ListByOutletBetween(outletID, from, to)
 	if err != nil {
 		return 0, 0
 	}
 	for _, m := range all {
-		if m.Barcode == barcode {
+		if m.Barcode == barcode && (direction == "" || m.Direction == direction) {
 			count++
 			qty += m.Qty
 		}

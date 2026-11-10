@@ -31,6 +31,7 @@ type ProductCategory struct {
 type User struct {
 	ID                 uint   `gorm:"primaryKey"`
 	Name               string `gorm:"size:100;not null"`
+	UserCode           string `gorm:"size:50;index"`
 	Username           string `gorm:"size:50;uniqueIndex;not null"`
 	PasswordHash       string `gorm:"size:100;not null"`
 	PasswordCiphertext string `gorm:"size:512"`

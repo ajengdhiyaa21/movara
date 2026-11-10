@@ -39,7 +39,7 @@ func Migrate(db *gorm.DB) error {
 			}
 		}
 	}
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&models.User{},
 		&models.Product{},
 		&models.ProductRequest{},
@@ -47,5 +47,8 @@ func Migrate(db *gorm.DB) error {
 		&models.MutationEditLog{},
 		&models.OutletTransferRequest{},
 		&models.AuditLog{},
-	)
+	); err != nil {
+		return err
+	}
+	return db.Exec("UPDATE users SET user_code = username WHERE user_code IS NULL OR user_code = ''").Error
 }

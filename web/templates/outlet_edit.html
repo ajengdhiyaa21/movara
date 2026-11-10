@@ -1,1 +1,24 @@
-{{define "content"}}<div class="mx-auto max-w-3xl"><div class="flex flex-wrap items-end justify-between gap-4"><div><a href="/kelola/outlet" class="text-sm font-medium text-blue-600">Kelola Outlet</a><h1 class="mt-2 text-2xl font-bold">Edit Outlet</h1><p class="mt-1 text-sm text-slate-500">Perbarui informasi outlet.</p></div><a href="/kelola/outlet" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">&larr; Kembali</a></div>{{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}<form method="post" action="/kelola/outlet/{{.Outlet.ID}}/edit" class="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div class="grid gap-5"><label class="text-sm font-medium">Kode Outlet<input name="code" value="{{.Outlet.Code}}" required class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Nama Outlet<input name="name" value="{{.Outlet.Name}}" required class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Tipe Outlet<select name="type" class="mt-2 w-full rounded-xl border px-3.5 py-3"><option value="MK" {{if eq .Outlet.Type "MK"}}selected{{end}}>MK</option><option value="MINI" {{if eq .Outlet.Type "MINI"}}selected{{end}}>MINI</option></select></label></div><div class="mt-6 flex justify-end gap-2"><a href="/kelola/outlet" class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Perubahan</button></div></form></div>{{end}}
+{{define "content"}}<div class="mx-auto max-w-3xl">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div><a href="/kelola/outlet" class="text-sm font-medium text-blue-600">Kelola Outlet</a>
+            <h1 class="mt-2 text-2xl font-bold">Edit Outlet</h1>
+            <p class="mt-1 text-sm text-slate-500">Perbarui informasi outlet.</p>
+        </div><a href="/kelola/outlet"
+            class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">&larr; Kembali</a>
+    </div>{{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
+    <form method="post" action="/kelola/outlet/{{.Outlet.ID}}/edit"
+        class="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="grid gap-5"><label class="text-sm font-medium">Kode Outlet<input name="code"
+                    value="{{.Outlet.Code}}" required class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label
+                class="text-sm font-medium">Nama Outlet<input name="name" value="{{.Outlet.Name}}" required
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3"></label><label class="text-sm font-medium">Tipe
+                Outlet<select name="type" class="mt-2 w-full rounded-xl border px-3.5 py-3">
+                    <option value="MK" {{if eq .Outlet.Type "MK" }}selected{{end}}>MK</option>
+                    <option value="MINI" {{if eq .Outlet.Type "MINI" }}selected{{end}}>MINI</option>
+                </select></label></div>
+        <div class="mt-6 flex justify-end gap-2"><a href="/kelola/outlet"
+                class="rounded-xl border bg-white px-4 py-2.5 text-sm">Batal</a><button
+                class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Perubahan</button>
+        </div>
+    </form>
+</div>{{end}}

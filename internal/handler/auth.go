@@ -32,23 +32,24 @@ func (h *AuthHandler) ShowLogin(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/")
 		return
 	}
-	h.r.HTML(c, http.StatusOK, "login.html", gin.H{"Title": "Masuk", "Error": "", "Username": ""})
+	h.r.HTML(c, http.StatusOK, "login.html", gin.H{"Title": "Masuk", "Error": "", "UserCode": "", "Username": ""})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
 	username := strings.TrimSpace(c.PostForm("username"))
 	password := c.PostForm("password")
-	key := c.ClientIP() + ":" + strings.ToLower(username)
+	key := c.ClientIP() + ":" + strings.ToLower(userCode)
 	if !h.allowed(key) {
 		h.r.HTML(c, http.StatusTooManyRequests, "login.html", gin.H{"Title": "Masuk", "Error": "Terlalu banyak percobaan login. Coba lagi dalam satu menit.", "Username": username})
 		return
 	}
 
-	u, err := h.auth.Authenticate(username, password)
+	u, err := h.auth.AuthenticateByCode(userCode, password)
 	if err != nil {
 		h.recordFailure(key)
 		h.r.HTML(c, http.StatusUnauthorized, "login.html", gin.H{
-			"Title": "Masuk", "Error": err.Error(), "Username": username,
+			"Title": "Masuk", "Error": err.Error(), "UserCode": userCode,
 		})
 		return
 	}
@@ -63,6 +64,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 	h.audit.Log(&u.ID, u.OutletID, "login", u.Name+" masuk ke sistem")
 	c.Redirect(http.StatusFound, "/")
+}
+
+func (h *AuthHandler) LookupUser(c *gin.Context) {
+	code := strings.TrimSpace(c.Query("user_code"))
+	u, err := h.auth.LookupByCode(code)
+	if err != nil || !u.IsActive {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ID pengguna tidak ditemukan."})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"username": u.Username, "name": u.Name})
 }
 
 func (h *AuthHandler) allowed(key string) bool {
