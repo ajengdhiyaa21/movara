@@ -1,13 +1,13 @@
 {{define "content"}}
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <p class="text-sm font-semibold text-blue-600">ADMINISTRATION</p>
-        <h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Kelola Akun &amp; Aktivitas</h1>
-        <p class="mt-2 text-sm text-slate-500">Kelola struktur outlet, akun pramuniaga, dan aktivitas sistem dalam satu
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Administrasi</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight">Kelola Akun &amp; Aktivitas</h1>
+        <p class="mt-1 text-sm text-slate-500">Kelola struktur outlet, akun pramuniaga, dan aktivitas sistem dalam satu
             tempat.</p>
     </div>
-    <div class="flex items-center gap-2"><button type="button" data-account-modal-open
-            class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">+ Tambah Akun</button>
+    <div class="flex items-center gap-2">{{if and .User (eq .User.Username "admin.a")}}<button type="button" data-account-modal-open
+            class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">+ Tambah Akun</button>{{end}}
         <!-- <span
             class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">●
             Sistem aktif
@@ -19,11 +19,34 @@
     <button type="button" data-kelola-tab="manager" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Akun Manager</button>
     <button type="button" data-kelola-tab="activity" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Aktivitas Aplikasi</button>
 </nav>
-<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+{{if and .User (eq .User.Username "admin.a")}}<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Tambah akun</h2><p class="mt-1 text-sm text-slate-500">Pilih jenis akun yang akan dibuat.</p></div><button type="button" data-account-modal-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
-    <div class="border-b border-slate-200 px-6 pt-4"><div class="flex rounded-xl bg-slate-100 p-1"><button type="button" data-account-tab="pm" class="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm">Pramuniaga</button>{{if and .User (eq .User.Username "admin.a")}}<button type="button" data-account-tab="manager" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500">Manager</button>{{end}}</div></div>
-    <div class="p-6"><form data-account-form="pm" method="post" action="/kelola/pm" class="grid gap-3"><input name="name" required placeholder="Nama lengkap PM" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" placeholder="Password (kosong = default)" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><select name="category_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Pilih kategori PM</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Pramuniaga</button></form>{{if and .User (eq .User.Username "admin.a")}}<form data-account-form="manager" method="post" action="/kelola/manager" class="hidden grid gap-3"><input name="name" required placeholder="Nama Manager" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" minlength="8" required placeholder="Password minimal 8 karakter" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Manager</button></form>{{end}}</div>
+    <div class="border-b border-slate-200 px-6 pt-4"><div class="flex rounded-xl bg-slate-100 p-1"><button type="button" data-account-tab="pm" class="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm">Pramuniaga</button><button type="button" data-account-tab="manager" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500">Manager</button></div></div>
+    <div class="p-6"><form data-account-form="pm" method="post" action="/kelola/pm" class="grid gap-3"><input name="name" required placeholder="Nama lengkap PM" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" placeholder="Password (kosong = default)" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><select name="category_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Pilih kategori PM</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Pramuniaga</button></form><form data-account-form="manager" method="post" action="/kelola/manager" class="hidden grid gap-3"><input name="name" required placeholder="Nama Manager" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" minlength="8" required placeholder="Password minimal 8 karakter" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Manager</button></form></div>
 </dialog>
+<dialog data-password-reset-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+    <div class="border-b border-slate-200 px-6 py-5">
+        <div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Keamanan akun</p><h2 class="mt-1 text-xl font-semibold">Reset password</h2><p data-password-reset-account class="mt-1 text-sm text-slate-500"></p></div><button type="button" data-password-reset-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div>
+    </div>
+    <form data-password-reset-form method="post" class="space-y-4 p-6">
+        <p class="text-sm text-slate-600">Password lama tidak dapat dilihat. Buat password baru untuk menampilkannya.</p>
+        <div><label class="text-sm font-medium text-slate-700">Password baru</label><div class="relative mt-1.5"><input name="password" type="password" minlength="8" required placeholder="Minimal 8 karakter" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 pr-11 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"><button type="button" data-toggle-password class="absolute inset-y-0 right-0 px-3 text-slate-400 hover:text-slate-600" aria-label="Tampilkan password">◉</button></div></div>
+        <div class="flex justify-end gap-2"><button type="button" data-password-reset-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Reset &amp; tampilkan password</button></div>
+    </form>
+</dialog>
+<dialog data-password-result-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+    <div class="border-b border-slate-200 px-6 py-5"><p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Reset berhasil</p><h2 class="mt-1 text-xl font-semibold">Password terbaru</h2><p class="mt-1 text-sm text-slate-500">Simpan password ini dengan aman.</p></div>
+    <div class="space-y-4 p-6"><input data-password-result type="text" readonly class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-slate-800"><div class="flex justify-end"><button type="button" data-password-result-close class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">Selesai</button></div></div>
+</dialog>
+<dialog data-password-view-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+    <div class="border-b border-slate-200 px-6 py-5"><p class="text-xs font-semibold uppercase tracking-wider text-amber-600">Konfirmasi keamanan</p><h2 class="mt-1 text-xl font-semibold">Lihat password</h2><p data-password-view-account class="mt-1 text-sm text-slate-500"></p></div>
+    <div class="space-y-4 p-6"><p class="text-sm text-slate-600">Password akan ditampilkan. Aktivitas ini akan dicatat pada log aplikasi.</p><div class="flex justify-end gap-2"><button type="button" data-password-view-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button type="button" data-password-view-confirm class="rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-900">Lihat password</button></div></div>
+</dialog>
+<dialog data-manager-edit-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+    <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Edit akun Manager</h2><p data-manager-edit-account class="mt-1 text-sm text-slate-500"></p></div><button type="button" data-manager-edit-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
+    <form data-manager-edit-form method="post" class="space-y-4 p-6"><div><label class="text-sm font-medium text-slate-700">Nama Manager</label><input data-manager-edit-name name="name" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Username</label><input data-manager-edit-username name="username" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div class="flex justify-end gap-2"><button type="button" data-manager-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan perubahan</button></div></form>
+</dialog>
+<span hidden data-reveal-account-id="{{.RevealAccountID}}"></span>{{end}}
 {{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
 <div class="mt-7 grid gap-4 sm:grid-cols-3">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -120,7 +143,7 @@
                     <th class="px-3 py-3">Kategori</th>{{if and .User (eq .User.Username "admin.a")}}<th
                         class="px-3 py-3">Password</th>{{end}}
                     <th class="px-3 py-3">Status</th>
-                    <th class="px-6 py-3 text-right">Aksi</th>
+                    {{if and $.User (eq $.User.Username "admin.a")}}<th class="px-6 py-3 text-right">Aksi</th>{{end}}
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">{{range .Users}}<tr class="hover:bg-slate-50/70">
@@ -133,14 +156,14 @@
                     <td class="px-3 py-4">{{if .Category}}<span
                             class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">{{.Category.Name}}</span>{{else}}-{{end}}
                     </td>
+                    {{if and $.User (eq $.User.Username "admin.a")}}<td class="px-3 py-4"><div class="flex flex-wrap gap-2"><button type="button" data-open-password-view data-account-id="{{.ID}}" data-account-name="{{.Name}}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Lihat password</button><button type="button" data-open-password-reset data-reset-action="/kelola/pm/{{.ID}}/password" data-account-name="{{.Name}}" class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">Reset</button></div></td>{{end}}
                     <td class="px-3 py-4">{{if .IsActive}}<span
                             class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Aktif</span>{{else}}<span
                             class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Nonaktif</span>{{end}}
                     </td>
-                    <td class="px-6 py-4">
+                    {{if and $.User (eq $.User.Username "admin.a")}}<td class="px-6 py-4">
                         <div class="flex justify-end gap-2"><a href="/kelola/pm/{{.ID}}/edit"
-                                class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">Edit
-                                / Password</a>
+                                class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">Edit akun</a>
                             <form method="post" action="/kelola/pm/{{.ID}}/deactivate"
                                 onsubmit="return confirm('{{if .IsActive}}Nonaktifkan{{else}}Aktifkan kembali{{end}} akun PM ini?')">
                                 <button
@@ -148,31 +171,40 @@
                                     .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button>
                             </form>
                         </div>
-                    </td>
+                    </td>{{end}}
                 </tr>{{end}}</tbody>
         </table>
     </div>
 </section>
-{{if and .User (eq .User.Username "admin.a")}}<section id="manager-panel" data-kelola-panel="manager"
-    class="hidden mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Super Admin</p>
-            <h2 class="mt-1 text-lg font-semibold">Tambah Akun Manager</h2>
-            <p class="mt-1 text-sm text-slate-500">Manager berlaku untuk semua outlet.</p>
-        </div>
-    </div>
-    <form method="post" action="/kelola/manager" class="mt-4 grid gap-3 md:grid-cols-4"><input name="name" required
-            placeholder="Nama Manager" class="rounded-xl border px-3 py-2.5 text-sm"><input name="username" required
-            placeholder="Username" class="rounded-xl border px-3 py-2.5 text-sm">
-        <div class="relative"><input name="password" type="password" minlength="8" required
-                placeholder="Password minimal 8 karakter"
-                class="w-full rounded-xl border px-3 py-2.5 pr-10 text-sm"><button type="button" data-toggle-password
-                class="absolute right-2 top-2 text-slate-500" aria-label="Tampilkan password">◉</button></div><button
-            class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Tambah Manager</button>
-    </form>
-</section>
 <section id="manager-table-panel" class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p>
+            <h2 class="mt-1 text-lg font-semibold">Akun Manager</h2>
+            <p class="mt-1 text-sm text-slate-500">Kelola akses dan password akun Manager.</p>
+        </div>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{len .Managers}} akun</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full min-w-[700px] text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-6 py-3">Nama</th><th class="px-3 py-3">ID Pengguna</th><th class="px-3 py-3">Username</th><th class="px-3 py-3">Outlet</th>
+                    {{if and .User (eq .User.Username "admin.a")}}<th class="px-3 py-3">Password</th>{{end}}
+                    <th class="px-3 py-3">Status</th>{{if and .User (eq .User.Username "admin.a")}}<th class="px-6 py-3 text-right">Aksi</th>{{end}}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">{{range .Managers}}<tr class="hover:bg-slate-50/60">
+                <td class="px-6 py-4 font-semibold text-slate-900">{{.Name}}</td><td class="px-3 py-4 font-mono text-xs text-blue-700">{{.UserCode}}</td><td class="px-3 py-4 font-mono text-xs text-slate-600">{{.Username}}</td><td class="px-3 py-4"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">Semua outlet</span></td>
+                {{if and $.User (eq $.User.Username "admin.a")}}<td class="px-3 py-4"><div class="flex flex-wrap gap-2"><button type="button" data-open-password-view data-account-id="{{.ID}}" data-account-name="{{.Name}}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Lihat password</button><button type="button" data-open-password-reset data-reset-action="/kelola/manager/{{.ID}}/password" data-account-name="{{.Name}}" class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">Reset</button></div></td>{{end}}
+                <td class="px-3 py-4">{{if .IsActive}}<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Aktif</span>{{else}}<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Nonaktif</span>{{end}}</td>
+                {{if and $.User (eq $.User.Username "admin.a")}}<td class="px-6 py-4"><div class="flex justify-end gap-2"><button type="button" data-open-manager-edit data-manager-edit-action="/kelola/manager/{{.ID}}/edit" data-account-name="{{.Name}}" data-account-username="{{.Username}}" class="rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50">Edit akun</button><form method="post" action="/kelola/manager/{{.ID}}/toggle"><button class="rounded-lg border px-3 py-1.5 text-xs font-semibold {{if .IsActive}}border-red-200 text-red-700 hover:bg-red-50{{else}}border-emerald-200 text-emerald-700 hover:bg-emerald-50{{end}}">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></div></td>{{end}}
+            </tr>{{else}}<tr><td colspan="7" class="px-6 py-8 text-center text-sm text-slate-400">Belum ada akun Manager.</td></tr>{{end}}</tbody>
+        </table>
+    </div>
+</section>
+{{if false}}
+<section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 px-6 py-5">
         <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p>
         <h2 class="mt-1 text-lg font-semibold">Akun Manager</h2>
@@ -187,7 +219,7 @@
                     <th class="px-3 py-3">Username</th>
                     <th class="px-3 py-3">Outlet</th>
                     <th class="px-3 py-3">Status</th>
-                    <th class="px-3 py-3">Aksi</th>
+                    {{if and .User (eq .User.Username "admin.a")}}<th class="px-3 py-3">Password</th><th class="px-3 py-3">Aksi</th>{{end}}
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">{{range .Managers}}<tr>
@@ -196,6 +228,7 @@
                     <td class="px-3 py-3 font-mono">{{.Username}}</td>
                     <td class="px-3 py-3">Semua Outlet</td>
                     <td class="px-3 py-3">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td>
+                    {{if and $.User (eq $.User.Username "admin.a")}}
                     <td class="px-3 py-3"><span data-password-value="{{.ID}}">••••••••</span> <button type="button"
                             data-reveal-password="{{.ID}}" class="text-blue-600"
                             aria-label="Lihat password terbaru">◉</button></td>
@@ -217,12 +250,15 @@
                                 class="rounded-lg border px-2 py-1.5 text-xs">{{if
                                 .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form>
                     </td>
+                    {{end}}
                 </tr>{{else}}<tr>
                     <td colspan="4" class="px-6 py-6 text-center text-slate-400">Belum ada akun Manager.</td>
                 </tr>{{end}}</tbody>
         </table>
     </div>
-</section>{{end}}<div id="user-pagination" class="mt-3 flex justify-end gap-2 text-sm"><a
+</section>
+{{end}}
+<div id="user-pagination" class="mt-3 flex justify-end gap-2 text-sm"><a
         href="/kelola?user_page={{sub .UserPage 1}}&user_per_page={{.UserPerPage}}#users"
         class="rounded-lg border px-3 py-1.5 {{if eq .UserPage 1}}pointer-events-none opacity-40{{end}}">‹</a><span
         class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.UserPage}}</span><a
@@ -318,6 +354,77 @@ document.addEventListener('DOMContentLoaded', function () {
       document.querySelectorAll('[data-account-form]').forEach(function (form) { form.classList.toggle('hidden', form.dataset.accountForm !== tab.dataset.accountTab); });
     });
   });
+
+  const passwordResetModal = document.querySelector('[data-password-reset-modal]');
+  const passwordResetForm = document.querySelector('[data-password-reset-form]');
+  const passwordResetAccount = document.querySelector('[data-password-reset-account]');
+  function openPasswordReset(button) {
+    if (!passwordResetModal || !passwordResetForm) return;
+    passwordResetForm.action = button.dataset.resetAction;
+    passwordResetAccount.textContent = 'Akun: ' + button.dataset.accountName;
+    passwordResetForm.reset();
+    passwordResetModal.showModal();
+  }
+  document.querySelectorAll('[data-open-password-reset]').forEach(function (button) {
+    button.addEventListener('click', function () { openPasswordReset(button); });
+  });
+  document.querySelectorAll('[data-password-reset-close]').forEach(function (button) {
+    button.addEventListener('click', function () { passwordResetModal?.close(); });
+  });
+
+  const passwordViewModal = document.querySelector('[data-password-view-modal]');
+  const passwordViewAccount = document.querySelector('[data-password-view-account]');
+  const passwordViewConfirm = document.querySelector('[data-password-view-confirm]');
+  let accountToReveal = '';
+  function openPasswordView(button) {
+    if (!passwordViewModal || !passwordViewAccount) return;
+    accountToReveal = button.dataset.accountId;
+    passwordViewAccount.textContent = 'Akun: ' + button.dataset.accountName;
+    passwordViewModal.showModal();
+  }
+  document.querySelectorAll('[data-open-password-view]').forEach(function (button) {
+    button.addEventListener('click', function () { openPasswordView(button); });
+  });
+  document.querySelectorAll('[data-password-view-close]').forEach(function (button) {
+    button.addEventListener('click', function () { passwordViewModal?.close(); });
+  });
+  passwordViewConfirm?.addEventListener('click', function () {
+    if (!accountToReveal || !passwordResultModal || !passwordResult) return;
+    fetch('/kelola/account/' + accountToReveal + '/password', { credentials: 'same-origin' })
+      .then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.error); return data; }); })
+      .then(function (data) { passwordViewModal.close(); passwordResult.value = data.password; passwordResultModal.showModal(); })
+      .catch(function (error) { window.alert(error.message || 'Password tidak dapat ditampilkan'); });
+  });
+
+  const managerEditModal = document.querySelector('[data-manager-edit-modal]');
+  const managerEditForm = document.querySelector('[data-manager-edit-form]');
+  const managerEditAccount = document.querySelector('[data-manager-edit-account]');
+  const managerEditName = document.querySelector('[data-manager-edit-name]');
+  const managerEditUsername = document.querySelector('[data-manager-edit-username]');
+  document.querySelectorAll('[data-open-manager-edit]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      if (!managerEditModal || !managerEditForm) return;
+      managerEditForm.action = button.dataset.managerEditAction;
+      managerEditAccount.textContent = 'Akun: ' + button.dataset.accountName;
+      managerEditName.value = button.dataset.accountName;
+      managerEditUsername.value = button.dataset.accountUsername;
+      managerEditModal.showModal();
+    });
+  });
+  document.querySelectorAll('[data-manager-edit-close]').forEach(function (button) {
+    button.addEventListener('click', function () { managerEditModal?.close(); });
+  });
+
+  const revealID = document.querySelector('[data-reveal-account-id]')?.dataset.revealAccountId;
+  const passwordResultModal = document.querySelector('[data-password-result-modal]');
+  const passwordResult = document.querySelector('[data-password-result]');
+  if (revealID && Number(revealID) > 0 && passwordResultModal && passwordResult) {
+    fetch('/kelola/account/' + revealID + '/password', { credentials: 'same-origin' })
+      .then(function (response) { return response.json().then(function (data) { if (!response.ok) throw new Error(data.error); return data; }); })
+      .then(function (data) { passwordResult.value = data.password; passwordResultModal.showModal(); history.replaceState({}, '', '/kelola'); })
+      .catch(function (error) { window.alert(error.message || 'Password tidak dapat ditampilkan'); });
+  }
+  document.querySelector('[data-password-result-close]')?.addEventListener('click', function () { passwordResultModal?.close(); });
 });
 </script>
 {{end}}

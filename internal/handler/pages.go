@@ -9,6 +9,7 @@ import (
 	"movara/internal/models"
 	"movara/internal/security"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -145,7 +146,8 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	if _, err := time.ParseInLocation("2006-01-02", auditDate, clock.WIB); err == nil {
 		auditPeriod = "tanggal " + auditDate
 	}
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "Message": c.Query("message")})
+	revealAccountID, _ := strconv.ParseUint(c.Query("reveal_id"), 10, 64)
+	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {
@@ -481,9 +483,17 @@ func (h *PageHandler) AddManager(c *gin.Context) {
 }
 
 func (h *PageHandler) ResetManagerPassword(c *gin.Context) {
+	h.resetAccountPassword(c, models.RoleManager, "manager_password_reset", "Manager")
+}
+
+func (h *PageHandler) ResetPMPassword(c *gin.Context) {
+	h.resetAccountPassword(c, models.RolePM, "pm_password_reset", "Pramuniaga")
+}
+
+func (h *PageHandler) resetAccountPassword(c *gin.Context, role models.Role, auditAction, accountLabel string) {
 	var u models.User
-	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+	if h.db.Where("id = ? AND role = ?", c.Param("id"), role).First(&u).Error != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape(accountLabel+" tidak ditemukan"))
 		return
 	}
 	password := c.PostForm("password")
@@ -505,8 +515,8 @@ func (h *PageHandler) ResetManagerPassword(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+diubah")
 		return
 	}
-	h.audit(c, "manager_password_reset", u.Username)
-	c.Redirect(http.StatusFound, "/kelola?message=Password+Manager+berhasil+direset")
+	h.audit(c, auditAction, u.Username)
+	c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Password "+accountLabel+" berhasil direset")+"&reveal_id="+strconv.FormatUint(uint64(u.ID), 10))
 }
 
 func (h *PageHandler) ToggleManager(c *gin.Context) {

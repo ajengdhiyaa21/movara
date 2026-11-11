@@ -1,7 +1,8 @@
 {{define "content"}}
-<div class="rekap-header flex flex-wrap items-start justify-between gap-4">
+<div class="rekap-header flex flex-wrap items-end justify-between gap-4">
   <div>
-    <h1 class="text-2xl font-bold tracking-tight">Rekapitulasi Mutasi Barang</h1>
+    <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Rekap &amp; Laporan</p>
+    <h1 class="mt-1 text-2xl font-bold tracking-tight">Rekapitulasi Mutasi Barang</h1>
     <p class="mt-1 text-sm text-slate-500">Monitoring pergerakan stok antar outlet secara konsolidasi.</p>
   </div>
   <div class="flex items-center gap-2 print:hidden">
@@ -62,41 +63,268 @@
 
 <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
   <div class="flex flex-wrap items-start justify-between gap-3">
-    <div><h2 class="font-semibold">Volume mutasi per outlet</h2><p class="mt-0.5 text-sm text-slate-500">Mengikuti filter di atas, menampilkan 5 outlet terbesar.</p></div>
-    <div id="volume-metric" class="flex rounded-lg bg-slate-100 p-1 text-xs font-medium"><button type="button" data-volume-mode="pcs" class="rounded-md bg-white px-3 py-2 text-slate-700 shadow-sm">Jumlah pcs</button><button type="button" data-volume-mode="transactions" class="rounded-md px-3 py-2 text-slate-500">Jumlah transaksi</button><button type="button" data-volume-mode="both" class="rounded-md px-3 py-2 text-slate-500">Keduanya</button></div>
+    <div>
+      <h2 class="font-semibold">Volume mutasi per outlet</h2>
+      <p class="mt-0.5 text-sm text-slate-500">Mengikuti filter di atas, menampilkan 5 outlet terbesar.</p>
+    </div>
+    <div class="flex rounded-lg bg-slate-100 p-1 text-xs font-medium" aria-label="Pilihan metrik diagram">
+      <button type="button" data-svg-volume-mode="pcs" class="rounded-md bg-white px-3 py-2 text-slate-700 shadow-sm">Jumlah pcs</button>
+      <button type="button" data-svg-volume-mode="transactions" class="rounded-md px-3 py-2 text-slate-500">Jumlah transaksi</button>
+      <button type="button" data-svg-volume-mode="both" class="rounded-md px-3 py-2 text-slate-500">Keduanya</button>
+    </div>
   </div>
+
   {{if .Volume}}
-  <div class="mt-4 flex flex-wrap gap-5 text-xs text-slate-600"><span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-blue-600"></i>Konter → Market</span><span><i class="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>Market → Konter</span></div>
-  <div class="mt-3 flex gap-3"><div class="flex h-48 w-8 shrink-0 flex-col justify-between text-right text-[10px] font-mono text-slate-400"><span data-volume-axis="100">100</span><span data-volume-axis="75">75</span><span data-volume-axis="50">50</span><span data-volume-axis="25">25</span><span>0</span></div><div class="relative h-48 min-w-0 flex-1 overflow-x-auto"><div class="pointer-events-none absolute inset-0 flex flex-col justify-between"><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t-2 border-slate-300"></i></div><div class="relative z-10 flex h-full min-w-max items-end justify-around gap-10 px-5">{{range .Volume}}<div class="flex h-full w-24 flex-col items-center justify-end"><div class="flex h-44 items-end justify-center gap-1.5"> <div class="volume-bar flex h-44 w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.CounterToMarket.PCS}}" title="Konter → Market: {{.CounterToMarket.PCS}} pcs"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .CounterToMarket.PCS}}</span><div class="rounded-t-md bg-blue-600"></div></div><div class="volume-bar flex h-44 w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.MarketToCounter.PCS}}" title="Market → Konter: {{.MarketToCounter.PCS}} pcs"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .MarketToCounter.PCS}}</span><div class="rounded-t-md bg-emerald-500"></div></div><div class="volume-bar hidden h-44 w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.CounterToMarket.Transactions}}" title="Konter → Market: {{.CounterToMarket.Transactions}} transaksi"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .CounterToMarket.Transactions}}</span><div class="rounded-t-md bg-blue-600"></div></div><div class="volume-bar hidden h-44 w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.MarketToCounter.Transactions}}" title="Market → Konter: {{.MarketToCounter.Transactions}} transaksi"><span class="mb-1 text-[10px] font-mono text-slate-500">{{num .MarketToCounter.Transactions}}</span><div class="rounded-t-md bg-emerald-500"></div></div></div><span class="mt-1 text-xs font-mono text-slate-600">{{.Code}}</span></div>{{end}}</div></div></div>
+  <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+    <span class="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-blue-600"></i>PCS · Konter → Market</span>
+    <span class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>PCS · Market → Konter</span>
+    <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-slate-400"></i>Transaksi · Konter → Market</span>
+    <span class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-amber-500"></i>Transaksi · Market → Konter</span>
+    <span class="inline-flex items-center px-2 text-slate-400">Arahkan kursor ke batang untuk melihat detail.</span>
+  </div>
+  <div class="mt-4 overflow-x-auto" data-svg-volume-chart>
+    <svg data-svg-volume-canvas class="block h-56 min-w-[700px]" role="img" aria-label="Diagram volume mutasi per outlet"></svg>
+    <div class="hidden" aria-hidden="true">
+      {{range .Volume}}
+      <span data-svg-volume-datum data-outlet="{{.Code}}" data-counter-pcs="{{.CounterToMarket.PCS}}" data-market-pcs="{{.MarketToCounter.PCS}}" data-counter-transactions="{{.CounterToMarket.Transactions}}" data-market-transactions="{{.MarketToCounter.Transactions}}"></span>
+      {{end}}
+    </div>
+  </div>
   {{else}}<p class="mt-5 text-sm text-slate-400">Belum ada data untuk periode ini.</p>{{end}}
 </section>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const buttons = document.querySelectorAll('[data-volume-mode]');
-  const bars = document.querySelectorAll('[data-volume-kind]');
+  const chart = document.querySelector('[data-svg-volume-chart]');
+  if (!chart) return;
+
+  const canvas = chart.querySelector('[data-svg-volume-canvas]');
+  const buttons = Array.from(document.querySelectorAll('[data-svg-volume-mode]'));
+  const data = Array.from(chart.querySelectorAll('[data-svg-volume-datum]')).map(function (item) {
+    return {
+      outlet: item.dataset.outlet,
+      counterPCS: Number(item.dataset.counterPcs || 0),
+      marketPCS: Number(item.dataset.marketPcs || 0),
+      counterTransactions: Number(item.dataset.counterTransactions || 0),
+      marketTransactions: Number(item.dataset.marketTransactions || 0)
+    };
+  });
+  const svgNS = 'http://www.w3.org/2000/svg';
+
+  function node(name, attributes, text) {
+    const element = document.createElementNS(svgNS, name);
+    Object.keys(attributes || {}).forEach(function (key) { element.setAttribute(key, attributes[key]); });
+    if (text !== undefined) element.textContent = text;
+    return element;
+  }
+
+  function niceMaximum(value) {
+    if (value <= 4) return 4;
+    const base = Math.pow(10, Math.floor(Math.log10(value / 4)));
+    const normalized = (value / 4) / base;
+    const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return step * base * 4;
+  }
+
+  function seriesFor(item, mode) {
+    const pcs = [
+      { direction: 'Konter → Market', value: item.counterPCS, color: '#2563eb', unit: 'pcs' },
+      { direction: 'Market → Konter', value: item.marketPCS, color: '#10b981', unit: 'pcs' }
+    ];
+    const transactions = [
+      { direction: 'Konter → Market', value: item.counterTransactions, color: '#94a3b8', unit: 'transaksi' },
+      { direction: 'Market → Konter', value: item.marketTransactions, color: '#f59e0b', unit: 'transaksi' }
+    ];
+    if (mode === 'pcs') return pcs;
+    if (mode === 'transactions') return transactions;
+    return pcs.concat(transactions);
+  }
+
   function render(mode) {
-    const visible = Array.from(bars).filter(function (bar) { return mode === 'both' || bar.dataset.volumeKind === mode; });
-    const max = Math.max.apply(null, visible.map(function (bar) { return Number(bar.dataset.volumeValue || 0); }).concat([1]));
+    const series = data.map(function (item) { return seriesFor(item, mode); });
+    const maximum = niceMaximum(Math.max.apply(null, series.flat().map(function (item) { return item.value; }).concat([0])));
+    const width = Math.max(700, 80 + data.length * 132);
+    const height = 224;
+    const left = 42;
+    const right = 16;
+    const top = 12;
+    const bottom = 32;
+    const plotHeight = height - top - bottom;
+    const plotWidth = width - left - right;
+
+    canvas.replaceChildren();
+    canvas.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    canvas.setAttribute('width', String(width));
+    canvas.setAttribute('height', String(height));
+
+    for (let index = 0; index <= 4; index++) {
+      const ratio = index / 4;
+      const y = top + ratio * plotHeight;
+      const value = Math.round(maximum * (1 - ratio));
+      canvas.appendChild(node('line', { x1: left, y1: y, x2: width - right, y2: y, stroke: index === 4 ? '#cbd5e1' : '#e2e8f0', 'stroke-width': index === 4 ? '1.5' : '1' }));
+      canvas.appendChild(node('text', { x: left - 10, y: y + 4, fill: '#94a3b8', 'font-size': '11', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'end' }, String(value)));
+    }
+
+    data.forEach(function (item, index) {
+      const groupX = left + plotWidth * ((index + 0.5) / data.length);
+      const values = series[index];
+      const barWidth = 14;
+      const gap = 6;
+      const totalWidth = values.length * barWidth + (values.length - 1) * gap;
+      values.forEach(function (entry, entryIndex) {
+        const barHeight = entry.value / maximum * plotHeight;
+        const x = groupX - totalWidth / 2 + entryIndex * (barWidth + gap);
+        const y = top + plotHeight - barHeight;
+        const rect = node('rect', { x: x, y: y, width: barWidth, height: barHeight, rx: '3', fill: entry.color, opacity: entry.opacity || '1' });
+        rect.appendChild(node('title', {}, item.outlet + '\n' + entry.direction + ': ' + entry.value + ' ' + entry.unit));
+        canvas.appendChild(rect);
+        if (mode !== 'both') canvas.appendChild(node('text', { x: x + barWidth / 2, y: Math.max(top + 10, y - 5), fill: '#475569', 'font-size': '10', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'middle' }, String(entry.value)));
+      });
+      canvas.appendChild(node('text', { x: groupX, y: height - 9, fill: '#475569', 'font-size': '11', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'middle' }, item.outlet));
+    });
+
+    buttons.forEach(function (button) {
+      const active = button.dataset.svgVolumeMode === mode;
+      button.classList.toggle('bg-white', active);
+      button.classList.toggle('shadow-sm', active);
+      button.classList.toggle('text-slate-700', active);
+      button.classList.toggle('text-slate-500', !active);
+    });
+  }
+
+  buttons.forEach(function (button) { button.addEventListener('click', function () { render(button.dataset.svgVolumeMode); }); });
+  render('pcs');
+});
+</script>
+
+{{if false}}
+<section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm print:hidden">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="font-semibold">Volume mutasi per outlet</h2>
+      <p class="mt-0.5 text-sm text-slate-500">Mengikuti filter di atas, menampilkan 5 outlet terbesar.</p>
+    </div>
+    <div id="volume-metric" class="flex rounded-lg bg-slate-100 p-1 text-xs font-medium">
+      <button type="button" data-volume-mode="pcs" class="rounded-md bg-white px-3 py-2 text-slate-700 shadow-sm">Jumlah pcs</button>
+      <button type="button" data-volume-mode="transactions" class="rounded-md px-3 py-2 text-slate-500">Jumlah transaksi</button>
+      <button type="button" data-volume-mode="both" class="rounded-md px-3 py-2 text-slate-500">Keduanya</button>
+    </div>
+  </div>
+
+  {{if .Volume}}
+  <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
+    <span class="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-blue-600"></i>Biru: Konter → Market</span>
+    <span class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>Hijau: Market → Konter</span>
+    <span class="inline-flex items-center px-2 text-slate-400">Arahkan kursor ke batang untuk detail.</span>
+  </div>
+
+  <div class="mt-4 flex gap-3">
+    <div class="flex h-48 w-10 shrink-0 flex-col justify-between pr-1 text-right text-[10px] font-mono text-slate-400" aria-label="Skala nilai">
+      <span data-volume-axis="100">0</span>
+      <span data-volume-axis="75">0</span>
+      <span data-volume-axis="50">0</span>
+      <span data-volume-axis="25">0</span>
+      <span>0</span>
+    </div>
+    <div class="relative h-48 min-w-0 flex-1 overflow-x-auto">
+      <div class="pointer-events-none absolute inset-0 flex flex-col justify-between">
+        <i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t border-slate-200"></i><i class="border-t-2 border-slate-300"></i>
+      </div>
+      <div class="relative z-10 flex h-full min-w-[700px] items-end justify-around gap-10 px-5">
+        {{range .Volume}}
+        <div class="relative h-full w-24 shrink-0">
+          <div class="absolute inset-0 flex items-end justify-center gap-2 pb-5">
+            <div class="volume-bar relative flex h-full w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.CounterToMarket.PCS}}" data-volume-outlet="{{.Code}}" data-volume-direction="Konter → Market" data-volume-unit="pcs">
+              <span data-volume-label class="absolute left-0 right-0 text-center text-[10px] font-mono text-slate-600"></span>
+              <div data-volume-fill class="block w-full rounded-t-md bg-blue-600"></div>
+            </div>
+            <div class="volume-bar relative flex h-full w-4 flex-col justify-end" data-volume-kind="pcs" data-volume-value="{{.MarketToCounter.PCS}}" data-volume-outlet="{{.Code}}" data-volume-direction="Market → Konter" data-volume-unit="pcs">
+              <span data-volume-label class="absolute left-0 right-0 text-center text-[10px] font-mono text-slate-600"></span>
+              <div data-volume-fill class="block w-full rounded-t-md bg-emerald-500"></div>
+            </div>
+            <div class="volume-bar relative hidden h-full w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.CounterToMarket.Transactions}}" data-volume-outlet="{{.Code}}" data-volume-direction="Konter → Market" data-volume-unit="transaksi">
+              <span data-volume-label class="absolute left-0 right-0 text-center text-[10px] font-mono text-slate-600"></span>
+              <div data-volume-fill class="block w-full rounded-t-md bg-blue-600"></div>
+            </div>
+            <div class="volume-bar relative hidden h-full w-4 flex-col justify-end" data-volume-kind="transactions" data-volume-value="{{.MarketToCounter.Transactions}}" data-volume-outlet="{{.Code}}" data-volume-direction="Market → Konter" data-volume-unit="transaksi">
+              <span data-volume-label class="absolute left-0 right-0 text-center text-[10px] font-mono text-slate-600"></span>
+              <div data-volume-fill class="block w-full rounded-t-md bg-emerald-500"></div>
+            </div>
+          </div>
+          <span class="absolute left-0 right-0 text-center text-xs font-mono text-slate-600" style="bottom:0">{{.Code}}</span>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{else}}<p class="mt-5 text-sm text-slate-400">Belum ada data untuk periode ini.</p>{{end}}
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const buttons = Array.from(document.querySelectorAll('[data-volume-mode]'));
+  const bars = Array.from(document.querySelectorAll('[data-volume-kind]'));
+  const axes = Array.from(document.querySelectorAll('[data-volume-axis]'));
+
+  function niceMaximum(value) {
+    if (value <= 4) return 4;
+    const base = Math.pow(10, Math.floor(Math.log10(value / 4)));
+    const normalized = (value / 4) / base;
+    const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return step * base * 4;
+  }
+
+  function render(mode) {
+    const visible = bars.filter(function (bar) { return mode === 'both' || bar.dataset.volumeKind === mode; });
+    const maximum = niceMaximum(Math.max.apply(null, visible.map(function (bar) { return Number(bar.dataset.volumeValue || 0); }).concat([0])));
+
+    axes.forEach(function (axis) {
+      const level = Number(axis.dataset.volumeAxis || 0);
+      axis.textContent = String(Math.round(maximum * level / 100));
+    });
+
     bars.forEach(function (bar) {
       const show = mode === 'both' || bar.dataset.volumeKind === mode;
+      const value = Number(bar.dataset.volumeValue || 0);
+      const fill = bar.querySelector('[data-volume-fill]');
+      const label = bar.querySelector('[data-volume-label]');
       bar.classList.toggle('hidden', !show);
       bar.classList.toggle('flex', show);
-      if (show) {
-        const fill = bar.lastElementChild;
-        if (!fill) return;
-        fill.style.display = 'block';
-        fill.style.width = '100%';
-        fill.style.height = Math.max(Number(bar.dataset.volumeValue || 0) / max * 176, Number(bar.dataset.volumeValue || 0) > 0 ? 3 : 0) + 'px';
-      }
+      if (!show || !fill || !label) return;
+
+      const height = Math.max(value / maximum * 168, value > 0 ? 3 : 0);
+      fill.style.position = 'absolute';
+      fill.style.bottom = '0';
+      fill.style.left = '0';
+      fill.style.right = '0';
+      fill.style.display = 'block';
+      fill.style.width = '100%';
+      fill.style.height = height + 'px';
+      label.textContent = String(value);
+      label.classList.toggle('hidden', mode === 'both');
+      label.style.left = '50%';
+      label.style.right = 'auto';
+      label.style.transform = 'translateX(-50%)';
+      label.style.whiteSpace = 'nowrap';
+      label.style.bottom = height + 4 + 'px';
+      bar.title = bar.dataset.volumeOutlet + '\n' + bar.dataset.volumeDirection + ': ' + value + ' ' + bar.dataset.volumeUnit;
     });
-    buttons.forEach(function (button) { const active = button.dataset.volumeMode === mode; button.classList.toggle('bg-white', active); button.classList.toggle('shadow-sm', active); button.classList.toggle('text-slate-700', active); button.classList.toggle('text-slate-500', !active); });
+
+    buttons.forEach(function (button) {
+      const active = button.dataset.volumeMode === mode;
+      button.classList.toggle('bg-white', active);
+      button.classList.toggle('shadow-sm', active);
+      button.classList.toggle('text-slate-700', active);
+      button.classList.toggle('text-slate-500', !active);
+    });
   }
+
   buttons.forEach(function (button) { button.addEventListener('click', function () { render(button.dataset.volumeMode); }); });
   render('pcs');
 });
 </script>
 
+{{end}}
 {{if false}}
 {{if index .VolumeCharts "pcs"}}
 <div class="mt-5 grid gap-4 lg:grid-cols-2">
