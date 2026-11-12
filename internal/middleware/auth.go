@@ -6,13 +6,15 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 
+	"movara/internal/clock"
 	"movara/internal/models"
 	"movara/internal/repository"
 )
 
 const (
-	ctxUserKey     = "currentUser"
-	SessionUserKey = "uid"
+	ctxUserKey      = "currentUser"
+	SessionUserKey  = "uid"
+	SessionTokenKey = "session_token"
 )
 
 // CurrentUser mengembalikan user yang sedang login (nil jika belum login).
@@ -33,7 +35,9 @@ func LoadUser(users repository.Users) gin.HandlerFunc {
 		s := sessions.Default(c)
 		if id, ok := s.Get(SessionUserKey).(uint); ok {
 			u, err := users.ByID(id)
-			if err == nil && u.IsActive {
+			token, hasToken := s.Get(SessionTokenKey).(string)
+			sessionValid := u != nil && hasToken && token != "" && u.ActiveSessionToken == token && u.ActiveSessionUntil != nil && u.ActiveSessionUntil.After(clock.Now())
+			if err == nil && u.IsActive && sessionValid {
 				c.Set(ctxUserKey, u)
 			} else {
 				s.Clear()

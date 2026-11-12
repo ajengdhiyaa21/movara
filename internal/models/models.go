@@ -40,7 +40,9 @@ type User struct {
 	Outlet             *Outlet
 	CategoryID         *uint `gorm:"index"`
 	Category           *ProductCategory
-	IsActive           bool `gorm:"not null;default:true"`
+	IsActive           bool       `gorm:"not null;default:true"`
+	ActiveSessionToken string     `gorm:"size:64;index"`
+	ActiveSessionUntil *time.Time `gorm:"index"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
 }

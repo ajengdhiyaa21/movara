@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -10,7 +11,10 @@ import (
 	"movara/internal/repository"
 )
 
-var ErrInvalidCredentials = errors.New("Username atau password salah.")
+var (
+	ErrInvalidCredentials   = errors.New("Username atau password salah.")
+	ErrAccountSessionActive = errors.New("Akun ini masih aktif di perangkat lain. Silakan logout dari perangkat tersebut terlebih dahulu.")
+)
 
 type AuthService struct{ users repository.Users }
 
@@ -40,4 +44,19 @@ func (s *AuthService) AuthenticateByCode(code, password string) (*models.User, e
 		return nil, ErrInvalidCredentials
 	}
 	return u, nil
+}
+
+func (s *AuthService) ClaimSession(id uint, token string, until, now time.Time) error {
+	claimed, err := s.users.ClaimSession(id, token, until, now)
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		return ErrAccountSessionActive
+	}
+	return nil
+}
+
+func (s *AuthService) ReleaseSession(id uint, token string) {
+	_ = s.users.ReleaseSession(id, token)
 }

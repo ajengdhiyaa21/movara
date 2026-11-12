@@ -179,6 +179,37 @@ func (s *Store) ByUserCode(code string) (*models.User, error) {
 	return nil, repository.ErrNotFound
 }
 
+func (s *Store) ClaimSession(id uint, token string, until, now time.Time) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.users[id]
+	if !ok {
+		return false, repository.ErrNotFound
+	}
+	if u.ActiveSessionToken != "" && u.ActiveSessionUntil != nil && u.ActiveSessionUntil.After(now) {
+		return false, nil
+	}
+	u.ActiveSessionToken = token
+	u.ActiveSessionUntil = &until
+	s.users[id] = u
+	return true, nil
+}
+
+func (s *Store) ReleaseSession(id uint, token string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.users[id]
+	if !ok {
+		return repository.ErrNotFound
+	}
+	if u.ActiveSessionToken == token {
+		u.ActiveSessionToken = ""
+		u.ActiveSessionUntil = nil
+		s.users[id] = u
+	}
+	return nil
+}
+
 // ---- repository.Products ----
 
 func (s *Store) ByBarcode(barcode string, outletID uint) (*models.Product, error) {

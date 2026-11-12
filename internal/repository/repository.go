@@ -17,6 +17,8 @@ type Users interface {
 	ByID(id uint) (*models.User, error)
 	ByUsername(username string) (*models.User, error)
 	ByUserCode(code string) (*models.User, error)
+	ClaimSession(id uint, token string, until, now time.Time) (bool, error)
+	ReleaseSession(id uint, token string) error
 }
 
 type Products interface {

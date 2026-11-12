@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"strings"
 	"sync"
@@ -9,6 +11,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 
+	"movara/internal/clock"
 	"movara/internal/middleware"
 	"movara/internal/models"
 	"movara/internal/service"
@@ -54,11 +57,28 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	h.clearFailures(key)
+	var tokenBytes [32]byte
+	if _, err := rand.Read(tokenBytes[:]); err != nil {
+		c.String(http.StatusInternalServerError, "gagal membuat session")
+		return
+	}
+	sessionToken := base64.RawURLEncoding.EncodeToString(tokenBytes[:])
+	if err := h.auth.ClaimSession(u.ID, sessionToken, clock.Now().Add(8*time.Hour), clock.Now()); err != nil {
+		if err == service.ErrAccountSessionActive {
+			h.audit.Log(&u.ID, u.OutletID, "login_blocked_active_session", u.Name+" mencoba login saat session masih aktif")
+			h.r.HTML(c, http.StatusConflict, "login.html", gin.H{"Title": "Masuk", "Error": err.Error(), "UserCode": userCode, "Username": username})
+			return
+		}
+		c.String(http.StatusInternalServerError, "gagal memverifikasi session aktif")
+		return
+	}
 
 	s := sessions.Default(c)
 	s.Clear()
 	s.Set(middleware.SessionUserKey, u.ID)
+	s.Set(middleware.SessionTokenKey, sessionToken)
 	if err := s.Save(); err != nil {
+		h.auth.ReleaseSession(u.ID, sessionToken)
 		c.String(http.StatusInternalServerError, "gagal menyimpan session")
 		return
 	}
@@ -105,6 +125,9 @@ func (h *AuthHandler) clearFailures(key string) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	if u := middleware.CurrentUser(c); u != nil {
 		h.audit.Log(&u.ID, u.OutletID, "logout", u.Name+" keluar dari sistem")
+		if token, ok := sessions.Default(c).Get(middleware.SessionTokenKey).(string); ok && token != "" {
+			h.auth.ReleaseSession(u.ID, token)
+		}
 	}
 	s := sessions.Default(c)
 	s.Clear()
