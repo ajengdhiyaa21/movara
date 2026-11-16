@@ -75,11 +75,11 @@
   </div>
 
   {{if .Volume}}
-  <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-700">
-    <span class="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-blue-600"></i>PCS · Konter → Market</span>
-    <span class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></i>PCS · Market → Konter</span>
-    <span class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-slate-400"></i>Transaksi · Konter → Market</span>
-    <span class="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-amber-500"></i>Transaksi · Market → Konter</span>
+  <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-600" aria-label="Keterangan warna diagram">
+    <span data-svg-volume-legend="pcs-counter" class="volume-legend-item"><span class="volume-legend-swatch volume-legend-swatch-pcs-counter"></span>PCS · Konter → Market</span>
+    <span data-svg-volume-legend="pcs-market" class="volume-legend-item"><span class="volume-legend-swatch volume-legend-swatch-pcs-market"></span>PCS · Market → Konter</span>
+    <span data-svg-volume-legend="transactions-counter" class="volume-legend-item"><span class="volume-legend-swatch volume-legend-swatch-transactions-counter"></span>Transaksi · Konter → Market</span>
+    <span data-svg-volume-legend="transactions-market" class="volume-legend-item"><span class="volume-legend-swatch volume-legend-swatch-transactions-market"></span>Transaksi · Market → Konter</span>
     <span class="inline-flex items-center px-2 text-slate-400">Arahkan kursor ke batang untuk melihat detail.</span>
   </div>
   <div class="mt-4 overflow-x-auto" data-svg-volume-chart>
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const rect = node('rect', { x: x, y: y, width: barWidth, height: barHeight, rx: '3', fill: entry.color, opacity: entry.opacity || '1' });
         rect.appendChild(node('title', {}, item.outlet + '\n' + entry.direction + ': ' + entry.value + ' ' + entry.unit));
         canvas.appendChild(rect);
-        if (mode !== 'both') canvas.appendChild(node('text', { x: x + barWidth / 2, y: Math.max(top + 10, y - 5), fill: '#475569', 'font-size': '10', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'middle' }, String(entry.value)));
+        canvas.appendChild(node('text', { x: x + barWidth / 2, y: Math.max(top + 10, y - 5), fill: entry.color, 'font-size': '10', 'font-weight': '600', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'middle' }, String(entry.value)));
       });
       canvas.appendChild(node('text', { x: groupX, y: height - 9, fill: '#475569', 'font-size': '11', 'font-family': 'JetBrains Mono, monospace', 'text-anchor': 'middle' }, item.outlet));
     });
@@ -189,6 +189,14 @@ document.addEventListener('DOMContentLoaded', function () {
       button.classList.toggle('shadow-sm', active);
       button.classList.toggle('text-slate-700', active);
       button.classList.toggle('text-slate-500', !active);
+    });
+    const visibleLegends = mode === 'pcs'
+      ? ['pcs-counter', 'pcs-market']
+      : mode === 'transactions'
+        ? ['transactions-counter', 'transactions-market']
+        : ['pcs-counter', 'pcs-market', 'transactions-counter', 'transactions-market'];
+    document.querySelectorAll('[data-svg-volume-legend]').forEach(function (legend) {
+      legend.hidden = visibleLegends.indexOf(legend.dataset.svgVolumeLegend) === -1;
     });
   }
 
@@ -560,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
     <select name="outlet" onchange="this.form.requestSubmit()" aria-label="Outlet"
       class="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30">
-      <option value="">Semua outlet</option>
+      {{if not .ManagerScoped}}<option value="">Semua outlet</option>{{end}}
       {{range .Outlets}}<option value="{{.ID}}" {{if eq .ID $.Form.OutletID}}selected{{end}}>{{.Name}}</option>{{end}}
     </select>
     <select name="direction" onchange="this.form.requestSubmit()" aria-label="Lokasi perpindahan"

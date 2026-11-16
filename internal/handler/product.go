@@ -135,6 +135,28 @@ func (h *ProductHandler) duplicateProduct(outlet, exclude uint, p models.Product
 	}
 	return "nama produk"
 }
+
+func (h *ProductHandler) CheckDuplicate(c *gin.Context) {
+	outlet, _ := strconv.ParseUint(c.Query("outlet_id"), 10, 64)
+	if outlet == 0 {
+		c.JSON(http.StatusOK, gin.H{"barcode": false, "code": false})
+		return
+	}
+	var products []models.Product
+	h.db.Where("outlet_id = ?", uint(outlet)).Find(&products)
+	barcode := strings.TrimSpace(c.Query("barcode"))
+	code := strings.TrimSpace(c.Query("code"))
+	result := gin.H{"barcode": false, "code": false}
+	for _, product := range products {
+		if barcode != "" && product.Barcode == barcode {
+			result["barcode"] = true
+		}
+		if code != "" && product.Code == code {
+			result["code"] = true
+		}
+	}
+	c.JSON(http.StatusOK, result)
+}
 func (h *ProductHandler) Create(c *gin.Context) {
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
 	category, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
@@ -273,6 +295,10 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		c.Redirect(302, "/master-data?message=File+harus+berformat+.xlsx")
 		return
 	}
+	if f.Size > 25*1024*1024 {
+		c.Redirect(302, "/master-data?message=Ukuran+file+maksimal+25+MB")
+		return
+	}
 	src, e := f.Open()
 	if e != nil {
 		c.Redirect(302, "/master-data?message=File+tidak+bisa+dibuka")
@@ -292,6 +318,10 @@ func (h *ProductHandler) Import(c *gin.Context) {
 	}
 	if len(rows) == 0 {
 		c.Redirect(302, "/master-data?message=File+Excel+tidak+memiliki+data")
+		return
+	}
+	if len(rows)-1 > 20000 {
+		c.Redirect(302, "/master-data?message=Jumlah+data+maksimal+20.000+baris+per+import")
 		return
 	}
 	columns := map[string]int{}
@@ -320,9 +350,33 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		}
 		return strings.TrimSpace(row[index])
 	}
+	defaultCategoryID, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
+	categoryByName := make(map[string]uint)
+	categoryByID := make(map[uint]bool)
+	var categories []models.ProductCategory
+	h.db.Where("is_active = ?", true).Find(&categories)
+	for _, category := range categories {
+		categoryByName[strings.ToLower(strings.TrimSpace(category.Name))] = category.ID
+		categoryByID[category.ID] = true
+	}
+	if !categoryByID[uint(defaultCategoryID)] {
+		defaultCategoryID = 0
+	}
+	var existing []models.Product
+	h.db.Where("outlet_id = ?", outlet).Find(&existing)
+	barcodeSeen := make(map[string]string, len(existing))
+	codeSeen := make(map[string]string, len(existing))
+	nameSeen := make(map[string]string, len(existing))
+	for _, product := range existing {
+		barcodeSeen[product.Barcode] = "barcode"
+		codeSeen[product.Code] = "plu/sku"
+		nameSeen[strings.ToLower(product.Name)] = "nama produk"
+	}
+
 	n, skipped := 0, 0
 	var errors []string
 	var successRows []string
+	productsToCreate := make([]models.Product, 0, len(rows)-1)
 	for i, row := range rows {
 		if i == 0 {
 			continue
@@ -332,19 +386,13 @@ func (h *ProductHandler) Import(c *gin.Context) {
 			continue
 		}
 		p := models.Product{Barcode: cell(row, barcodeColumn), Code: cell(row, codeColumn), Name: cell(row, nameColumn), IsActive: true, OutletID: uint(outlet)}
-		categoryID := uint(0)
-		categoryValue := ""
+		categoryID := uint(defaultCategoryID)
 		if categoryColumn >= 0 && cell(row, categoryColumn) != "" {
-			var rowCategory models.ProductCategory
-			categoryValue = cell(row, categoryColumn)
-			lookup := h.db.Where("is_active = ?", true)
-			if parsed, parseErr := strconv.ParseUint(categoryValue, 10, 64); parseErr == nil && parsed > 0 {
-				lookup = lookup.Where("id = ?", parsed)
-			} else {
-				lookup = lookup.Where("LOWER(name) = LOWER(?)", categoryValue)
-			}
-			if lookup.First(&rowCategory).Error == nil {
-				categoryID = rowCategory.ID
+			categoryValue := cell(row, categoryColumn)
+			if parsed, parseErr := strconv.ParseUint(categoryValue, 10, 64); parseErr == nil && categoryByID[uint(parsed)] {
+				categoryID = uint(parsed)
+			} else if resolved, ok := categoryByName[strings.ToLower(categoryValue)]; ok {
+				categoryID = resolved
 			} else {
 				categoryID = 0
 			}
@@ -373,29 +421,39 @@ func (h *ProductHandler) Import(c *gin.Context) {
 			continue
 		}
 		p.CategoryID = &categoryID
-		var existing models.Product
-		findErr := h.db.Where("barcode = ? AND outlet_id = ?", p.Barcode, p.OutletID).First(&existing).Error
-		if duplicate := h.duplicateProduct(p.OutletID, 0, p); duplicate != "" {
+		duplicate := ""
+		if _, ok := barcodeSeen[p.Barcode]; ok {
+			duplicate = "barcode"
+		} else if _, ok := codeSeen[p.Code]; ok {
+			duplicate = "plu/sku"
+		} else if _, ok := nameSeen[strings.ToLower(p.Name)]; ok {
+			duplicate = "nama produk"
+		}
+		if duplicate != "" {
 			skipped++
 			errors = append(errors, fmt.Sprintf("baris %d: %s sudah tersedia di master pada outlet yang sama", line, duplicate))
 			continue
 		}
-		if findErr == gorm.ErrRecordNotFound {
-			err = h.db.Create(&p).Error
+		productsToCreate = append(productsToCreate, p)
+		barcodeSeen[p.Barcode] = "barcode"
+		codeSeen[p.Code] = "plu/sku"
+		nameSeen[strings.ToLower(p.Name)] = "nama produk"
+	}
+	if len(productsToCreate) > 0 {
+		err = h.db.Transaction(func(tx *gorm.DB) error {
+			return tx.CreateInBatches(&productsToCreate, 500).Error
+		})
+		if err != nil {
+			skipped += len(productsToCreate)
+			errors = append(errors, "import dibatalkan: data gagal disimpan sehingga tidak ada baris baru yang masuk")
 		} else {
-			if findErr == nil {
-				err = fmt.Errorf("data sudah tersedia di master data")
-			} else {
-				err = findErr
+			n = len(productsToCreate)
+			for i := range productsToCreate {
+				if len(successRows) < 100 {
+					successRows = append(successRows, fmt.Sprintf("produk berhasil: %s", productsToCreate[i].Name))
+				}
+				h.resolvePending(c, &productsToCreate[i])
 			}
-		}
-		if err == nil {
-			n++
-			successRows = append(successRows, fmt.Sprintf("baris %d: %s", line, p.Name))
-			h.resolvePending(c, &p)
-		} else {
-			skipped++
-			errors = append(errors, fmt.Sprintf("baris %d: gagal disimpan (%s)", line, err.Error()))
 		}
 	}
 	message := fmt.Sprintf("Import selesai: %d berhasil, %d dilewati", n, skipped)
@@ -415,7 +473,11 @@ func (h *ProductHandler) Import(c *gin.Context) {
 		redirect += "&import_success_rows=" + url.QueryEscape(strings.Join(successRows, "\n"))
 	}
 	if len(errors) > 0 {
-		redirect += "&import_errors=" + url.QueryEscape(strings.Join(errors, "\n"))
+		detailErrors := errors
+		if len(detailErrors) > 100 {
+			detailErrors = detailErrors[:100]
+		}
+		redirect += "&import_errors=" + url.QueryEscape(strings.Join(detailErrors, "\n"))
 	}
 	c.Redirect(302, redirect)
 }

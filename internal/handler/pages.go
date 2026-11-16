@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -256,11 +257,15 @@ func (h *PageHandler) AddPM(c *gin.Context) {
 	hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
 	cipherText, _ := security.EncryptPassword(os.Getenv("SESSION_SECRET"), pass)
 	username := strings.TrimSpace(c.PostForm("username"))
+	name := strings.TrimSpace(c.PostForm("name"))
+	if name == "" {
+		name = username
+	}
 	userCode := strings.TrimSpace(c.PostForm("user_code"))
 	if userCode == "" {
 		userCode = username
 	}
-	u := models.User{Name: c.PostForm("name"), UserCode: userCode, Username: username, PasswordHash: string(hash), Role: role, IsActive: true, PasswordCiphertext: cipherText}
+	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), Role: role, IsActive: true, PasswordCiphertext: cipherText}
 	if role == models.RolePM {
 		if outlet == 0 {
 			c.Redirect(302, "/kelola/pm?message=Outlet+wajib+untuk+pramuniaga")
@@ -308,13 +313,17 @@ func (h *PageHandler) UpdatePM(c *gin.Context) {
 		c.Redirect(302, "/kelola/pm?message=Akun+PM+tidak+ditemukan")
 		return
 	}
+	oldUserCode, oldUsername := u.UserCode, u.Username
 	outlet, _ := strconv.ParseUint(c.PostForm("outlet_id"), 10, 64)
 	name, username := c.PostForm("name"), c.PostForm("username")
 	userCode := strings.TrimSpace(c.PostForm("user_code"))
 	if userCode == "" {
 		userCode = username
 	}
-	if name == "" || username == "" || outlet == 0 {
+	if name == "" {
+		name = username
+	}
+	if username == "" || outlet == 0 {
 		c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Data+PM+belum+lengkap")
 		return
 	}
@@ -328,20 +337,11 @@ func (h *PageHandler) UpdatePM(c *gin.Context) {
 		c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Kategori+PM+wajib+dipilih")
 		return
 	}
-	if pass := c.PostForm("password"); pass != "" {
-		if len(pass) < 8 {
-			c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Password+minimal+8+karakter")
-			return
-		}
-		hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-		u.PasswordHash = string(hash)
-		u.PasswordCiphertext, _ = security.EncryptPassword(os.Getenv("SESSION_SECRET"), pass)
-	}
 	if err := h.db.Save(&u).Error; err != nil {
 		c.Redirect(302, "/kelola/pm/"+c.Param("id")+"/edit?message=Username+sudah+digunakan")
 		return
 	}
-	h.audit(c, "pm_update", u.Username)
+	h.audit(c, "pm_update", fmt.Sprintf("ID Pengguna: %s -> %s | Username: %s -> %s", oldUserCode, u.UserCode, oldUsername, u.Username))
 	c.Redirect(302, "/kelola/pm?message=Akun+PM+berhasil+diperbarui")
 }
 func (h *PageHandler) DecideTransfer(c *gin.Context) {
@@ -436,8 +436,12 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 	name := c.PostForm("name")
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
 	username := c.PostForm("username")
-	if name == "" || username == "" {
+	if name == "" {
+		name = username
+	}
+	if userCode == "" || username == "" {
 		c.Redirect(http.StatusFound, "/profile?message=Nama+dan+username+wajib+diisi")
 		return
 	}
@@ -446,17 +450,18 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/profile?message=Username+sudah+digunakan")
 		return
 	}
-	if err := h.db.Model(&models.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{"name": name, "username": username}).Error; err != nil {
+	if err := h.db.Model(&models.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{"user_code": userCode, "name": name, "username": username}).Error; err != nil {
 		c.Redirect(http.StatusFound, "/profile?message=Profil+gagal+diperbarui")
 		return
 	}
+	h.audit(c, "profile_update", fmt.Sprintf("ID Pengguna: %s -> %s | Username: %s -> %s", u.UserCode, userCode, u.Username, username))
 	c.Redirect(http.StatusFound, "/profile?message=Profil+berhasil+diperbarui")
 }
 
 func (h *PageHandler) AddManager(c *gin.Context) {
 	name, username, password := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username")), c.PostForm("password")
 	if name == "" || username == "" || len(password) < 8 {
-		c.Redirect(http.StatusFound, "/kelola?message=Data+Manager+belum+lengkap+atau+password+minimal+8+karakter")
+		c.Redirect(http.StatusFound, "/kelola?message=Data+Manajemen+belum+lengkap+atau+password+minimal+8+karakter")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -475,15 +480,15 @@ func (h *PageHandler) AddManager(c *gin.Context) {
 	}
 	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, IsActive: true}
 	if err = h.db.Create(&u).Error; err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Username+Manager+sudah+digunakan")
+		c.Redirect(http.StatusFound, "/kelola?message=Username+Manajemen+sudah+digunakan")
 		return
 	}
 	h.audit(c, "manager_create", username)
-	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manager+berhasil+ditambahkan")
+	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manajemen+berhasil+ditambahkan")
 }
 
 func (h *PageHandler) ResetManagerPassword(c *gin.Context) {
-	h.resetAccountPassword(c, models.RoleManager, "manager_password_reset", "Manager")
+	h.resetAccountPassword(c, models.RoleManager, "manager_password_reset", "Manajemen")
 }
 
 func (h *PageHandler) ResetPMPassword(c *gin.Context) {
@@ -522,7 +527,7 @@ func (h *PageHandler) resetAccountPassword(c *gin.Context, role models.Role, aud
 func (h *PageHandler) ToggleManager(c *gin.Context) {
 	var u models.User
 	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+		c.Redirect(http.StatusFound, "/kelola?message=Manajemen+tidak+ditemukan")
 		return
 	}
 	u.IsActive = !u.IsActive
@@ -531,7 +536,7 @@ func (h *PageHandler) ToggleManager(c *gin.Context) {
 		return
 	}
 	h.audit(c, "manager_status", u.Username)
-	c.Redirect(http.StatusFound, "/kelola?message=Status+Manager+berhasil+diubah")
+	c.Redirect(http.StatusFound, "/kelola?message=Status+Manajemen+berhasil+diubah")
 }
 
 func (h *PageHandler) RevealLatestPassword(c *gin.Context) {
@@ -552,19 +557,24 @@ func (h *PageHandler) RevealLatestPassword(c *gin.Context) {
 func (h *PageHandler) UpdateManager(c *gin.Context) {
 	var u models.User
 	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Manager+tidak+ditemukan")
+		c.Redirect(http.StatusFound, "/kelola?message=Manajemen+tidak+ditemukan")
 		return
 	}
+	oldUserCode, oldUsername := u.UserCode, u.Username
 	name, username := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username"))
-	if name == "" || username == "" {
+	userCode := strings.TrimSpace(c.PostForm("user_code"))
+	if name == "" {
+		name = username
+	}
+	if userCode == "" || username == "" {
 		c.Redirect(http.StatusFound, "/kelola?message=Nama+dan+username+wajib+diisi")
 		return
 	}
-	u.Name, u.Username = name, username
+	u.Name, u.UserCode, u.Username = name, userCode, username
 	if err := h.db.Save(&u).Error; err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Username+Manager+sudah+digunakan")
+		c.Redirect(http.StatusFound, "/kelola?message=Username+Manajemen+sudah+digunakan")
 		return
 	}
-	h.audit(c, "manager_update", u.Username)
-	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manager+berhasil+diperbarui")
+	h.audit(c, "manager_update", fmt.Sprintf("ID Pengguna: %s -> %s | Username: %s -> %s", oldUserCode, u.UserCode, oldUsername, u.Username))
+	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manajemen+berhasil+diperbarui")
 }

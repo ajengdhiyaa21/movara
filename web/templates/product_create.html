@@ -35,14 +35,14 @@
                     required class="mt-2 w-full rounded-xl border px-3.5 py-3">
                     <option value="">Pilih outlet</option>{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>
                     {{end}}
-                </select></label><label class="text-sm font-medium">Kategori<select name="category_id" required
+                </select><small data-field-warning="outlet" class="mt-1 hidden text-xs font-normal text-red-600"></small></label><label class="text-sm font-medium">Kategori<select name="category_id" required
                     class="mt-2 w-full rounded-xl border px-3.5 py-3">
                     <option value="">Pilih kategori</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}
                     </option>{{end}}
                 </select></label><label class="text-sm font-medium">Barcode<input name="barcode" required
-                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"><small data-field-warning="barcode" class="mt-1 hidden text-xs font-normal text-red-600"></small></label><label
                 class="text-sm font-medium">Kode Barang<input name="code" required minlength="6"
-                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"></label><label
+                    class="mt-2 w-full rounded-xl border px-3.5 py-3 font-mono"><small data-field-warning="code" class="mt-1 hidden text-xs font-normal text-red-600"></small></label><label
                 class="text-sm font-medium sm:col-span-2">Nama Produk<input name="name" required
                     class="mt-2 w-full rounded-xl border px-3.5 py-3"></label></div>
         <div class="flex justify-end gap-2 border-t bg-slate-50 px-6 py-4"><a href="/master-data"
@@ -50,4 +50,34 @@
                 class="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">Simpan Produk</button></div>
     </form>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('form[action="/master-data"]');
+  if (!form) return;
+  const outlet = form.querySelector('[name="outlet_id"]');
+  const barcode = form.querySelector('[name="barcode"]');
+  const code = form.querySelector('[name="code"]');
+  const warning = function (field, message) {
+    const element = form.querySelector('[data-field-warning="' + field + '"]');
+    if (!element) return;
+    element.textContent = message || '';
+    element.classList.toggle('hidden', !message);
+  };
+  const check = async function () {
+    if (!outlet.value) return;
+    const query = new URLSearchParams({ outlet_id: outlet.value, barcode: barcode.value.trim(), code: code.value.trim() });
+    const response = await fetch('/master-data/check-duplicate?' + query.toString());
+    if (!response.ok) return;
+    const result = await response.json();
+    warning('barcode', result.barcode ? 'Barcode sudah tersedia di MK/outlet ini.' : '');
+    warning('code', result.code ? 'PLU/SKU sudah tersedia di MK/outlet ini.' : '');
+  };
+  [outlet, barcode, code].forEach(function (field) { field.addEventListener('change', check); field.addEventListener('blur', check); });
+  form.addEventListener('submit', async function (event) {
+    event.preventDefault();
+    await check();
+    if (!form.querySelector('[data-field-warning="barcode"]:not(.hidden), [data-field-warning="code"]:not(.hidden)')) form.submit();
+  });
+});
+</script>
 {{end}}

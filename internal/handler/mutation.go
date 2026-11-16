@@ -236,7 +236,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 	}
 	if errors.Is(lookupErr, service.ErrProductNotFound) {
 		ba = strings.ToUpper(strings.TrimSpace(ba))
-		req := &models.ProductRequest{Barcode: barcode, ProductName: productName, Qty: qty, Direction: direction, OutletID: *u.OutletID, UserID: u.ID, Status: "pending", RequestedAt: clock.Now()}
+		req := &models.ProductRequest{Barcode: barcode, ProductName: productName, Qty: qty, Direction: direction, OutletID: *u.OutletID, UserID: u.ID, CategoryID: u.CategoryID, Status: "pending", RequestedAt: clock.Now()}
 		if ba != "" {
 			req.BAName = &ba
 		}

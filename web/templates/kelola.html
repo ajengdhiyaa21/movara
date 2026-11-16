@@ -1,4 +1,33 @@
 {{define "content"}}
+<style>
+  [data-account-form] input[name="name"], [data-manager-edit-form] input[name="name"] { display:none; }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const replaceManagerLabels = function (node) {
+    node.childNodes.forEach(function (child) {
+      if (child.nodeType === Node.TEXT_NODE) child.nodeValue = child.nodeValue.replace(/Manager/g, 'Manajemen').replace(/manager/g, 'manajemen');
+      else replaceManagerLabels(child);
+    });
+  };
+  replaceManagerLabels(document.body);
+  document.querySelectorAll('[data-account-form], [data-manager-edit-form]').forEach(function (form) {
+    if (form.matches('[data-account-form]') && !form.querySelector('input[name="user_code"]')) {
+      const id = document.createElement('input');
+      id.name = 'user_code';
+      id.required = true;
+      id.placeholder = form.dataset.accountForm === 'manager' ? 'ID pengguna (contoh: MGR001)' : 'ID pengguna (contoh: PM001)';
+      id.className = 'rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm';
+      form.prepend(id);
+    }
+    const name = form.querySelector('input[name="name"]');
+    const username = form.querySelector('input[name="username"]');
+    if (!name || !username) return;
+    name.required = false;
+    form.addEventListener('submit', function () { name.value = username.value; });
+  });
+});
+</script>
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
         <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Administrasi</p>
@@ -16,7 +45,7 @@
 </div>
 <nav class="mt-6 flex w-full flex-wrap gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm" aria-label="Kelola akun dan aktivitas">
     <button type="button" data-kelola-tab="pm" class="kelola-tab rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Akun Pramuniaga</button>
-    <button type="button" data-kelola-tab="manager" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Akun Manager</button>
+    <button type="button" data-kelola-tab="manager" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Akun Manajemen</button>
     <button type="button" data-kelola-tab="activity" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Aktivitas Aplikasi</button>
 </nav>
 {{if and .User (eq .User.Username "admin.a")}}<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
@@ -44,7 +73,7 @@
 </dialog>
 <dialog data-manager-edit-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Edit akun Manager</h2><p data-manager-edit-account class="mt-1 text-sm text-slate-500"></p></div><button type="button" data-manager-edit-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
-    <form data-manager-edit-form method="post" class="space-y-4 p-6"><div><label class="text-sm font-medium text-slate-700">Nama Manager</label><input data-manager-edit-name name="name" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Username</label><input data-manager-edit-username name="username" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div class="flex justify-end gap-2"><button type="button" data-manager-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan perubahan</button></div></form>
+    <form data-manager-edit-form method="post" class="space-y-4 p-6"><div><label class="text-sm font-medium text-slate-700">ID Pengguna</label><input data-manager-edit-user-code name="user_code" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 font-mono text-sm"></div><div><label class="text-sm font-medium text-slate-700">Nama Lengkap Manager</label><input data-manager-edit-name name="name" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Username Login</label><input data-manager-edit-username name="username" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div class="flex justify-end gap-2"><button type="button" data-manager-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan perubahan</button></div></form>
 </dialog>
 <span hidden data-reveal-account-id="{{.RevealAccountID}}"></span>{{end}}
 {{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
@@ -400,12 +429,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const managerEditForm = document.querySelector('[data-manager-edit-form]');
   const managerEditAccount = document.querySelector('[data-manager-edit-account]');
   const managerEditName = document.querySelector('[data-manager-edit-name]');
+  const managerEditUserCode = document.querySelector('[data-manager-edit-user-code]');
   const managerEditUsername = document.querySelector('[data-manager-edit-username]');
   document.querySelectorAll('[data-open-manager-edit]').forEach(function (button) {
     button.addEventListener('click', function () {
       if (!managerEditModal || !managerEditForm) return;
       managerEditForm.action = button.dataset.managerEditAction;
       managerEditAccount.textContent = 'Akun: ' + button.dataset.accountName;
+      const rowCells = button.closest('tr')?.querySelectorAll('td');
+      managerEditUserCode.value = rowCells && rowCells[1] ? rowCells[1].textContent.trim() : '';
       managerEditName.value = button.dataset.accountName;
       managerEditUsername.value = button.dataset.accountUsername;
       managerEditModal.showModal();

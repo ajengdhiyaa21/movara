@@ -69,7 +69,7 @@ var funcs = template.FuncMap{
 		case models.RolePM:
 			return "Pramuniaga"
 		case models.RoleManager:
-			return "Manager"
+			return "Manajemen"
 		case models.RoleAdmin:
 			return "Admin"
 		}

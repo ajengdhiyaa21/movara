@@ -163,11 +163,26 @@ func (h *RecapHandler) Delete(c *gin.Context) {
 // GET /rekap : Manager dan Admin.
 func (h *RecapHandler) Index(c *gin.Context) {
 	q, form := readRecapFilter(c)
+	managerScoped := false
+	if user := middleware.CurrentUser(c); user != nil && user.Role == models.RoleManager && user.OutletID != nil {
+		q.OutletID = user.OutletID
+		form.OutletID = *user.OutletID
+		managerScoped = true
+	}
 
 	outlets, err := h.svc.Outlets()
 	if err != nil {
 		h.fail(c, err)
 		return
+	}
+	if managerScoped {
+		filtered := outlets[:0]
+		for _, outlet := range outlets {
+			if outlet.ID == form.OutletID {
+				filtered = append(filtered, outlet)
+			}
+		}
+		outlets = filtered
 	}
 	var categories []models.ProductCategory
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
@@ -208,24 +223,25 @@ func (h *RecapHandler) Index(c *gin.Context) {
 	items, prev, next := buildPages(res.Page, res.Pages, base)
 
 	h.r.HTML(c, http.StatusOK, "rekap.html", gin.H{
-		"Title":      "Rekap & Laporan",
-		"Active":     "rekap",
-		"Form":       form,
-		"Outlets":    outlets,
-		"Categories": categories,
-		"Summary":    newSummaryView(sum),
-		"Rows":       rows,
-		"Total":      res.Total,
-		"TotalQty":   res.TotalQty,
-		"ShowFrom":   from,
-		"ShowTo":     to,
-		"PageItems":  items,
-		"PrevURL":    prev,
-		"NextURL":    next,
-		"Bars":       newBars(res),
-		"Volume":     volume,
-		"ExportURL":  "/rekap/export?" + base.Encode(),
-		"PrintURL":   "/rekap/cetak?" + base.Encode(),
+		"Title":         "Rekap & Laporan",
+		"Active":        "rekap",
+		"Form":          form,
+		"Outlets":       outlets,
+		"ManagerScoped": managerScoped,
+		"Categories":    categories,
+		"Summary":       newSummaryView(sum),
+		"Rows":          rows,
+		"Total":         res.Total,
+		"TotalQty":      res.TotalQty,
+		"ShowFrom":      from,
+		"ShowTo":        to,
+		"PageItems":     items,
+		"PrevURL":       prev,
+		"NextURL":       next,
+		"Bars":          newBars(res),
+		"Volume":        volume,
+		"ExportURL":     "/rekap/export?" + base.Encode(),
+		"PrintURL":      "/rekap/cetak?" + base.Encode(),
 	})
 }
 

@@ -2,7 +2,7 @@
 <div class="mx-auto max-w-3xl">
   <div>
     <h1 class="text-2xl font-bold tracking-tight">Edit Profil</h1>
-    <p class="mt-1 text-sm text-slate-500">Perbarui nama dan username akun Anda.</p>
+    <p class="mt-1 text-sm text-slate-500">Perbarui ID pengguna, nama, dan username akun Anda.</p>
   </div>
   {{if .Message}}<div class="mt-5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
     {{.Message}}</div>{{end}}
@@ -12,10 +12,9 @@
       <h2 class="font-semibold text-slate-900">Informasi Profil</h2>
       <p class="mt-1 text-sm text-slate-500">Data ini digunakan untuk identitas Anda di sistem.</p>
     </div>
-    <div class="grid gap-5 p-6 sm:grid-cols-2"><label class="block text-sm font-medium text-slate-700">Nama
-        lengkap<input name="name" value="{{.UserProfile.Name}}" required
-          class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5"></label><label
-        class="block text-sm font-medium text-slate-700">Username<input name="username"
+    <div class="grid gap-5 p-6 sm:grid-cols-2"><label class="block text-sm font-medium text-slate-700">ID Pengguna<input name="user_code" value="{{.UserProfile.UserCode}}" required
+        class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 font-mono"></label><label
+        class="block text-sm font-medium text-slate-700">Username Login<input name="username"
           value="{{.UserProfile.Username}}" required
           class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5"></label></div>
     <div class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50/50 px-6 py-4"><a href="/"
