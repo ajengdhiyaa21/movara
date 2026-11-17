@@ -115,6 +115,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 			admin.GET("/master-data/import/template", productH.Template)
 			admin.GET("/master-data/categories", pageH.Categories)
 			admin.POST("/master-data/categories", pageH.AddCategory)
+			admin.POST("/master-data/categories/:id/edit", pageH.UpdateCategory)
 			admin.POST("/master-data/categories/:id/toggle", pageH.ToggleCategory)
 			admin.POST("/master-data", productH.Create)
 			admin.POST("/master-data/import", productH.Import)

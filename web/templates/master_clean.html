@@ -22,7 +22,9 @@
             class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kategori</a><a
             href="/master-data/create" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">+
             Tambah Produk</a></div>
-</div>
+</div> 
+
+
 {{if .ImportMessage}}<div class="mt-5 grid gap-4 text-sm">
     <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-800">
         <p class="font-semibold">Data berhasil diimport</p>
@@ -98,12 +100,12 @@
         </table>
     </div>
 </section>
-<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+<div class="pagination-controls mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
     <div class="flex items-center gap-1"><a href="{{.ProductPrevURL}}"
             class="rounded-lg border px-3 py-1.5 {{if eq .ProductPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range
-        .ProductPageNumbers}}{{if eq . $.ProductPage}}<span
-            class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.}}</span>{{else}}<a
-            href="{{call $.ProductPageURL .}}" class="rounded-lg border px-3 py-1.5">{{.}}</a>{{end}}{{end}}<a
+        .ProductPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if .Current}}<span
+            class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.Number}}</span>{{else}}<a
+            href="{{.URL}}" class="rounded-lg border px-3 py-1.5">{{.Number}}</a>{{end}}{{end}}<a
             href="{{.ProductNextURL}}"
             class="rounded-lg border px-3 py-1.5 {{if ge .ProductPage .ProductPages}}pointer-events-none opacity-40{{end}}">›</a>
     </div><span class="text-slate-500">Halaman {{.ProductPage}} dari {{.ProductPages}}</span>

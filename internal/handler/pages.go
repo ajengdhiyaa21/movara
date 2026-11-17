@@ -55,6 +55,31 @@ func (h *PageHandler) AddCategory(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/master-data/categories?message=Kategori+berhasil+ditambahkan")
 }
 
+func (h *PageHandler) UpdateCategory(c *gin.Context) {
+	var category models.ProductCategory
+	if h.db.First(&category, c.Param("id")).Error != nil {
+		c.Redirect(http.StatusFound, "/master-data/categories?message=Kategori+tidak+ditemukan")
+		return
+	}
+	name := strings.TrimSpace(c.PostForm("name"))
+	if name == "" {
+		c.Redirect(http.StatusFound, "/master-data/categories?message=Nama+kategori+wajib+diisi")
+		return
+	}
+	var duplicate models.ProductCategory
+	if err := h.db.Where("lower(name) = lower(?) AND id <> ?", name, category.ID).First(&duplicate).Error; err == nil {
+		c.Redirect(http.StatusFound, "/master-data/categories?message=Nama+kategori+sudah+digunakan")
+		return
+	}
+	slug := strings.ToLower(strings.Join(strings.Fields(name), "-"))
+	if err := h.db.Model(&category).Updates(map[string]interface{}{"name": name, "slug": slug}).Error; err != nil {
+		c.Redirect(http.StatusFound, "/master-data/categories?message=Kategori+gagal+diperbarui")
+		return
+	}
+	h.audit(c, "category_update", category.Name+" -> "+name)
+	c.Redirect(http.StatusFound, "/master-data/categories?message=Kategori+berhasil+diperbarui")
+}
+
 func (h *PageHandler) ToggleCategory(c *gin.Context) {
 	var category models.ProductCategory
 	if h.db.First(&category, c.Param("id")).Error != nil {
@@ -158,9 +183,11 @@ func (h *PageHandler) KelolaOutlet(c *gin.Context) {
 }
 
 func (h *PageHandler) KelolaPM(c *gin.Context) {
-	var users []models.User
-	h.db.Where("role = ?", models.RolePM).Preload("Outlet").Preload("Category").Order("id").Find(&users)
-	h.r.HTML(c, http.StatusOK, "pm_manage.html", gin.H{"Title": "Kelola Akun PM", "Active": "pm", "Users": users, "Message": c.Query("message")})
+	redirect := "/kelola"
+	if message := c.Query("message"); message != "" {
+		redirect += "?message=" + url.QueryEscape(message)
+	}
+	c.Redirect(http.StatusFound, redirect)
 }
 
 func (h *PageHandler) EditOutlet(c *gin.Context) {
@@ -218,11 +245,7 @@ func (h *PageHandler) AddOutletForm(c *gin.Context) {
 }
 
 func (h *PageHandler) AddPMForm(c *gin.Context) {
-	var outlets []models.Outlet
-	var categories []models.ProductCategory
-	h.db.Where("is_active = ?", true).Order("id").Find(&outlets)
-	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
-	h.r.HTML(c, http.StatusOK, "pm_create.html", gin.H{"Title": "Tambah Akun", "Active": "kelola", "Outlets": outlets, "Categories": categories})
+	c.Redirect(http.StatusFound, "/kelola")
 }
 
 func (h *PageHandler) audit(c *gin.Context, action, detail string) {
@@ -502,8 +525,8 @@ func (h *PageHandler) resetAccountPassword(c *gin.Context, role models.Role, aud
 		return
 	}
 	password := c.PostForm("password")
-	if len(password) < 8 {
-		c.Redirect(http.StatusFound, "/kelola?message=Password+minimal+8+karakter")
+	if password == "" {
+		c.Redirect(http.StatusFound, "/kelola?message=Password+wajib+diisi")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

@@ -22,6 +22,9 @@
     if (container.querySelector('[data-found]')) {
       var q = $('#qty');
       if (q) { q.focus(); q.select(); }
+    } else if ($('#barcode') && $('#barcode').value.trim() !== '') {
+      var productName = $('#product_name');
+      if (productName) { productName.focus(); productName.select(); }
     } else {
       var b = $('#barcode');
       var mode = $('#barcode-mode');
@@ -55,6 +58,11 @@
     if (e.key === 'Enter' && e.target && e.target.id === 'barcode') {
       e.preventDefault();
       lookupBarcode(e.target);
+      return;
+    }
+    // Enter pada field input tidak boleh langsung menyimpan mutasi.
+    if (e.key === 'Enter' && e.target && e.target.closest('#scan-panel form') && e.target.tagName !== 'BUTTON') {
+      e.preventDefault();
     }
     if (e.key === 'Escape') {
       var reset = $('#btn-reset');
@@ -142,6 +150,7 @@
   // "localhost says" tidak lagi muncul pada halaman yang belum dimigrasikan.
   document.addEventListener('submit', function (e) {
     var form = e.target;
+    if (form.hasAttribute('data-no-confirm')) return;
     if (!form.matches('[data-confirm-action], [data-confirm-delete], form[action*="/deactivate"], form[action*="/toggle"], form[action*="/edit"], form[action="/profile"], form[action="/password"]')) return;
     e.preventDefault();
     e.stopPropagation();
@@ -174,7 +183,7 @@
     var barcodeMode = $('#barcode-mode');
     if (barcodeMode && barcodeMode.value === 'manual') return;
     clearTimeout(scanTimer);
-    var delay = 180;
+    var delay = 900;
     scanTimer = setTimeout(function () { lookupBarcode(e.target); }, delay);
   });
 
@@ -196,6 +205,13 @@
     if (id === 'product-fields') {
       focusAfterSwap(e.detail.target);
     }
+  });
+
+  document.addEventListener('focusin', function (e) {
+    if (!e.target || !e.target.closest('#scan-panel')) return;
+    document.querySelectorAll('#scan-panel .scan-field-active').forEach(function (field) { field.classList.remove('scan-field-active'); });
+    var field = e.target.closest('input, select, textarea');
+    if (field) field.classList.add('scan-field-active');
   });
 
   var barcode = $('#barcode');

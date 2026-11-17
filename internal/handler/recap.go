@@ -233,6 +233,8 @@ func (h *RecapHandler) Index(c *gin.Context) {
 		"Rows":          rows,
 		"Total":         res.Total,
 		"TotalQty":      res.TotalQty,
+		"Page":          res.Page,
+		"Pages":         res.Pages,
 		"ShowFrom":      from,
 		"ShowTo":        to,
 		"PageItems":     items,

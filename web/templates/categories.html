@@ -19,7 +19,36 @@
   </form>
   <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 px-5 py-4"><h2 class="font-semibold">Daftar kategori</h2><p class="mt-1 text-sm text-slate-500">{{len .Categories}} kategori terdaftar</p></div>
-    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Nama</th><th class="px-5 py-3">Slug</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Categories}}<tr><td class="px-5 py-4 font-medium">{{.Name}}</td><td class="px-5 py-4 font-mono text-xs text-slate-500">{{.Slug}}</td><td class="px-5 py-4">{{if .IsActive}}<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Aktif</span>{{else}}<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Nonaktif</span>{{end}}</td><td class="px-5 py-4 text-right"><form method="post" action="/master-data/categories/{{.ID}}/toggle"><button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></td></tr>{{else}}<tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">Belum ada kategori.</td></tr>{{end}}</tbody></table></div>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-3">Nama</th><th class="px-5 py-3">Slug</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Categories}}<tr><td class="px-5 py-4 font-medium">{{.Name}}</td><td class="px-5 py-4 font-mono text-xs text-slate-500">{{.Slug}}</td><td class="px-5 py-4">{{if .IsActive}}<span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Aktif</span>{{else}}<span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Nonaktif</span>{{end}}</td><td class="px-5 py-4 text-right"><div class="flex justify-end gap-2"><button type="button" data-category-edit data-id="{{.ID}}" data-name="{{.Name}}" title="Edit kategori" aria-label="Edit kategori" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-300 text-sm text-slate-600 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700">✎</button><form method="post" action="/master-data/categories/{{.ID}}/toggle"><button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></div></td></tr>{{else}}<tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">Belum ada kategori.</td></tr>{{end}}</tbody></table></div>
   </div>
 </div>
+<dialog data-category-edit-modal style="width:420px;max-width:calc(100vw - 2rem);margin:auto" class="rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
+  <form method="post" data-category-edit-form data-no-confirm>
+    <div class="border-b border-slate-200 px-5 py-4"><div class="flex items-center justify-between"><h2 class="font-semibold">Edit kategori</h2><button type="button" data-category-edit-close class="text-xl text-slate-400 hover:text-slate-700">&times;</button></div><p class="mt-1 text-sm text-slate-500">Perbaiki nama kategori produk.</p></div>
+    <div class="p-5"><label class="block text-sm font-medium">Nama kategori<input name="name" required maxlength="100" data-category-edit-name class="mt-2 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"></label></div>
+<div class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4"><button type="button" data-category-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium">Batal</button><button type="submit" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Simpan perubahan</button></div>
+  </form>
+</dialog>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modal = document.querySelector('[data-category-edit-modal]');
+  const form = document.querySelector('[data-category-edit-form]');
+  const name = document.querySelector('[data-category-edit-name]');
+  document.querySelectorAll('[data-category-edit]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      form.action = '/master-data/categories/' + button.dataset.id + '/edit';
+      name.value = button.dataset.name || '';
+      modal.showModal();
+      name.focus();
+      name.select();
+    });
+  });
+  document.querySelectorAll('[data-category-edit-close]').forEach(function (button) { button.addEventListener('click', function () { modal.close(); }); });
+  form.addEventListener('submit', function () {
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit) { submit.disabled = true; submit.textContent = 'Menyimpan...'; }
+    modal.close();
+  });
+});
+</script>
 {{end}}

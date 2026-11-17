@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -78,10 +79,6 @@ func (h *ProductHandler) Index(c *gin.Context) {
 		page = pages
 	}
 	db.Preload("Outlet").Preload("Category").Order("id DESC").Offset((page - 1) * perPage).Limit(perPage).Find(&rows)
-	pageNumbers := make([]int, pages)
-	for i := range pageNumbers {
-		pageNumbers[i] = i + 1
-	}
 	base := url.Values{"q": []string{q}, "outlet_id": []string{c.Query("outlet_id")}, "category_id": []string{categoryID}, "per_page": []string{strconv.Itoa(perPage)}}
 	pageURL := func(n int) string {
 		v := url.Values{}
@@ -91,9 +88,45 @@ func (h *ProductHandler) Index(c *gin.Context) {
 		v.Set("page", strconv.Itoa(n))
 		return "/master-data?" + v.Encode()
 	}
+	pageItems := buildProductPageItems(page, pages, pageURL)
 	successRows := splitImportDetails(c.Query("import_success_rows"))
 	failedRows := splitImportDetails(c.Query("import_errors"))
-	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ImportMessage": c.Query("import") == "1", "ImportSuccess": c.Query("import_success"), "ImportSkipped": c.Query("import_skipped"), "ImportUpdated": c.Query("import_updated"), "ImportSuccessRows": successRows, "ImportErrors": failedRows, "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageNumbers": pageNumbers, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1), "ProductPageURL": pageURL})
+	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ImportMessage": c.Query("import") == "1", "ImportSuccess": c.Query("import_success"), "ImportSkipped": c.Query("import_skipped"), "ImportUpdated": c.Query("import_updated"), "ImportSuccessRows": successRows, "ImportErrors": failedRows, "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageItems": pageItems, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1)})
+}
+
+type productPageItem struct {
+	Number  int
+	URL     string
+	Current bool
+	Gap     bool
+}
+
+func buildProductPageItems(current, total int, pageURL func(int) string) []productPageItem {
+	if total <= 1 {
+		return nil
+	}
+	seen := map[int]bool{}
+	pages := []int{1, total}
+	for p := current - 2; p <= current+2; p++ {
+		if p > 0 && p <= total {
+			pages = append(pages, p)
+		}
+	}
+	sort.Ints(pages)
+	items := make([]productPageItem, 0, len(pages)+2)
+	last := 0
+	for _, p := range pages {
+		if seen[p] {
+			continue
+		}
+		seen[p] = true
+		if last > 0 && p-last > 1 {
+			items = append(items, productPageItem{Gap: true})
+		}
+		items = append(items, productPageItem{Number: p, URL: pageURL(p), Current: p == current})
+		last = p
+	}
+	return items
 }
 
 func splitImportDetails(value string) []string {

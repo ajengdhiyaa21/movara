@@ -11,11 +11,24 @@ body.overflow-x-hidden { overflow-x: clip !important; }
   color: #fff !important;
   box-shadow: 0 3px 8px rgba(37, 99, 235, .22);
 }
+
+/* Final orange theme overrides for mutation controls. */
+.history-tab-active,
 button[data-history-tab].history-tab-active,
 button[data-history-tab].history-tab-active:hover,
 button[data-history-tab].history-tab-active:focus {
-  background: #2563eb !important;
-  border-color: #2563eb !important;
+  background: var(--movara-primary) !important;
+  border-color: var(--movara-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 3px 8px rgba(242,140,40,.24) !important;
+}
+.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; }
+section a[href*="/mutasi/input?"] > span > span:first-child::before { filter: sepia(1) saturate(5) hue-rotate(330deg); }
+button[data-history-tab].history-tab-active,
+button[data-history-tab].history-tab-active:hover,
+button[data-history-tab].history-tab-active:focus {
+  background: var(--movara-primary) !important;
+  border-color: var(--movara-primary) !important;
   color: #fff !important;
 }
 button[data-history-tab]:not(.history-tab-active) {
@@ -232,9 +245,9 @@ section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first
 
 /* Tema visual MOVARA: warna dan navbar saja, tanpa mengubah komponen/fungsi. */
 :root {
-  --movara-primary: #1f7bd0;
-  --movara-primary-dark: #1767b5;
-  --movara-gradient: linear-gradient(135deg, #3a9bea 0%, #1f7bd0 100%);
+  --movara-primary: #f28c28;
+  --movara-primary-dark: #d96b16;
+  --movara-gradient: linear-gradient(135deg, #ffad45 0%, #e87518 100%);
 }
 body { background: #eef5fc !important; }
 .topbar-shell {
@@ -372,6 +385,8 @@ main a[href="/mutasi"]:hover, main a[href="/master-data"]:hover, main a[href="/k
 button.bg-blue-600, a.bg-blue-600 { background: var(--movara-primary) !important; }
 button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary-dark) !important; }
 .login-gradient { background: var(--movara-gradient) !important; }
+.bg-gradient-to-r.from-blue-600.to-indigo-600 { background:var(--movara-gradient) !important; }
+.from-blue-600.to-indigo-600 { --tw-gradient-from:transparent !important; --tw-gradient-to:transparent !important; }
 .from-blue-600 { --tw-gradient-from: #3a9bea var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(58 155 234 / 0%) var(--tw-gradient-to-position) !important; }
 .to-blue-800 { --tw-gradient-to: #1f7bd0 var(--tw-gradient-to-position) !important; }
 
@@ -401,7 +416,89 @@ main:has(#journal-section) > #journal-section { order:5 !important; }
 .volume-legend-swatch-pcs-market { background:#10b981; }
 .volume-legend-swatch-transactions-counter { background:#94a3b8; }
 .volume-legend-swatch-transactions-market { background:#f59e0b; }
+.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; background-color:#fff !important; }
+.text-blue-600, .text-blue-700, .text-blue-800 { color:var(--movara-primary-dark) !important; }
+.bg-blue-50 { background-color:#fbf1e6 !important; }
+.bg-blue-100 { background-color:#f6dfc7 !important; }
+.border-blue-200, .border-blue-300, .border-blue-500 { border-color:#efb878 !important; }
+.focus\:border-blue-500:focus { border-color:var(--movara-primary) !important; }
+.focus\:ring-blue-500\/30:focus { --tw-ring-color:rgba(217,120,38,.30) !important; }
+.focus\:ring-blue-500\/40:focus { --tw-ring-color:rgba(217,120,38,.40) !important; }
+
+.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; }
+
+/* Pilihan arah mutasi memakai satu aksen oranye agar serasi dengan tema utama. */
+a[href*="/mutasi/input"] .text-emerald-700,
+a[href*="/mutasi/input"] .text-emerald-800 { color:var(--movara-primary-dark) !important; }
+a[href*="/mutasi/input"].border-emerald-500,
+a[href*="/mutasi/input"].border-emerald-300 { border-color:#f2b56c !important; }
+a[href*="/mutasi/input"].bg-emerald-50\/70,
+a[href*="/mutasi/input"]:hover.bg-emerald-50\/40 { background-color:#fff3e2 !important; }
+a[href*="/mutasi/input"] .bg-emerald-100 { background-color:#ffe2bf !important; }
 @media (max-width:900px) { .product-request-table { font-size:.75rem; } .product-request-form { grid-template-columns:120px 150px max-content; width:470px; min-width:470px; } }
+/* Pagination global: satu gaya untuk semua halaman. */
+.pagination-controls > div,
+#user-pagination,
+#audit-pagination,
+nav[aria-label="Halaman"],
+nav[aria-label*="Pagination"] {
+  align-items: center;
+  gap: .25rem !important;
+}
+.pagination-controls a, .pagination-controls span,
+#user-pagination a, #user-pagination span,
+#audit-pagination a, #audit-pagination span,
+nav[aria-label="Halaman"] a, nav[aria-label="Halaman"] span,
+nav[aria-label*="Pagination"] a, nav[aria-label*="Pagination"] span {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .65rem !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #fff !important;
+  color: #475569 !important;
+  padding: 0 .65rem !important;
+  line-height: 1;
+  text-decoration: none;
+}
+.pagination-controls .bg-blue-600,
+#user-pagination .bg-blue-600,
+#audit-pagination .bg-blue-600,
+nav[aria-label="Halaman"] .bg-blue-600,
+nav[aria-label*="Pagination"] .bg-blue-600 {
+  background: var(--movara-primary) !important;
+  border-color: var(--movara-primary) !important;
+  color: #fff !important;
+}
+.pagination-controls a:hover,
+#user-pagination a:hover,
+#audit-pagination a:hover,
+nav[aria-label="Halaman"] a:hover,
+nav[aria-label*="Pagination"] a:hover {
+  border-color: var(--movara-primary) !important;
+  background: #fff3e2 !important;
+  color: var(--movara-primary-dark) !important;
+}
+.pagination-controls .pointer-events-none,
+#user-pagination .pointer-events-none,
+#audit-pagination .opacity-40,
+nav[aria-label="Halaman"] .opacity-40,
+nav[aria-label*="Pagination"] .opacity-40 { opacity: .4; }
+#audit-pagination > a,
+#audit-pagination > span:not(.pagination-info) { order: 1; }
+#audit-pagination > .pagination-info { order: 2; margin-left: auto; min-width: auto; border: 0 !important; background: transparent !important; color: #64748b !important; }
+/* Pagination tabel dibuat ringkas: panah kiri, halaman aktif, panah kanan. */
+.pagination-controls > div > a:not(:first-child):not(:last-child),
+.pagination-controls > div > span:not(.bg-blue-600):not(.pagination-info),
+.pagination-controls > nav > a:not(:first-child):not(:last-child),
+.pagination-controls > nav > span:not(.bg-blue-600):not(.pagination-info) {
+  display: none !important;
+}
+.pagination-controls > nav { order: 1; }
+.pagination-controls > .pagination-info { order: 2; margin-left: auto; min-width: auto; border: 0 !important; background: transparent !important; color: #64748b !important; }
+
 @media print {
   @page { size: landscape; margin: 12mm; }
   html, body { overflow: visible !important; background: #ffffff !important; }
