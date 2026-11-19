@@ -393,7 +393,6 @@ button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary
 @media (max-width: 640px) {
   .topbar-shell > div { border-radius: 24px !important; }
 }
-}
 
 @media screen and (max-width: 1450px) and (min-width: 641px) {
   .journal-table thead tr, .journal-table tbody tr { min-width: 1180px; }
@@ -424,6 +423,11 @@ main:has(#journal-section) > #journal-section { order:5 !important; }
 .focus\:border-blue-500:focus { border-color:var(--movara-primary) !important; }
 .focus\:ring-blue-500\/30:focus { --tw-ring-color:rgba(217,120,38,.30) !important; }
 .focus\:ring-blue-500\/40:focus { --tw-ring-color:rgba(217,120,38,.40) !important; }
+
+/* Pastikan state aktif tetap orange pada semua ukuran layar. */
+.bg-blue-600, .bg-blue-700 { background-color:var(--movara-primary) !important; }
+.hover\:bg-blue-700:hover { background-color:var(--movara-primary-dark) !important; }
+.text-blue-600, .text-blue-700, .text-blue-800 { color:var(--movara-primary-dark) !important; }
 
 .scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; }
 
@@ -512,4 +516,24 @@ nav[aria-label*="Pagination"] .opacity-40 { opacity: .4; }
   #journal-section th, #journal-section td { padding: 5px 6px !important; font-size: 8pt !important; }
   #journal-section td:nth-child(4) { min-width: 180px; }
   #journal-section tr { break-inside: avoid; }
+}
+
+/* Mobile theme lock: seluruh elemen aksen biru tetap mengikuti tema orange. */
+@media (max-width: 640px) {
+  body .bg-blue-600,
+  body .bg-blue-700,
+  body button.bg-blue-600,
+  body a.bg-blue-600,
+  body .topbar-shell nav a.bg-blue-50,
+  body .topbar-shell > div > a > span:first-child {
+    background: var(--movara-primary) !important;
+    background-color: var(--movara-primary) !important;
+    border-color: var(--movara-primary) !important;
+    color: #fff !important;
+  }
+  body .text-blue-600,
+  body .text-blue-700,
+  body .text-blue-800 { color: var(--movara-primary-dark) !important; }
+  body .bg-blue-50 { background-color: #fbf1e6 !important; }
+  body .bg-blue-100 { background-color: #f6dfc7 !important; }
 }

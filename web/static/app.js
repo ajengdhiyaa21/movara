@@ -1,5 +1,25 @@
 (function () {
   var csrf = document.querySelector('meta[name="csrf-token"]');
+  var userRole = document.body && document.body.getAttribute('data-user-role');
+  if (userRole === 'pm' || userRole === 'manager' || userRole === 'admin') {
+    var idleTimeout = userRole === 'pm' ? 30 * 60 * 1000 : 8 * 60 * 60 * 1000;
+    var idleTimer;
+    var logoutWhenIdle = function () {
+      var headers = {};
+      if (csrf && csrf.content) headers['X-CSRF-Token'] = csrf.content;
+      fetch('/logout', { method: 'POST', credentials: 'same-origin', headers: headers })
+        .catch(function () {})
+        .finally(function () { window.location.replace('/login?message=Sesi+berakhir+karena+tidak+ada+aktivitas'); });
+    };
+    var resetIdleTimer = function () {
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(logoutWhenIdle, idleTimeout);
+    };
+    ['input', 'change', 'submit', 'keydown', 'pointerdown', 'touchstart'].forEach(function (eventName) {
+      document.addEventListener(eventName, resetIdleTimer, { passive: true });
+    });
+    resetIdleTimer();
+  }
   if (csrf && csrf.content) {
     document.querySelectorAll('form[method="post"], form:not([method])').forEach(function (form) {
       if (!form.querySelector('input[name="csrf_token"]')) {
@@ -17,6 +37,56 @@
   var filterTimer = null;
   var lastLookupValue = '';
   var pendingDeleteForm = null;
+  var barcodeModeStorageKey = 'movara_mutasi_barcode_mode';
+  var barcodeModePreference = '';
+
+  function syncBarcodeMode() {
+    var select = $('#barcode-mode');
+    if (!select) return 'scanner';
+    var saved = '';
+    try { saved = window.sessionStorage.getItem(barcodeModeStorageKey) || ''; } catch (err) {}
+    var mode = barcodeModePreference === 'manual' || barcodeModePreference === 'scanner'
+      ? barcodeModePreference
+      : select.value === 'manual' || select.value === 'scanner'
+        ? select.value
+        : saved === 'manual' || saved === 'scanner' ? saved : 'scanner';
+    select.value = mode;
+    var hidden = $('#input-mode');
+    if (hidden) hidden.value = mode;
+    updateBarcodePlaceholder();
+    return mode;
+  }
+
+  function saveBarcodeMode(mode) {
+    mode = mode === 'manual' ? 'manual' : 'scanner';
+    barcodeModePreference = mode;
+    try { window.sessionStorage.setItem(barcodeModeStorageKey, mode); } catch (err) {}
+    var hidden = $('#input-mode');
+    if (hidden) hidden.value = mode;
+    return mode;
+  }
+
+  function eyeIcon(visible) {
+    return visible
+      ? '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle><path d="m4 4 16 16"></path></svg>'
+      : '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+  }
+
+  document.querySelectorAll('input[type="password"]').forEach(function (input) {
+    var parent = input.parentElement;
+    var button = parent && parent.querySelector('[data-toggle-password]');
+    if (!button) {
+      var wrapper = parent && parent.classList.contains('relative') ? parent : document.createElement('div');
+      if (wrapper !== parent) { wrapper.className = 'relative w-full'; input.parentNode.insertBefore(wrapper, input); wrapper.appendChild(input); }
+      wrapper.classList.add('w-full');
+      input.classList.add('w-full', 'pr-11');
+      button = document.createElement('button');
+      button.type = 'button'; button.dataset.togglePassword = ''; button.setAttribute('aria-label', 'Tampilkan password');
+      button.className = 'absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600';
+      wrapper.appendChild(button);
+    }
+    button.innerHTML = eyeIcon(input.type === 'text');
+  });
 
   function focusAfterSwap(container) {
     if (container.querySelector('[data-found]')) {
@@ -57,6 +127,7 @@
     // Enter di kolom barkode = cari produk (bukan submit form).
     if (e.key === 'Enter' && e.target && e.target.id === 'barcode') {
       e.preventDefault();
+      saveBarcodeMode($('#barcode-mode') && $('#barcode-mode').value);
       lookupBarcode(e.target);
       return;
     }
@@ -119,7 +190,11 @@
     if (e.target.closest('[data-toggle-password]')) {
       var wrapper = e.target.closest('.relative') || e.target.parentElement;
       var p = wrapper ? wrapper.querySelector('input[type=password], input[type=text]') : document.querySelector('#password');
-      if (p) { p.type = p.type === 'password' ? 'text' : 'password'; }
+      if (p) {
+        p.type = p.type === 'password' ? 'text' : 'password';
+        var eyeButton = e.target.closest('[data-toggle-password]');
+        if (eyeButton) { eyeButton.innerHTML = eyeIcon(p.type === 'text'); eyeButton.setAttribute('aria-label', p.type === 'text' ? 'Sembunyikan password' : 'Tampilkan password'); }
+      }
     }
   });
 
@@ -150,7 +225,7 @@
   // "localhost says" tidak lagi muncul pada halaman yang belum dimigrasikan.
   document.addEventListener('submit', function (e) {
     var form = e.target;
-    if (form.hasAttribute('data-no-confirm')) return;
+    if (form.hasAttribute('data-no-confirm') || form.matches('[data-manager-edit-form]')) return;
     if (!form.matches('[data-confirm-action], [data-confirm-delete], form[action*="/deactivate"], form[action*="/toggle"], form[action*="/edit"], form[action="/profile"], form[action="/password"]')) return;
     e.preventDefault();
     e.stopPropagation();
@@ -198,6 +273,10 @@
     var id = e.detail.target && e.detail.target.id;
     if (id === 'scan-panel') {
       lastLookupValue = '';
+      if (e.detail.target.querySelector('[role="status"]')) {
+        saveBarcodeMode('scanner');
+      }
+      syncBarcodeMode();
       refreshDirectionToggle();
       focusAfterSwap(e.detail.target);
       return;
@@ -221,14 +300,19 @@
     var mode = $('#barcode-mode');
     if (input && mode) input.placeholder = mode.value === 'manual' ? 'Ketik barcode lalu tekan Enter' : 'Arahkan scanner ke barcode';
   }
-  updateBarcodePlaceholder();
+  syncBarcodeMode();
+  barcodeModePreference = $('#barcode-mode') ? $('#barcode-mode').value : 'scanner';
   if (barcode && (!barcodeMode || barcodeMode.value === 'scanner')) barcode.focus();
   document.addEventListener('change', function (e) {
     if (e.target && e.target.id === 'barcode-mode') {
+      var selectedMode = saveBarcodeMode(e.target.value);
       updateBarcodePlaceholder();
       var input = $('#barcode');
-      if (e.target.value === 'scanner' && input) { input.focus(); input.select(); }
+      if (selectedMode === 'scanner' && input) { input.focus(); input.select(); }
     }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('#btn-reset, [aria-label="Hapus barkode"]')) saveBarcodeMode('scanner');
   });
   refreshDirectionToggle();
 

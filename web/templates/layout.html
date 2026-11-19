@@ -7,10 +7,10 @@
   <title>{{.Title}} · MOVARA</title>
   <script src="/static/htmx.min.js"></script>
   <link rel="stylesheet" href="/static/tailwind.css">
-  <link rel="stylesheet" href="/static/app.css?v=20261117-orange-4">
-  <script src="/static/app.js?v=20261117-5" defer></script>
+  <link rel="stylesheet" href="/static/app.css?v=20261118-orange-6">
+  <script src="/static/app.js?v=20261119-idle-all-6" defer></script>
 </head>
-<body class="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 antialiased">
+<body class="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 antialiased"{{if .User}} data-user-role="{{.User.Role}}"{{end}}>
 
 {{if .User}}
 <header class="topbar-shell print:hidden sticky top-3 z-20 border-0 bg-transparent px-3 sm:px-5">

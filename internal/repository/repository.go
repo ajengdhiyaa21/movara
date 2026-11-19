@@ -33,6 +33,7 @@ type Outlets interface {
 // Query dicocokkan ke barkode, kode, atau nama produk (tidak peka huruf besar/kecil).
 type MutationFilter struct {
 	OutletID   *uint
+	OutletIDs  []uint
 	CategoryID *uint
 	Direction  string
 	From, To   time.Time

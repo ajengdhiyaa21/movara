@@ -17,7 +17,7 @@ import (
 func (h *PageHandler) ProductRequests(c *gin.Context) {
 	var requests []models.ProductRequest
 	var categories []models.ProductCategory
-	h.db.Preload("Outlet").Preload("User").Preload("User.Category").Preload("Category").Where("status = ?", "pending").Order("requested_at asc").Find(&requests)
+	h.db.Preload("Outlet").Preload("User").Preload("User.Category").Preload("Category").Where("status = ?", "pending").Order("requested_at desc").Find(&requests)
 	for i := range requests {
 		if requests[i].Category == nil && requests[i].User.Category != nil {
 			requests[i].Category = requests[i].User.Category
@@ -66,9 +66,15 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 		if err := tx.Create(&product).Error; err != nil {
 			return err
 		}
-		mutation := models.Mutation{ProductID: &product.ID, Barcode: product.Barcode, Code: product.Code, ProductName: product.Name, CategoryID: product.CategoryID, Direction: req.Direction, Status: "approved", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
-		if err := tx.Create(&mutation).Error; err != nil {
-			return err
+		if req.MutationID != nil {
+			if err := tx.Model(&models.Mutation{}).Where("id = ?", *req.MutationID).Updates(map[string]interface{}{"product_id": product.ID, "barcode": product.Barcode, "code": product.Code, "product_name": product.Name, "category_id": product.CategoryID, "status": "approved", "qty": qty}).Error; err != nil {
+				return err
+			}
+		} else {
+			mutation := models.Mutation{ProductID: &product.ID, Barcode: product.Barcode, Code: product.Code, ProductName: product.Name, CategoryID: product.CategoryID, Direction: req.Direction, Status: "approved", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
+			if err := tx.Create(&mutation).Error; err != nil {
+				return err
+			}
 		}
 		return tx.Model(&req).Updates(map[string]interface{}{"product_name": productName, "barcode": barcode, "code": code, "category_id": categoryID, "qty": qty, "status": "approved", "reviewed_at": now, "reviewed_by": admin.ID}).Error
 	})

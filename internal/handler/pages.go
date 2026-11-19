@@ -110,7 +110,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	var transfers []models.OutletTransferRequest
 	var logs []models.AuditLog
 	var categories []models.ProductCategory
-	h.db.Order("id").Find(&outlets)
+	h.db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC").Find(&outlets)
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
 	userPage, _ := strconv.Atoi(c.Query("user_page"))
 	if userPage < 1 {
@@ -136,8 +136,10 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	if userPages > 0 && userPage > userPages {
 		userPage = userPages
 	}
-	userDB.Preload("Outlet").Preload("Category").Order("id").Offset((userPage - 1) * userPerPage).Limit(userPerPage).Find(&users)
-	h.db.Where("role = ?", models.RoleManager).Order("id").Find(&managers)
+	userDB.Preload("Outlet").Preload("Category").Order("id DESC").Offset((userPage - 1) * userPerPage).Limit(userPerPage).Find(&users)
+	h.db.Preload("Outlet").Preload("Outlets", func(db *gorm.DB) *gorm.DB {
+		return db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC")
+	}).Where("role = ?", models.RoleManager).Order("id DESC").Find(&managers)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
@@ -178,7 +180,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {
 	var outlets []models.Outlet
-	h.db.Order("id").Find(&outlets)
+	h.db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC").Find(&outlets)
 	h.r.HTML(c, http.StatusOK, "outlet_manage.html", gin.H{"Title": "Kelola Outlet", "Active": "outlet", "Outlets": outlets, "Message": c.Query("message")})
 }
 
@@ -483,8 +485,8 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 
 func (h *PageHandler) AddManager(c *gin.Context) {
 	name, username, password := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username")), c.PostForm("password")
-	if name == "" || username == "" || len(password) < 8 {
-		c.Redirect(http.StatusFound, "/kelola?message=Data+Manajemen+belum+lengkap+atau+password+minimal+8+karakter")
+	if name == "" || username == "" || password == "" {
+		c.Redirect(http.StatusFound, "/kelola?message=Data+Manajemen+belum+lengkap+atau+password+wajib+diisi")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -501,7 +503,18 @@ func (h *PageHandler) AddManager(c *gin.Context) {
 	if userCode == "" {
 		userCode = username
 	}
-	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, IsActive: true}
+	outletIDs := managerOutletIDs(c)
+	if len(outletIDs) == 0 {
+		c.Redirect(http.StatusFound, "/kelola?message=Outlet+Manajemen+wajib+dipilih")
+		return
+	}
+	var outlets []models.Outlet
+	if h.db.Where("id IN ? AND is_active = ?", outletIDs, true).Find(&outlets).Error != nil || len(outlets) != len(outletIDs) {
+		c.Redirect(http.StatusFound, "/kelola?message=Outlet+Manajemen+tidak+ditemukan")
+		return
+	}
+	outletValue := outletIDs[0]
+	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, OutletID: &outletValue, Outlets: outlets, IsActive: true}
 	if err = h.db.Create(&u).Error; err != nil {
 		c.Redirect(http.StatusFound, "/kelola?message=Username+Manajemen+sudah+digunakan")
 		return
@@ -550,7 +563,7 @@ func (h *PageHandler) resetAccountPassword(c *gin.Context, role models.Role, aud
 func (h *PageHandler) ToggleManager(c *gin.Context) {
 	var u models.User
 	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Manajemen+tidak+ditemukan")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Manajemen+tidak+ditemukan")
 		return
 	}
 	u.IsActive = !u.IsActive
@@ -580,7 +593,7 @@ func (h *PageHandler) RevealLatestPassword(c *gin.Context) {
 func (h *PageHandler) UpdateManager(c *gin.Context) {
 	var u models.User
 	if h.db.Where("id = ? AND role = ?", c.Param("id"), models.RoleManager).First(&u).Error != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Manajemen+tidak+ditemukan")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Manajemen+tidak+ditemukan")
 		return
 	}
 	oldUserCode, oldUsername := u.UserCode, u.Username
@@ -590,14 +603,44 @@ func (h *PageHandler) UpdateManager(c *gin.Context) {
 		name = username
 	}
 	if userCode == "" || username == "" {
-		c.Redirect(http.StatusFound, "/kelola?message=Nama+dan+username+wajib+diisi")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Nama+dan+username+wajib+diisi")
+		return
+	}
+	outletIDs := managerOutletIDs(c)
+	if len(outletIDs) == 0 {
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Outlet+Manajemen+wajib+dipilih")
+		return
+	}
+	var outlets []models.Outlet
+	if h.db.Where("id IN ? AND is_active = ?", outletIDs, true).Find(&outlets).Error != nil || len(outlets) != len(outletIDs) {
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Outlet+Manajemen+tidak+ditemukan")
 		return
 	}
 	u.Name, u.UserCode, u.Username = name, userCode, username
+	outletValue := outletIDs[0]
+	u.OutletID = &outletValue
+	u.Outlets = outlets
 	if err := h.db.Save(&u).Error; err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Username+Manajemen+sudah+digunakan")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Username+Manajemen+sudah+digunakan")
 		return
 	}
 	h.audit(c, "manager_update", fmt.Sprintf("ID Pengguna: %s -> %s | Username: %s -> %s", oldUserCode, u.UserCode, oldUsername, u.Username))
-	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manajemen+berhasil+diperbarui")
+	c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Akun+Manajemen+berhasil+diperbarui")
+}
+
+func managerOutletIDs(c *gin.Context) []uint {
+	raw := c.PostFormArray("outlet_ids")
+	if len(raw) == 0 && c.PostForm("outlet_id") != "" {
+		raw = []string{c.PostForm("outlet_id")}
+	}
+	seen := map[uint]bool{}
+	ids := make([]uint, 0, len(raw))
+	for _, value := range raw {
+		id, err := strconv.ParseUint(value, 10, 64)
+		if err == nil && id > 0 && !seen[uint(id)] {
+			seen[uint(id)] = true
+			ids = append(ids, uint(id))
+		}
+	}
+	return ids
 }

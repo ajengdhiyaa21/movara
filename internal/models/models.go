@@ -38,13 +38,20 @@ type User struct {
 	Role               Role   `gorm:"size:20;not null;index"`
 	OutletID           *uint  `gorm:"index"` // wajib untuk PM
 	Outlet             *Outlet
-	CategoryID         *uint `gorm:"index"`
+	Outlets            []Outlet `gorm:"many2many:user_outlets;"`
+	CategoryID         *uint    `gorm:"index"`
 	Category           *ProductCategory
 	IsActive           bool       `gorm:"not null;default:true"`
 	ActiveSessionToken string     `gorm:"size:64;index"`
 	ActiveSessionUntil *time.Time `gorm:"index"`
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+}
+
+// UserOutlet menyimpan satu atau beberapa outlet penempatan akun manajemen.
+type UserOutlet struct {
+	UserID   uint `gorm:"primaryKey"`
+	OutletID uint `gorm:"primaryKey"`
 }
 
 // Barcode & Code bertipe string: ada kode berawalan nol (mis. 070068).
@@ -67,6 +74,7 @@ type Product struct {
 // master data maupun jurnal mutasi sebelum Super Admin menyelesaikannya.
 type ProductRequest struct {
 	ID          uint      `gorm:"primaryKey"`
+	MutationID  *uint     `gorm:"index"`
 	Barcode     string    `gorm:"size:20;not null;index"`
 	ProductName string    `gorm:"size:255;not null"`
 	Code        string    `gorm:"size:30"`

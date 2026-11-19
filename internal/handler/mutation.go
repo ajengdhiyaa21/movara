@@ -22,6 +22,7 @@ import (
 // scanForm: state form scan di halaman Input Mutasi.
 type scanForm struct {
 	Barcode     string
+	InputMode   string
 	Product     *models.Product // hasil lookup (hanya untuk tampilan)
 	ProductName string
 	Qty         int
@@ -31,6 +32,13 @@ type scanForm struct {
 	Success     string
 	Warning     string
 	WAURL       string // link WhatsApp "produk belum terdaftar"
+}
+
+func normalizeInputMode(mode string) string {
+	if strings.TrimSpace(mode) == "manual" {
+		return "manual"
+	}
+	return "scanner"
 }
 
 type historyView struct {
@@ -167,7 +175,7 @@ func (h *MutationHandler) Lookup(c *gin.Context) {
 	if qty < 0 {
 		qty = 0
 	}
-	form := scanForm{Barcode: barcode, ProductName: strings.TrimSpace(c.Query("product_name")), Qty: qty, BA: c.Query("ba_name"), Direction: normalizeDirection(c.Query("direction"))}
+	form := scanForm{Barcode: barcode, InputMode: normalizeInputMode(c.Query("input_mode")), ProductName: strings.TrimSpace(c.Query("product_name")), Qty: qty, BA: c.Query("ba_name"), Direction: normalizeDirection(c.Query("direction"))}
 
 	p, err := h.svc.FindProductForUser(barcode, u)
 	if err != nil {
@@ -211,13 +219,14 @@ func (h *MutationHandler) History(c *gin.Context) {
 func (h *MutationHandler) Create(c *gin.Context) {
 	u := middleware.CurrentUser(c)
 	barcode := strings.TrimSpace(c.PostForm("barcode"))
+	inputMode := normalizeInputMode(c.PostForm("input_mode"))
 	productName := strings.TrimSpace(c.PostForm("product_name"))
 	direction := normalizeDirection(c.PostForm("direction"))
 	qty, _ := strconv.Atoi(strings.TrimSpace(c.PostForm("qty")))
 	ba := c.PostForm("ba_name")
 	product, lookupErr := h.svc.FindProductForUser(barcode, u)
 	if qty == 0 {
-		form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Jumlah mutasi tidak boleh 0."}
+		form := scanForm{Barcode: barcode, InputMode: inputMode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Jumlah mutasi tidak boleh 0."}
 		if lookupErr == nil {
 			form.Product = product
 		}
@@ -225,12 +234,12 @@ func (h *MutationHandler) Create(c *gin.Context) {
 		return
 	}
 	if errors.Is(lookupErr, service.ErrProductNotFound) && c.PostForm("request_new_product") != "1" {
-		form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrProductRequest.Error()}
+		form := scanForm{Barcode: barcode, InputMode: inputMode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrProductRequest.Error()}
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 		return
 	}
 	if errors.Is(lookupErr, service.ErrProductNotFound) && productName == "" {
-		form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Nama produk wajib diisi sebelum mengajukan produk baru."}
+		form := scanForm{Barcode: barcode, InputMode: inputMode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Nama produk wajib diisi sebelum mengajukan produk baru."}
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 		return
 	}
@@ -241,12 +250,22 @@ func (h *MutationHandler) Create(c *gin.Context) {
 			req.BAName = &ba
 		}
 		if qty < 1 || qty > service.MaxQty {
-			form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrQtyInvalid.Error()}
+			form := scanForm{Barcode: barcode, InputMode: inputMode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: service.ErrQtyInvalid.Error()}
 			h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 			return
 		}
-		if err := h.db.Create(req).Error; err != nil {
-			form := scanForm{Barcode: barcode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Pengajuan produk gagal disimpan."}
+		err := h.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(req).Error; err != nil {
+				return err
+			}
+			mutation := &models.Mutation{Barcode: barcode, ProductName: productName, Direction: direction, Status: "pending_code", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
+			if err := tx.Create(mutation).Error; err != nil {
+				return err
+			}
+			return tx.Model(req).Update("mutation_id", mutation.ID).Error
+		})
+		if err != nil {
+			form := scanForm{Barcode: barcode, InputMode: inputMode, ProductName: productName, Qty: qty, BA: ba, Direction: direction, Error: "Pengajuan produk gagal disimpan."}
 			h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
 			return
 		}
@@ -258,7 +277,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 
 	m, err := h.svc.Add(u, barcode, productName, direction, qty, ba)
 	if err != nil {
-		form := scanForm{Barcode: barcode, Qty: qty, BA: ba, Direction: direction}
+		form := scanForm{Barcode: barcode, InputMode: inputMode, Qty: qty, BA: ba, Direction: direction}
 		if form.Qty < 1 {
 			form.Qty = 1
 		}

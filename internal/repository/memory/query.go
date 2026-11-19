@@ -12,6 +12,18 @@ func matches(m *models.Mutation, f repository.MutationFilter, q string) bool {
 	if f.OutletID != nil && m.OutletID != *f.OutletID {
 		return false
 	}
+	if len(f.OutletIDs) > 0 {
+		allowed := false
+		for _, id := range f.OutletIDs {
+			if m.OutletID == id {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return false
+		}
+	}
 	if f.CategoryID != nil && (m.CategoryID == nil || *m.CategoryID != *f.CategoryID) {
 		return false
 	}

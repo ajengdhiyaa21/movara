@@ -70,6 +70,7 @@
 {{define "scan_form"}}{{$f := .Form}}
 <form hx-post="/mutasi" hx-target="#scan-panel" hx-swap="innerHTML" hx-disabled-elt="#btn-save" autocomplete="off"
   class="space-y-5 p-5 sm:p-6">
+  <input type="hidden" name="input_mode" id="input-mode" value="{{if eq $f.InputMode "manual"}}manual{{else}}scanner{{end}}">
   {{if $f.Success}}
   <div role="status"
     class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm font-medium text-emerald-800">
@@ -79,7 +80,7 @@
 
   <div>
     <div class="flex flex-wrap items-center justify-between gap-2"><label for="barcode" class="text-sm font-medium">Scan / ketik barkode produk <span
-        class="text-red-500">*</span></label><select id="barcode-mode" aria-label="Mode input barcode" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600"><option value="scanner">Mode scanner</option><option value="manual">Ketik manual</option></select></div>
+        class="text-red-500">*</span></label><select id="barcode-mode" aria-label="Mode input barcode" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600"><option value="scanner" {{if ne $f.InputMode "manual"}}selected{{end}}>Mode scanner</option><option value="manual" {{if eq $f.InputMode "manual"}}selected{{end}}>Ketik manual</option></select></div>
     <div
       class="relative mt-2 flex items-center rounded-xl border border-slate-300 bg-slate-50 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/30">
       <span class="pl-3.5 text-slate-400">{{template "i-scan"}}</span>

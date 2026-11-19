@@ -43,6 +43,9 @@ func (s *Store) Search(f repository.MutationFilter, off, lim int) ([]models.Muta
 	if f.OutletID != nil {
 		q = q.Where("outlet_id = ?", *f.OutletID)
 	}
+	if len(f.OutletIDs) > 0 {
+		q = q.Where("outlet_id IN ?", f.OutletIDs)
+	}
 	if f.CategoryID != nil {
 		q = q.Where("category_id = ?", *f.CategoryID)
 	}
@@ -104,6 +107,9 @@ func (s *Store) QtyByOutlet(f repository.MutationFilter) ([]repository.OutletTot
 func applyMutationFilter(q *gorm.DB, f repository.MutationFilter) *gorm.DB {
 	if f.OutletID != nil {
 		q = q.Where("mutations.outlet_id = ?", *f.OutletID)
+	}
+	if len(f.OutletIDs) > 0 {
+		q = q.Where("mutations.outlet_id IN ?", f.OutletIDs)
 	}
 	if f.CategoryID != nil {
 		q = q.Where("mutations.category_id = ?", *f.CategoryID)

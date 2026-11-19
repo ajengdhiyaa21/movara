@@ -164,9 +164,9 @@ func (h *RecapHandler) Delete(c *gin.Context) {
 func (h *RecapHandler) Index(c *gin.Context) {
 	q, form := readRecapFilter(c)
 	managerScoped := false
-	if user := middleware.CurrentUser(c); user != nil && user.Role == models.RoleManager && user.OutletID != nil {
-		q.OutletID = user.OutletID
-		form.OutletID = *user.OutletID
+	if ids := h.managerOutletIDs(c); len(ids) > 0 {
+		q.OutletID = nil
+		q.OutletIDs = ids
 		managerScoped = true
 	}
 
@@ -177,8 +177,12 @@ func (h *RecapHandler) Index(c *gin.Context) {
 	}
 	if managerScoped {
 		filtered := outlets[:0]
+		allowed := map[uint]bool{}
+		for _, id := range q.OutletIDs {
+			allowed[id] = true
+		}
 		for _, outlet := range outlets {
-			if outlet.ID == form.OutletID {
+			if allowed[outlet.ID] {
 				filtered = append(filtered, outlet)
 			}
 		}
@@ -279,6 +283,10 @@ func min(a, b int) int {
 // GET /rekap/export : Manager dan Admin, memakai filter yang sama dengan halaman rekap.
 func (h *RecapHandler) Export(c *gin.Context) {
 	q, _ := readRecapFilter(c)
+	if ids := h.managerOutletIDs(c); len(ids) > 0 {
+		q.OutletID = nil
+		q.OutletIDs = ids
+	}
 	rows, err := h.svc.ExportRows(q)
 	if err != nil {
 		h.fail(c, err)
@@ -297,9 +305,34 @@ func (h *RecapHandler) Export(c *gin.Context) {
 	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buf.Bytes())
 }
 
+func (h *RecapHandler) managerOutletIDs(c *gin.Context) []uint {
+	u := middleware.CurrentUser(c)
+	if u == nil || u.Role != models.RoleManager {
+		return nil
+	}
+	var account models.User
+	if h.db.Preload("Outlets").First(&account, u.ID).Error != nil {
+		return nil
+	}
+	ids := make([]uint, 0, len(account.Outlets))
+	for _, outlet := range account.Outlets {
+		if outlet.IsActive {
+			ids = append(ids, outlet.ID)
+		}
+	}
+	if len(ids) == 0 && account.OutletID != nil {
+		ids = append(ids, *account.OutletID)
+	}
+	return ids
+}
+
 // Print menampilkan seluruh jurnal sesuai periode yang dipilih, tanpa pagination.
 func (h *RecapHandler) Print(c *gin.Context) {
 	q, form := readRecapFilter(c)
+	if ids := h.managerOutletIDs(c); len(ids) > 0 {
+		q.OutletID = nil
+		q.OutletIDs = ids
+	}
 	rows, err := h.svc.ExportRows(q)
 	if err != nil {
 		h.fail(c, err)

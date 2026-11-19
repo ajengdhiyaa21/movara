@@ -9,8 +9,8 @@ import (
 )
 
 // OutletScope menentukan filter outlet untuk query data.
-//   - PM           : SELALU outlet miliknya (query ?outlet= diabaikan).
-//   - Manager/Admin: ?outlet=<id> untuk satu outlet, kosong/"all" untuk semua (nil).
+//   - PM/Manajemen : SELALU outlet penempatan akun (query ?outlet= diabaikan).
+//   - Admin        : ?outlet=<id> untuk satu outlet, kosong/"all" untuk semua (nil).
 //
 // Jangan pernah mengambil outlet_id PM dari form/body.
 func OutletScope(c *gin.Context) *uint {
@@ -18,7 +18,7 @@ func OutletScope(c *gin.Context) *uint {
 	if u == nil {
 		return nil
 	}
-	if u.Role == models.RolePM {
+	if (u.Role == models.RolePM || u.Role == models.RoleManager) && u.OutletID != nil {
 		return u.OutletID
 	}
 	raw := c.Query("outlet")

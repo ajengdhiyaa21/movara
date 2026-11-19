@@ -21,6 +21,7 @@ func NewRecapService(m repository.Mutations, o repository.Outlets) *RecapService
 
 type RecapQuery struct {
 	OutletID      *uint
+	OutletIDs     []uint
 	CategoryID    *uint
 	Direction     string
 	From, To      time.Time // To eksklusif; zero = tanpa batas
@@ -30,7 +31,7 @@ type RecapQuery struct {
 }
 
 func (q RecapQuery) filter() repository.MutationFilter {
-	return repository.MutationFilter{OutletID: q.OutletID, CategoryID: q.CategoryID, Direction: q.Direction, From: q.From, To: q.To, Query: q.Q}
+	return repository.MutationFilter{OutletID: q.OutletID, OutletIDs: q.OutletIDs, CategoryID: q.CategoryID, Direction: q.Direction, From: q.From, To: q.To, Query: q.Q}
 }
 
 type RecapResult struct {

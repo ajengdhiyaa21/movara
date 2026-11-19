@@ -41,6 +41,7 @@ func Migrate(db *gorm.DB) error {
 	}
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.UserOutlet{},
 		&models.Product{},
 		&models.ProductRequest{},
 		&models.Mutation{},
@@ -50,5 +51,9 @@ func Migrate(db *gorm.DB) error {
 	); err != nil {
 		return err
 	}
-	return db.Exec("UPDATE users SET user_code = username WHERE user_code IS NULL OR user_code = ''").Error
+	if err := db.Exec("UPDATE users SET user_code = username WHERE user_code IS NULL OR user_code = ''").Error; err != nil {
+		return err
+	}
+	// Migrasikan penempatan tunggal manajemen lama ke tabel relasi multi-outlet.
+	return db.Exec("INSERT IGNORE INTO user_outlets (user_id, outlet_id) SELECT id, outlet_id FROM users WHERE role = 'manager' AND outlet_id IS NOT NULL").Error
 }
