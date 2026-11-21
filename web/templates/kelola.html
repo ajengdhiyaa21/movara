@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </nav>
 {{if and .User (eq .User.Username "admin.a")}}<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Tambah akun</h2><p class="mt-1 text-sm text-slate-500">Pilih jenis akun yang akan dibuat.</p></div><button type="button" data-account-modal-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
-    <div class="border-b border-slate-200 px-6 pt-4"><div class="flex rounded-xl bg-slate-100 p-1"><button type="button" data-account-tab="pm" class="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm">Pramuniaga</button><button type="button" data-account-tab="manager" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500">Manager</button></div></div>
+    <div class="border-b border-slate-200 px-6 pt-4"><div class="flex rounded-xl bg-slate-100 p-1"><button type="button" data-account-tab="pm" class="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm">Pramuniaga</button><button type="button" data-account-tab="manager" class="flex-1 rounded-lg px-3 py-2 text-sm font-semibold text-slate-500">Manajemen</button></div></div>
     <div class="p-6"><form data-account-form="pm" method="post" action="/kelola/pm" class="grid gap-3"><input name="user_code" required placeholder="ID pengguna (contoh: PM001)" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="name" placeholder="Nama lengkap PM" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" placeholder="Password (kosong = default)" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><select name="category_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm"><option value="">Pilih kategori PM</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Pramuniaga</button></form><form data-account-form="manager" method="post" action="/kelola/manager" class="hidden grid gap-3"><input name="user_code" required placeholder="ID pengguna (contoh: MGR001)" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="name" placeholder="Nama Manajemen" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="username" required placeholder="Username login" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><input name="password" type="password" minlength="8" required placeholder="Password minimal 8 karakter" class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required class="rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="mt-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan Akun Manajemen</button></form></div>
 </dialog>
 <dialog data-password-reset-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
 <div id="manager-dashboard" class="manager-dashboard mt-7 hidden grid gap-4 sm:grid-cols-3">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Outlet tersedia</p><p class="mt-2 text-3xl font-bold">{{len .Outlets}}</p><p class="mt-1 text-xs text-slate-400">Lokasi operasional</p></div>
-    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Akun Manajemen</p><p class="mt-2 text-3xl font-bold">{{len .Managers}}</p><p class="mt-1 text-xs text-slate-400">Akun manajemen terdaftar</p></div>
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Akun Manajemen</p><p class="mt-2 text-3xl font-bold">{{.ManagerTotal}}</p><p class="mt-1 text-xs text-slate-400">Akun manajemen terdaftar</p></div>
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Aktivitas</p><p class="mt-2 text-3xl font-bold">{{len .Logs}}</p><p class="mt-1 text-xs text-slate-400">Log terbaru</p></div>
 </div>
 <div class="mt-6 grid gap-5 xl:grid-cols-2">
@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <h2 class="mt-1 text-lg font-semibold">Akun Manajemen</h2>
             <p class="mt-1 text-sm text-slate-500">Kelola akses dan password akun Manager.</p>
         </div>
-        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{len .Managers}} akun</span>
+        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{.ManagerTotal}} akun</span>
     </div>
     <div class="overflow-x-auto">
         <table class="w-full min-w-[700px] text-sm">
@@ -249,6 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </table>
     </div>
 </section>
+<div id="manager-pagination" class="pagination-controls mt-3 flex items-center justify-between gap-2 text-sm"><div class="flex items-center gap-1"><a href="/kelola?manager_page={{sub .ManagerPage 1}}&manager_per_page={{.ManagerPerPage}}#manager" class="rounded-lg border px-3 py-1.5 {{if eq .ManagerPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range .ManagerPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if .Current}}<span class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.Number}}</span>{{else}}<a href="{{.URL}}" class="rounded-lg border px-3 py-1.5">{{.Number}}</a>{{end}}{{end}}<a href="/kelola?manager_page={{add .ManagerPage 1}}&manager_per_page={{.ManagerPerPage}}#manager" class="rounded-lg border px-3 py-1.5 {{if ge .ManagerPage .ManagerPages}}pointer-events-none opacity-40{{end}}">›</a></div><span class="pagination-info">Halaman {{.ManagerPage}} dari {{.ManagerPages}}</span></div>
 {{if false}}
 <section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 px-6 py-5">
@@ -307,13 +308,13 @@ document.addEventListener('DOMContentLoaded', function () {
 <div id="user-pagination" class="pagination-controls mt-3 flex items-center justify-between gap-2 text-sm"><div class="flex items-center gap-1"><a
         href="/kelola?user_page={{sub .UserPage 1}}&user_per_page={{.UserPerPage}}#users"
         class="rounded-lg border px-3 py-1.5 {{if eq .UserPage 1}}pointer-events-none opacity-40{{end}}">‹</a><span
-        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.UserPage}}</span><a
+        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.UserPage}}</span>{{range .UserPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if not .Current}}<a href="{{.URL}}" class="rounded-lg border px-3 py-1.5">{{.Number}}</a>{{end}}{{end}}<a
         href="/kelola?user_page={{add .UserPage 1}}&user_per_page={{.UserPerPage}}#users"
         class="rounded-lg border px-3 py-1.5 {{if ge .UserPage .UserPages}}pointer-events-none opacity-40{{end}}">›</a>
 </div>
 <span class="pagination-info">Halaman {{.UserPage}} dari {{.UserPages}}</span></div>
 <form id="activity-filter-panel" method="get" action="/kelola#audit-log" class="mt-6 rounded-2xl border bg-white p-5">
-    <div class="flex flex-wrap gap-2"><input name="audit_q" value="{{.AuditQuery}}"
+    <div class="flex flex-wrap gap-2"><input type="search" name="audit_q" autocomplete="off" value="{{.AuditQuery}}"
             placeholder="Cari aktivitas atau detail" class="rounded-lg border px-3 py-2 text-sm"><select
             name="audit_role" class="rounded-lg border px-3 py-2 text-sm">
             <option value="">Semua role</option>
@@ -356,19 +357,36 @@ document.addEventListener('DOMContentLoaded', function () {
         href="/kelola?page={{sub .AuditPage 1}}&audit_date={{.AuditDate}}#audit-log"
         class="rounded-lg border px-3 py-1.5 hover:bg-slate-50">‹</a>{{else}}<span
         class="rounded-lg border px-3 py-1.5 opacity-40">‹</span>{{end}}<span
-        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.AuditPage}}</span><span class="pagination-info px-2 text-slate-500">Halaman {{.AuditPage}} dari {{.AuditPages}}</span>{{if lt .AuditPage
+        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.AuditPage}}</span>{{range .AuditPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if not .Current}}<a href="{{.URL}}" class="rounded-lg border px-3 py-1.5">{{.Number}}</a>{{end}}{{end}}<span class="pagination-info px-2 text-slate-500">Halaman {{.AuditPage}} dari {{.AuditPages}}</span>{{if lt .AuditPage
     .AuditPages}}<a href="/kelola?page={{add .AuditPage 1}}&audit_date={{.AuditDate}}#audit-log"
         class="rounded-lg border px-3 py-1.5 hover:bg-slate-50">›</a>{{else}}<span
         class="rounded-lg border px-3 py-1.5 opacity-40">›</span>{{end}}</nav>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  // Susun ulang nomor pagination agar halaman aktif berada di posisi numeriknya.
+  document.querySelectorAll('#user-pagination > div, #audit-pagination').forEach(function (nav) {
+    const children = Array.from(nav.children);
+    if (children.length < 3) return;
+    const first = children[0], last = children[children.length - 1];
+    const current = children.find(function (el) { return el.classList.contains('bg-blue-600'); });
+    if (!current || current === first || current === last) return;
+    const middle = children.slice(1, -1).filter(function (el) { return el !== current; });
+    current.remove();
+    const target = middle.find(function (el) {
+      const number = parseInt((el.textContent || '').trim(), 10);
+      return Number.isFinite(number) && number > parseInt(current.textContent.trim(), 10);
+    });
+    nav.insertBefore(current, target || last);
+  });
   const tabs = document.querySelectorAll('[data-kelola-tab]');
   const panels = {
     pm: [document.getElementById('pm-panel'), document.getElementById('pm-dashboard')],
-    manager: [document.getElementById('manager-table-panel'), document.getElementById('manager-dashboard')],
+    manager: [document.getElementById('manager-table-panel'), document.getElementById('manager-dashboard'), document.getElementById('manager-pagination')],
     activity: [document.getElementById('activity-filter-panel'), document.getElementById('activity-panel'), document.getElementById('audit-pagination')]
   };
+  let activeKelolaTab = 'pm';
   function activate(name) {
+    activeKelolaTab = name;
     Object.keys(panels).forEach(function (key) {
       panels[key].filter(Boolean).forEach(function (panel) { panel.classList.toggle('hidden', key !== name); });
     });
@@ -378,15 +396,20 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.toggle('text-white', active);
       tab.classList.toggle('text-slate-600', !active);
     });
-    document.getElementById('user-pagination')?.classList.toggle('hidden', name === 'activity');
+    document.getElementById('user-pagination')?.classList.toggle('hidden', name !== 'pm');
   }
   tabs.forEach(function (tab) { tab.addEventListener('click', function () { activate(tab.dataset.kelolaTab); }); });
   // Pertahankan tab Aktivitas saat pagination/filter aktivitas membuka ulang halaman.
   const initialTab = new URLSearchParams(window.location.search).get('tab');
-  activate(initialTab === 'manager' ? 'manager' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm'));
+  activate(initialTab === 'manager' || window.location.hash === '#manager' || new URLSearchParams(window.location.search).has('manager_page') ? 'manager' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm'));
 
   const modal = document.querySelector('[data-account-modal]');
-  document.querySelector('[data-account-modal-open]')?.addEventListener('click', function () { modal.showModal(); });
+  document.querySelector('[data-account-modal-open]')?.addEventListener('click', function () {
+    const wanted = activeKelolaTab === 'manager' ? 'manager' : 'pm';
+    const accountTab = document.querySelector('[data-account-tab="' + wanted + '"]');
+    if (accountTab) accountTab.click();
+    modal.showModal();
+  });
   document.querySelector('[data-account-modal-close]')?.addEventListener('click', function () { modal.close(); });
   document.querySelectorAll('[data-account-tab]').forEach(function (tab) {
     tab.addEventListener('click', function () {

@@ -263,7 +263,7 @@ func (s *Store) UpdateQty(mutationID, outletID, userID uint, qty int, now time.T
 	defer s.mu.Unlock()
 	for i := range s.mutations {
 		m := &s.mutations[i]
-		if m.ID == mutationID && m.OutletID == outletID && m.CreatedAt.Format("2006-01-02") == now.Format("2006-01-02") {
+		if m.ID == mutationID && m.OutletID == outletID && m.UserID == userID && m.CreatedAt.Format("2006-01-02") == now.Format("2006-01-02") {
 			if m.Qty != qty {
 				s.audits = append(s.audits, models.AuditLog{UserID: &userID, OutletID: &outletID, Action: "mutation_qty_update", Detail: fmt.Sprintf("%d: %d -> %d", mutationID, m.Qty, qty), CreatedAt: now})
 				s.editLogs = append(s.editLogs, models.MutationEditLog{ID: uint(len(s.editLogs) + 1), MutationID: mutationID, UserID: userID, OldQty: m.Qty, NewQty: qty, CreatedAt: now, User: s.users[userID]})

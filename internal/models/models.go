@@ -5,9 +5,10 @@ import "time"
 type Role string
 
 const (
-	RolePM      Role = "pm"
-	RoleManager Role = "manager"
-	RoleAdmin   Role = "admin"
+	RolePM         Role = "pm"
+	RoleManager    Role = "manager"
+	RoleAdmin      Role = "admin"
+	RoleSuperAdmin Role = "super_admin"
 )
 
 type Outlet struct {

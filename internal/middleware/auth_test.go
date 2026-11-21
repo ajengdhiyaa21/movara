@@ -7,15 +7,18 @@ import (
 	"testing"
 )
 
-func TestRequireSuperAdminOnlyAdminA(t *testing.T) {
+func TestRequireSuperAdminAccounts(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for _, tc := range []struct {
 		name string
 		user *models.User
 		want int
 	}{
-		{"admin.a", &models.User{Username: "admin.a", Role: models.RoleAdmin}, 204},
+		{"admin.a", &models.User{Username: "admin.a", Role: models.RoleSuperAdmin}, 204},
 		{"admin.b", &models.User{Username: "admin.b", Role: models.RoleAdmin}, 403},
+		{"admin.c", &models.User{Username: "admin.c", Role: models.RoleSuperAdmin}, 204},
+		{"admin.d", &models.User{Username: "admin.d", Role: models.RoleAdmin}, 403},
+		{"admin.e", &models.User{Username: "admin.e", Role: models.RoleAdmin}, 403},
 		{"manager", &models.User{Username: "manager", Role: models.RoleManager}, 403},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

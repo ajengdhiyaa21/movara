@@ -77,6 +77,40 @@ input, select, textarea { border-color: #cbd5e1; }
   .print\:hidden { max-width: 100%; }
 }
 
+/* Pagination seragam: tampilkan nomor halaman dan ellipsis di semua tabel. */
+.pagination-controls > div > a:not(:first-child):not(:last-child),
+.pagination-controls > div > span:not(.bg-blue-600):not(.pagination-info),
+.pagination-controls > nav > a:not(:first-child):not(:last-child),
+.pagination-controls > nav > span:not(.bg-blue-600):not(.pagination-info) {
+  display: inline-flex !important;
+}
+.pagination-controls,
+#user-pagination,
+#audit-pagination {
+  gap: .35rem !important;
+}
+.pagination-controls a,
+.pagination-controls span,
+#user-pagination a,
+#user-pagination span,
+#audit-pagination a,
+#audit-pagination span {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: .65rem !important;
+  padding: 0 .65rem !important;
+}
+.pagination-controls .pagination-info,
+#user-pagination .pagination-info,
+#audit-pagination .pagination-info {
+  min-width: auto;
+  border: 0 !important;
+  background: transparent !important;
+  color: #64748b !important;
+}
+
 main > div + .print\:hidden > div:first-child,
 main > .print\:hidden > div:first-child {
   border-color: #b9dcf6 !important;
@@ -223,31 +257,51 @@ section a[href*="/mutasi/input?direction=counter_to_market"] > span > span:first
 #history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7), #history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7) { width: 18%; }
 #history-counter .history-table th:nth-child(9), #history-counter .history-table td:nth-child(9), #history-market .history-table th:nth-child(9), #history-market .history-table td:nth-child(9) { width: 12%; }
 
-/* Palet biru MOVARA yang lebih lembut dan nyaman dilihat. */
-.bg-blue-600 { background-color: #5b83df !important; }
-.bg-blue-700 { background-color: #4f75cf !important; }
-.hover\:bg-blue-700:hover { background-color: #4f75cf !important; }
-.text-blue-600 { color: #5276c9 !important; }
-.text-blue-700 { color: #4668b8 !important; }
-.bg-blue-50 { background-color: #eef4ff !important; }
-.bg-blue-100 { background-color: #e0ebff !important; }
-.border-blue-200 { border-color: #c8d8f5 !important; }
-.border-blue-500 { border-color: #7395e4 !important; }
-.focus\:border-blue-500:focus { border-color: #7395e4 !important; }
-.focus\:ring-blue-500\/30:focus { --tw-ring-color: rgb(115 149 228 / 30%) !important; }
-.from-blue-600 { --tw-gradient-from: #5b83df var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(91 131 223 / 0%) var(--tw-gradient-to-position) !important; }
-.to-blue-800 { --tw-gradient-to: #7897df var(--tw-gradient-to-position) !important; }
-.text-blue-100 { color: #e5edff !important; }
-.text-blue-200 { color: #d4e1ff !important; }
-.shadow-blue-600\/20 { --tw-shadow-color: rgb(91 131 223 / 20%) !important; }
-.focus\:ring-blue-500\/40:focus { --tw-ring-color: rgb(115 149 228 / 40%) !important; }
-.login-gradient { background: linear-gradient(135deg, #466bc6 0%, #5b83df 48%, #8da8ea 100%) !important; }
+/* Palet utama MOVARA: oranye terang yang sama dengan halaman login. */
+#history-input .history-table th:nth-child(3), #history-input .history-table td:nth-child(3),
+#history-input .history-table th:nth-child(8), #history-input .history-table td:nth-child(8),
+#history-input .history-table th:nth-child(10), #history-input .history-table td:nth-child(10),
+#history-counter .history-table th:nth-child(3), #history-counter .history-table td:nth-child(3),
+#history-counter .history-table th:nth-child(8), #history-counter .history-table td:nth-child(8),
+#history-counter .history-table th:nth-child(10), #history-counter .history-table td:nth-child(10),
+#history-market .history-table th:nth-child(3), #history-market .history-table td:nth-child(3),
+#history-market .history-table th:nth-child(8), #history-market .history-table td:nth-child(8),
+#history-market .history-table th:nth-child(10), #history-market .history-table td:nth-child(10) { display: table-cell !important; visibility: visible !important; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7),
+#history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7),
+#history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7) { display: none !important; }
+table.history-table thead th:nth-child(7), table.history-table tbody td:nth-child(7) { display: none !important; }
+.history-table { overflow: hidden; }
+.history-table .history-pm-column { display: table-cell !important; visibility: visible !important; }
+.bg-blue-600 { background-color: #ff6500 !important; }
+.bg-blue-700, .hover\:bg-blue-700:hover { background-color: #f56a00 !important; }
+.text-blue-600 { color: #f05a00 !important; }
+.text-blue-700, .text-blue-800 { color: #d94d00 !important; }
+.bg-blue-50 { background-color: #fff3e8 !important; }
+.bg-blue-100 { background-color: #ffe2c2 !important; }
+.border-blue-100 { border-color: #ffe0c2 !important; }
+.border-blue-200 { border-color: #ffc994 !important; }
+.border-blue-300 { border-color: #ffad66 !important; }
+.border-blue-500 { border-color: #ff7a1a !important; }
+.focus\:border-blue-500:focus { border-color: #ff7a1a !important; }
+.focus\:ring-blue-500\/10:focus { --tw-ring-color: rgb(255 101 0 / 10%) !important; }
+.focus\:ring-blue-500\/30:focus { --tw-ring-color: rgb(255 101 0 / 30%) !important; }
+.focus\:ring-blue-500\/40:focus { --tw-ring-color: rgb(255 101 0 / 40%) !important; }
+.from-blue-600 { --tw-gradient-from: #ff6500 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(255 101 0 / 0%) var(--tw-gradient-to-position) !important; }
+.to-blue-800 { --tw-gradient-to: #f56a00 var(--tw-gradient-to-position) !important; }
+.text-blue-100 { color: #fff0df !important; }
+.text-blue-200 { color: #ffe0c2 !important; }
+.shadow-blue-600\/20 { --tw-shadow-color: rgb(255 101 0 / 20%) !important; }
+.shadow-blue-900\/20 { --tw-shadow-color: rgb(245 106 0 / 20%) !important; }
+.hover\:bg-blue-50:hover, .hover\:bg-blue-50\/40:hover { background-color: #fff3e8 !important; }
+.hover\:text-blue-700:hover { color: #d94d00 !important; }
+.login-gradient { background: linear-gradient(135deg, #ff5b00 0%, #ff6500 52%, #f56a00 100%) !important; }
 
 /* Tema visual MOVARA: warna dan navbar saja, tanpa mengubah komponen/fungsi. */
 :root {
-  --movara-primary: #f28c28;
-  --movara-primary-dark: #d96b16;
-  --movara-gradient: linear-gradient(135deg, #ffad45 0%, #e87518 100%);
+  --movara-primary: #ff6500;
+  --movara-primary-dark: #d94d00;
+  --movara-gradient: linear-gradient(135deg, #ff5b00 0%, #ff6500 52%, #f56a00 100%);
 }
 body { background: #eef5fc !important; }
 .topbar-shell {
@@ -378,8 +432,8 @@ main a[href="/mutasi"], main a[href="/master-data"], main a[href="/kelola"], mai
 #history-input .history-table th:nth-child(11), #history-input .history-table td:nth-child(11) { width: 12% !important; }
 
 main a[href="/mutasi"]:hover, main a[href="/master-data"]:hover, main a[href="/kelola"]:hover, main a[href="/rekap"]:hover {
-  border-color: #93c5fd !important;
-  background: #eaf3fb !important;
+  border-color: #ffad66 !important;
+  background: #fff3e8 !important;
   color: var(--movara-primary-dark) !important;
 }
 button.bg-blue-600, a.bg-blue-600 { background: var(--movara-primary) !important; }
@@ -387,8 +441,8 @@ button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary
 .login-gradient { background: var(--movara-gradient) !important; }
 .bg-gradient-to-r.from-blue-600.to-indigo-600 { background:var(--movara-gradient) !important; }
 .from-blue-600.to-indigo-600 { --tw-gradient-from:transparent !important; --tw-gradient-to:transparent !important; }
-.from-blue-600 { --tw-gradient-from: #3a9bea var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(58 155 234 / 0%) var(--tw-gradient-to-position) !important; }
-.to-blue-800 { --tw-gradient-to: #1f7bd0 var(--tw-gradient-to-position) !important; }
+.from-blue-600 { --tw-gradient-from: #ff6500 var(--tw-gradient-from-position) !important; --tw-gradient-to: rgb(255 101 0 / 0%) var(--tw-gradient-to-position) !important; }
+.to-blue-800 { --tw-gradient-to: #f56a00 var(--tw-gradient-to-position) !important; }
 
 @media (max-width: 640px) {
   .topbar-shell > div { border-radius: 24px !important; }
@@ -398,7 +452,34 @@ button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary
   .journal-table thead tr, .journal-table tbody tr { min-width: 1180px; }
 }
 
-.product-request-table { table-layout: fixed; min-width: 1260px !important; }
+.product-request-table { table-layout: fixed; min-width: 1330px !important; }
+.pm-today-card { border: 1px solid #ffb36b !important; background: linear-gradient(135deg, #fff4e8 0%, #ffe4c7 100%) !important; color: #c94f00 !important; }
+.pm-today-card p:first-child, .pm-today-card p:last-child { color: #8a5a3b !important; }
+.pm-summary-card { border: 1px solid #ffb36b !important; background: linear-gradient(135deg, #fff4e8 0%, #ffe4c7 100%) !important; color: #c94f00 !important; }
+.pm-summary-card p:first-child, .pm-summary-card p:last-child { color: #8a5a3b !important; }
+.pm-counter-card { border-color: #9de8c7 !important; background: linear-gradient(135deg, #effdf7 0%, #d9f8eb 100%) !important; color: #008b68 !important; }
+.pm-counter-card p:first-child, .pm-counter-card p:last-child { color: #487b6d !important; }
+.pm-market-card { border-color: #b8d0f5 !important; background: linear-gradient(135deg, #f3f7ff 0%, #e5efff 100%) !important; color: #245bb5 !important; }
+.pm-market-card p:first-child, .pm-market-card p:last-child { color: #55709d !important; }
+.history-table#history-input th:nth-child(8), .history-table#history-input td:nth-child(8) { display: table-cell !important; }
+#history-input .history-table th:nth-child(8), #history-input .history-table td:nth-child(8) { display: table-cell !important; }
+#history-input .history-table th.history-pm-column, #history-input .history-table td.history-pm-column { display: table-cell !important; visibility: visible !important; width: 12% !important; }
+.direction-counter-card.border-blue-500 { border-color: #60a5fa !important; background: #eff6ff !important; }
+.direction-counter-card.border-blue-500 .bg-blue-100 { background: #dbeafe !important; }
+.direction-counter-card.border-blue-500 .text-blue-700 { color: #1d4ed8 !important; }
+.direction-counter-card:not(.border-blue-500):hover { border-color: #93c5fd !important; background: #f8fbff !important; }
+.direction-market-card.border-emerald-500 { border-color: #6ee7b7 !important; background: #ecfdf5 !important; }
+.direction-market-card.border-emerald-500 .bg-emerald-100 { background: #d1fae5 !important; }
+.direction-market-card.border-emerald-500 .text-emerald-700 { color: #047857 !important; }
+.direction-market-card:not(.border-emerald-500):hover { border-color: #6ee7b7 !important; background: #f0fdf9 !important; }
+.product-request-table col:nth-child(1) { width: 320px !important; }
+.product-request-table col:nth-child(2) { width: 150px !important; }
+.product-request-table col:nth-child(3) { width: 110px !important; }
+.product-request-table col:nth-child(4) { width: 130px !important; }
+.product-request-table col:nth-child(5) { width: 160px !important; }
+.product-request-table col:nth-child(6) { width: 60px !important; }
+.product-request-table col:nth-child(7) { width: 150px !important; }
+.product-request-table col:nth-child(8) { width: 250px !important; }
 
 /* Rekap: filter tampil sebelum kartu ringkasan. */
 main:has(#journal-section) { display:flex; flex-direction:column; }
@@ -415,21 +496,21 @@ main:has(#journal-section) > #journal-section { order:5 !important; }
 .volume-legend-swatch-pcs-market { background:#10b981; }
 .volume-legend-swatch-transactions-counter { background:#94a3b8; }
 .volume-legend-swatch-transactions-market { background:#f59e0b; }
-.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; background-color:#fff !important; }
+.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(255,101,0,.20) !important; background-color:#fff !important; }
 .text-blue-600, .text-blue-700, .text-blue-800 { color:var(--movara-primary-dark) !important; }
-.bg-blue-50 { background-color:#fbf1e6 !important; }
-.bg-blue-100 { background-color:#f6dfc7 !important; }
-.border-blue-200, .border-blue-300, .border-blue-500 { border-color:#efb878 !important; }
+.bg-blue-50 { background-color:#fff3e8 !important; }
+.bg-blue-100 { background-color:#ffe2c2 !important; }
+.border-blue-200, .border-blue-300, .border-blue-500 { border-color:#ffc994 !important; }
 .focus\:border-blue-500:focus { border-color:var(--movara-primary) !important; }
-.focus\:ring-blue-500\/30:focus { --tw-ring-color:rgba(217,120,38,.30) !important; }
-.focus\:ring-blue-500\/40:focus { --tw-ring-color:rgba(217,120,38,.40) !important; }
+.focus\:ring-blue-500\/30:focus { --tw-ring-color:rgba(255,101,0,.30) !important; }
+.focus\:ring-blue-500\/40:focus { --tw-ring-color:rgba(255,101,0,.40) !important; }
 
 /* Pastikan state aktif tetap orange pada semua ukuran layar. */
 .bg-blue-600, .bg-blue-700 { background-color:var(--movara-primary) !important; }
 .hover\:bg-blue-700:hover { background-color:var(--movara-primary-dark) !important; }
 .text-blue-600, .text-blue-700, .text-blue-800 { color:var(--movara-primary-dark) !important; }
 
-.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(242,140,40,.20) !important; }
+.scan-field-active { border-color:var(--movara-primary) !important; box-shadow:0 0 0 3px rgba(255,101,0,.20) !important; }
 
 /* Pilihan arah mutasi memakai satu aksen oranye agar serasi dengan tema utama. */
 a[href*="/mutasi/input"] .text-emerald-700,
@@ -493,6 +574,8 @@ nav[aria-label*="Pagination"] .opacity-40 { opacity: .4; }
 #audit-pagination > a,
 #audit-pagination > span:not(.pagination-info) { order: 1; }
 #audit-pagination > .pagination-info { order: 2; margin-left: auto; min-width: auto; border: 0 !important; background: transparent !important; color: #64748b !important; }
+#audit-pagination > a:not(:first-child):not(:last-child),
+#audit-pagination > span:not(.pagination-info):not(.bg-blue-600) { display: none !important; }
 /* Pagination tabel dibuat ringkas: panah kiri, halaman aktif, panah kanan. */
 .pagination-controls > div > a:not(:first-child):not(:last-child),
 .pagination-controls > div > span:not(.bg-blue-600):not(.pagination-info),
@@ -502,6 +585,66 @@ nav[aria-label*="Pagination"] .opacity-40 { opacity: .4; }
 }
 .pagination-controls > nav { order: 1; }
 .pagination-controls > .pagination-info { order: 2; margin-left: auto; min-width: auto; border: 0 !important; background: transparent !important; color: #64748b !important; }
+
+/* Kolom riwayat PM: pastikan SKU/PLU, Nama PM, dan Nama BA selalu terlihat. */
+.history-status-cell { display: none !important; }
+.history-status-after-ba { display: table-cell !important; visibility: visible !important; }
+.history-table { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; }
+#history-input .history-table,
+#history-counter .history-table,
+#history-market .history-table { min-width: 0 !important; width: 100% !important; table-layout: fixed !important; }
+#history-input .history-table th, #history-input .history-table td,
+#history-counter .history-table th, #history-counter .history-table td,
+#history-market .history-table th, #history-market .history-table td { min-width: 0 !important; max-width: 0; white-space: normal !important; overflow-wrap: anywhere; word-break: break-word; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7),
+#history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7),
+#history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7) { display: none !important; }
+#history-input .history-table th:nth-child(3), #history-input .history-table td:nth-child(3),
+#history-input .history-table th:nth-child(8), #history-input .history-table td:nth-child(8),
+#history-input .history-table th:nth-child(10), #history-input .history-table td:nth-child(10),
+#history-counter .history-table th:nth-child(3), #history-counter .history-table td:nth-child(3),
+#history-counter .history-table th:nth-child(8), #history-counter .history-table td:nth-child(8),
+#history-counter .history-table th:nth-child(10), #history-counter .history-table td:nth-child(10),
+#history-market .history-table th:nth-child(3), #history-market .history-table td:nth-child(3),
+#history-market .history-table th:nth-child(8), #history-market .history-table td:nth-child(8),
+#history-market .history-table th:nth-child(10), #history-market .history-table td:nth-child(10) { display: table-cell !important; visibility: visible !important; }
+#history-input .history-table th:nth-child(7), #history-input .history-table td:nth-child(7),
+#history-counter .history-table th:nth-child(7), #history-counter .history-table td:nth-child(7),
+#history-market .history-table th:nth-child(7), #history-market .history-table td:nth-child(7) { display: none !important; }
+
+/* Tabel Riwayat Input versi konsisten untuk seluruh tab. */
+.history-table { display: none !important; }
+.history-clean-table { display: table !important; width: 100% !important; min-width: 900px; table-layout: fixed; border-collapse: collapse; font-size: .78rem; }
+.history-clean-table th { background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: .68rem; font-weight: 700; letter-spacing: .04em; padding: .72rem .55rem; text-align: center; text-transform: uppercase; }
+.history-clean-table td { border-bottom: 1px solid #f1f5f9; color: #0f2747; padding: .78rem .55rem; vertical-align: middle; overflow-wrap: anywhere; word-break: break-word; }
+.history-clean-table th:nth-child(1), .history-clean-table td:nth-child(1) { width: 6%; }
+.history-clean-table th:nth-child(2), .history-clean-table td:nth-child(2) { width: 12%; }
+.history-clean-table th:nth-child(3), .history-clean-table td:nth-child(3) { width: 12%; }
+.history-clean-table th:nth-child(4), .history-clean-table td:nth-child(4) { width: 22%; }
+.history-clean-table th:nth-child(5), .history-clean-table td:nth-child(5) { width: 7%; }
+.history-clean-table th:nth-child(6), .history-clean-table td:nth-child(6) { width: 8%; }
+.history-clean-table th:nth-child(7), .history-clean-table td:nth-child(7) { width: 13%; }
+.history-clean-table th:nth-child(8), .history-clean-table td:nth-child(8) { width: 11%; }
+.history-clean-table th:nth-child(9), .history-clean-table td:nth-child(9) { width: 9%; }
+.history-clean-table .barcode-cell, .history-clean-table .code-cell { color: #e85d04; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .72rem; }
+.history-clean-table .product-cell, .history-clean-table .pm-cell { text-align: left; }
+.history-clean-table .qty-cell, .history-clean-table .time-cell { text-align: center; font-variant-numeric: tabular-nums; }
+.history-clean-table .ba-cell { text-align: left; color: #475569; }
+.history-clean-table .history-status { border-radius: .35rem; display: inline-block; font-size: .68rem; font-weight: 600; padding: .22rem .45rem; white-space: nowrap; }
+.history-clean-table .status-new { background: #fef3c7; color: #92400e; }
+.history-clean-table .status-saved { background: #d1fae5; color: #047857; }
+.history-clean-table .empty-cell { color: #94a3b8; padding: 2rem .75rem; text-align: center; }
+.history-clean-table .action-cell { text-align: center; }
+.history-input-clean { min-width: 0 !important; }
+.history-input-clean th:nth-child(1), .history-input-clean td:nth-child(1) { width: 7%; }
+.history-input-clean th:nth-child(2), .history-input-clean td:nth-child(2) { width: 14%; }
+.history-input-clean th:nth-child(3), .history-input-clean td:nth-child(3) { width: 14%; }
+.history-input-clean th:nth-child(4), .history-input-clean td:nth-child(4) { width: 27%; }
+.history-input-clean th:nth-child(5), .history-input-clean td:nth-child(5) { width: 8%; }
+.history-input-clean th:nth-child(6), .history-input-clean td:nth-child(6) { width: 10%; }
+.history-input-clean th:nth-child(7), .history-input-clean td:nth-child(7) { width: 13%; }
+.history-input-clean th:nth-child(8), .history-input-clean td:nth-child(8) { width: 11%; }
+@media (max-width: 900px) { .history-clean-table { min-width: 900px; } }
 
 @media print {
   @page { size: landscape; margin: 12mm; }
@@ -534,6 +677,6 @@ nav[aria-label*="Pagination"] .opacity-40 { opacity: .4; }
   body .text-blue-600,
   body .text-blue-700,
   body .text-blue-800 { color: var(--movara-primary-dark) !important; }
-  body .bg-blue-50 { background-color: #fbf1e6 !important; }
-  body .bg-blue-100 { background-color: #f6dfc7 !important; }
+  body .bg-blue-50 { background-color: #fff3e8 !important; }
+  body .bg-blue-100 { background-color: #ffe2c2 !important; }
 }

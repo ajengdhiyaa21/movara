@@ -42,7 +42,7 @@
 </div>
 <form method="get"
   class="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_220px_auto]">
-  <input name="q" value="{{.Query}}" placeholder="Cari barcode, kode, atau nama produk"
+  <input type="search" name="q" value="{{.Query}}" autocomplete="off" placeholder="Cari barcode, kode, atau nama produk"
     class="w-full rounded-xl border px-3 py-2.5"><select name="outlet_id" class="rounded-xl border px-3 py-2.5">
     <option value="">Semua outlet</option>{{range .Outlets}}<option value="{{.ID}}" {{if eq (printf "%d" .ID)
       $.OutletID}}selected{{end}}>{{.Name}}</option>{{end}}

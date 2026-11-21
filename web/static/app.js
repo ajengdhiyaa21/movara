@@ -116,8 +116,8 @@
       var active = button.dataset.direction === input.value;
       var blue = active && button.dataset.direction === 'counter_to_market';
       var green = active && button.dataset.direction === 'market_to_counter';
-      button.style.borderColor = blue ? '#3b82f6' : green ? '#10b981' : '#e2e8f0';
-      button.style.backgroundColor = blue ? '#eff6ff' : green ? '#ecfdf5' : '#ffffff';
+      button.style.borderColor = blue ? '#ff7a1a' : green ? '#10b981' : '#e2e8f0';
+      button.style.backgroundColor = blue ? '#fff3e8' : green ? '#ecfdf5' : '#ffffff';
       button.style.boxShadow = active ? '0 0 0 2px ' + (blue ? 'rgba(59,130,246,.18)' : 'rgba(16,185,129,.18)') : 'none';
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -125,7 +125,7 @@
 
   document.addEventListener('keydown', function (e) {
     // Enter di kolom barkode = cari produk (bukan submit form).
-    if (e.key === 'Enter' && e.target && e.target.id === 'barcode') {
+    if (e.key === 'Enter' && e.target && e.target.id === 'barcode' && e.target.closest('#scan-panel')) {
       e.preventDefault();
       saveBarcodeMode($('#barcode-mode') && $('#barcode-mode').value);
       lookupBarcode(e.target);
@@ -254,7 +254,7 @@
         if (form) form.requestSubmit();
       }, 350);
     }
-    if (!e.target || e.target.id !== 'barcode') return;
+    if (!e.target || e.target.id !== 'barcode' || !e.target.closest('#scan-panel')) return;
     var barcodeMode = $('#barcode-mode');
     if (barcodeMode && barcodeMode.value === 'manual') return;
     clearTimeout(scanTimer);
@@ -272,6 +272,11 @@
   document.body.addEventListener('htmx:afterSwap', function (e) {
     var id = e.detail.target && e.detail.target.id;
     if (id === 'scan-panel') {
+      restoreTodayBA(e.detail.target);
+      if (e.detail.target.querySelector('[role="status"]') && pendingTodayBA) {
+        localStorage.setItem(todayBAKey(), pendingTodayBA);
+        pendingTodayBA = '';
+      }
       lastLookupValue = '';
       if (e.detail.target.querySelector('[role="status"]')) {
         saveBarcodeMode('scanner');
@@ -285,6 +290,26 @@
       focusAfterSwap(e.detail.target);
     }
   });
+
+  var pendingTodayBA = '';
+  function todayBAKey() {
+    var userId = document.body.dataset.userId || 'unknown';
+    var now = new Date();
+    var day = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    return 'movara:ba:' + userId + ':' + day;
+  }
+  function restoreTodayBA(target) {
+    var field = target && target.querySelector('#ba_name');
+    if (!field || field.value.trim()) return;
+    try { field.value = localStorage.getItem(todayBAKey()) || ''; } catch (_) {}
+  }
+  document.body.addEventListener('htmx:beforeRequest', function (e) {
+    var form = e.target && e.target.closest('#scan-panel form');
+    if (!form || e.detail.verb !== 'post') return;
+    var field = form.querySelector('#ba_name');
+    pendingTodayBA = field ? field.value.trim() : '';
+  });
+  document.addEventListener('DOMContentLoaded', function () { restoreTodayBA(document); });
 
   document.addEventListener('focusin', function (e) {
     if (!e.target || !e.target.closest('#scan-panel')) return;
@@ -304,7 +329,7 @@
   barcodeModePreference = $('#barcode-mode') ? $('#barcode-mode').value : 'scanner';
   if (barcode && (!barcodeMode || barcodeMode.value === 'scanner')) barcode.focus();
   document.addEventListener('change', function (e) {
-    if (e.target && e.target.id === 'barcode-mode') {
+    if (e.target && e.target.id === 'barcode-mode' && e.target.closest('#scan-panel')) {
       var selectedMode = saveBarcodeMode(e.target.value);
       updateBarcodePlaceholder();
       var input = $('#barcode');
@@ -316,10 +341,28 @@
   });
   refreshDirectionToggle();
 
+  // Pertahankan posisi saat pagination melakukan navigasi halaman penuh.
+  // Tanpa ini browser selalu kembali ke bagian paling atas halaman.
+  var paginationScrollKey = 'movara:pagination-scroll';
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('.pagination-controls a, nav[aria-label*="Pagination"] a');
+    if (!link || link.hasAttribute('hx-get') || link.classList.contains('pointer-events-none')) return;
+    try { sessionStorage.setItem(paginationScrollKey, String(window.scrollY)); } catch (_) {}
+  });
+
   // Paksa validasi ulang saat browser mengembalikan halaman dari back-forward cache.
   // Ini mencegah tampilan akun lama muncul setelah logout.
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) window.location.reload();
+    try {
+      var savedScroll = sessionStorage.getItem(paginationScrollKey);
+      if (savedScroll !== null) {
+        sessionStorage.removeItem(paginationScrollKey);
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { window.scrollTo(0, Number(savedScroll) || 0); });
+        });
+      }
+    } catch (_) {}
   });
 })();
 

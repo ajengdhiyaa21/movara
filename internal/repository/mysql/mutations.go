@@ -15,6 +15,9 @@ func (s *Store) UpdateQty(mutationID, outletID, userID uint, qty int, now time.T
 		if err := tx.Where("id = ? AND outlet_id = ? AND created_at >= ? AND created_at < ?", mutationID, outletID, from, from.AddDate(0, 0, 1)).First(&m).Error; err != nil {
 			return err
 		}
+		if m.UserID != userID {
+			return repository.ErrNotFound
+		}
 		if m.Qty == qty {
 			return nil
 		}

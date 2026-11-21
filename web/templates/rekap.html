@@ -700,10 +700,8 @@ document.addEventListener('DOMContentLoaded', function () {
     <nav class="flex flex-wrap items-center gap-1 print:hidden" aria-label="Halaman">
       {{if .PrevURL}}<a href="{{.PrevURL}}" aria-label="Halaman sebelumnya"
         class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">‹</a>{{else}}<span class="rounded-lg border border-slate-200 px-3 py-1.5 opacity-40">‹</span>{{end}}
-      <span aria-current="page"
-        class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.Page}}</span>
-      {{if .NextURL}}<a href="{{.NextURL}}" aria-label="Halaman berikutnya"
-        class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">›</a>{{else}}<span class="rounded-lg border border-slate-200 px-3 py-1.5 opacity-40">›</span>{{end}}
+      {{range .PageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if .Current}}<span aria-current="page" class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.Label}}</span>{{else}}<a href="{{.URL}}" class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">{{.Label}}</a>{{end}}{{end}}
+      {{if .NextURL}}<a href="{{.NextURL}}" aria-label="Halaman berikutnya" class="rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50">›</a>{{else}}<span class="rounded-lg border border-slate-200 px-3 py-1.5 opacity-40">›</span>{{end}}
     </nav>
   </div>
 </section>

@@ -34,6 +34,12 @@ type scanForm struct {
 	WAURL       string // link WhatsApp "produk belum terdaftar"
 }
 
+type inputSummary struct {
+	Qty          int
+	Transactions int
+	NewProducts  int
+}
+
 func normalizeInputMode(mode string) string {
 	if strings.TrimSpace(mode) == "manual" {
 		return "manual"
@@ -42,17 +48,18 @@ func normalizeInputMode(mode string) string {
 }
 
 type historyView struct {
-	Rows      []models.Mutation
-	TotalQty  int
-	Total     int
-	Page      int
-	Pages     int
-	PerPage   int
-	PrevURL   string
-	NextURL   string
-	Query     string
-	Date      string
-	Direction string
+	Rows          []models.Mutation
+	TotalQty      int
+	Total         int
+	Page          int
+	Pages         int
+	PerPage       int
+	PrevURL       string
+	NextURL       string
+	Query         string
+	Date          string
+	Direction     string
+	CurrentUserID uint
 }
 
 type MutationHandler struct {
@@ -63,6 +70,18 @@ type MutationHandler struct {
 
 func NewMutationHandler(r *Renderer, svc *service.MutationService, db *gorm.DB) *MutationHandler {
 	return &MutationHandler{r: r, svc: svc, db: db}
+}
+
+func (h *MutationHandler) lastTodayBA(u *models.User) string {
+	if u == nil || u.OutletID == nil {
+		return ""
+	}
+	from, to := clock.DayBounds(clock.Now())
+	var mutation models.Mutation
+	if h.db.Where("user_id = ? AND outlet_id = ? AND created_at >= ? AND created_at < ? AND ba_name IS NOT NULL AND ba_name <> ''", u.ID, *u.OutletID, from, to).Order("created_at desc").First(&mutation).Error != nil {
+		return ""
+	}
+	return mutation.BA()
 }
 
 // GET /mutasi : halaman penuh.
@@ -76,13 +95,20 @@ func (h *MutationHandler) Index(c *gin.Context) {
 	if !ok {
 		return
 	}
+	var productRequests []models.ProductRequest
+	requestQuery := h.db.Preload("Outlet").Preload("User").Preload("Category").Where("outlet_id = ?", *u.OutletID)
+	if u.CategoryID != nil {
+		requestQuery = requestQuery.Where("category_id = ?", *u.CategoryID)
+	}
+	requestQuery.Order("requested_at desc").Find(&productRequests)
 	direction := normalizeDirection(c.Query("direction"))
 	h.r.HTML(c, http.StatusOK, "mutasi.html", gin.H{
-		"Title":          "Input Mutasi",
-		"Active":         "mutasi",
-		"Form":           scanForm{Qty: 1, Direction: direction},
-		"CounterHistory": counterHistory,
-		"MarketHistory":  marketHistory,
+		"Title":           "Input Mutasi",
+		"Active":          "mutasi",
+		"Form":            scanForm{Qty: 1, Direction: direction},
+		"CounterHistory":  counterHistory,
+		"MarketHistory":   marketHistory,
+		"ProductRequests": productRequests,
 		"WAURL": h.r.WhatsAppURL(fmt.Sprintf(
 			"Halo Admin, saya %s (%s). Saya ingin menambahkan produk baru ke master data.",
 			u.Name, outletName(u))),
@@ -91,7 +117,8 @@ func (h *MutationHandler) Index(c *gin.Context) {
 
 // GET /mutasi/form : form kosong (tombol Reset / Esc).
 func (h *MutationHandler) Form(c *gin.Context) {
-	h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": scanForm{Qty: 0, Direction: normalizeDirection(c.Query("direction"))}})
+	u := middleware.CurrentUser(c)
+	h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": scanForm{Qty: 0, BA: h.lastTodayBA(u), Direction: normalizeDirection(c.Query("direction"))}})
 }
 
 // GET /mutasi/input : halaman khusus untuk scan dan menyimpan mutasi.
@@ -111,13 +138,25 @@ func (h *MutationHandler) Input(c *gin.Context) {
 	if !ok {
 		return
 	}
+	today, err := h.svc.ByDate(*u.OutletID, u.CategoryID, "", "")
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Gagal memuat ringkasan input hari ini.")
+		return
+	}
+	summary := inputSummary{Qty: today.TotalQty, Transactions: len(today.Rows)}
+	for _, row := range today.Rows {
+		if row.Status == "pending_code" {
+			summary.NewProducts++
+		}
+	}
 	h.r.HTML(c, http.StatusOK, "mutasi.html", gin.H{
 		"Title":           "Input Mutasi Barang",
 		"Active":          "mutasi",
 		"InputOnly":       true,
-		"Form":            scanForm{Qty: 0, Direction: direction},
+		"Form":            scanForm{Qty: 0, BA: h.lastTodayBA(u), Direction: direction},
 		"History":         hist,
 		"PreviousHistory": previous,
+		"InputSummary":    summary,
 		"WAURL": h.r.WhatsAppURL(fmt.Sprintf(
 			"Halo Admin, saya %s (%s). Saya ingin menambahkan produk baru ke master data.",
 			u.Name, outletName(u))),
@@ -152,6 +191,7 @@ func (h *MutationHandler) HistoryPage(c *gin.Context) {
 		perPage = 10
 	}
 	view := paginateHistory(rows, page, perPage)
+	view.CurrentUserID = u.ID
 	view.Query, view.Direction = q, direction
 	view.Date = date
 	if page > 1 {
@@ -176,6 +216,9 @@ func (h *MutationHandler) Lookup(c *gin.Context) {
 		qty = 0
 	}
 	form := scanForm{Barcode: barcode, InputMode: normalizeInputMode(c.Query("input_mode")), ProductName: strings.TrimSpace(c.Query("product_name")), Qty: qty, BA: c.Query("ba_name"), Direction: normalizeDirection(c.Query("direction"))}
+	if strings.TrimSpace(form.BA) == "" {
+		form.BA = h.lastTodayBA(u)
+	}
 
 	p, err := h.svc.FindProductForUser(barcode, u)
 	if err != nil {
@@ -270,8 +313,13 @@ func (h *MutationHandler) Create(c *gin.Context) {
 			return
 		}
 		h.db.Create(&models.AuditLog{UserID: &u.ID, OutletID: u.OutletID, Action: "product_request_create", Detail: fmt.Sprintf("Produk: %s | Barcode: %s | Outlet: %s | Pengaju: %s | Jumlah: %d pcs | Arah: %s", req.ProductName, req.Barcode, outletName(u), u.Name, req.Qty, req.Direction), CreatedAt: clock.Now()})
-		form := scanForm{Qty: 0, Direction: direction, Success: fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Super Admin melengkapi data.", qty)}
-		h.r.Partial(c, http.StatusOK, "mutasi.html", "mutasi_saved", gin.H{"Form": form})
+		form := scanForm{Qty: 0, BA: ba, Direction: direction, Success: fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Super Admin melengkapi data.", qty)}
+		hist, ok := h.history(nil, u, "", "", direction)
+		if !ok {
+			h.r.Partial(c, http.StatusOK, "mutasi.html", "scan_form", gin.H{"Form": form})
+			return
+		}
+		h.r.Partial(c, http.StatusOK, "mutasi.html", "mutasi_saved", gin.H{"Form": form, "History": hist})
 		return
 	}
 
@@ -293,7 +341,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 
 	// Sukses: form baru dengan input BA yang sudah dikosongkan.
 	form := scanForm{
-		Qty: 0, Direction: direction,
+		Qty: 0, BA: ba, Direction: direction,
 		Success: func() string {
 			if m.Status == "pending_code" {
 				return fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Admin melengkapi data produk.", m.Qty)
@@ -410,7 +458,7 @@ func (h *MutationHandler) historyPage(c *gin.Context, u *models.User, q, date, d
 	if end > len(rows) {
 		end = len(rows)
 	}
-	view := historyView{Rows: rows[start:end], TotalQty: totalQty, Total: len(rows), Page: page, Pages: pages, PerPage: perPage, Query: q, Date: res.Date, Direction: direction}
+	view := historyView{Rows: rows[start:end], TotalQty: totalQty, Total: len(rows), Page: page, Pages: pages, PerPage: perPage, Query: q, Date: res.Date, Direction: direction, CurrentUserID: u.ID}
 	if page > 1 {
 		view.PrevURL = historyURL(direction, q, date, page-1, perPage)
 	}

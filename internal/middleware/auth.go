@@ -103,12 +103,19 @@ func RequireOutlet() gin.HandlerFunc {
 	}
 }
 
-// RequireSuperAdmin membatasi operasi sensitif ke akun admin.a.
-// Role admin saja tidak cukup karena admin.b juga memiliki RoleAdmin.
+// IsSuperAdmin mengidentifikasi akun admin yang memiliki hak akses penuh.
+func IsSuperAdmin(u *models.User) bool {
+	if u == nil || u.Role != models.RoleSuperAdmin {
+		return false
+	}
+	return true
+}
+
+// RequireSuperAdmin membatasi operasi sensitif ke akun admin.a sampai admin.e.
 func RequireSuperAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		u := CurrentUser(c)
-		if u == nil || u.Role != models.RoleAdmin || u.Username != "admin.a" {
+		if !IsSuperAdmin(u) {
 			c.String(http.StatusForbidden, "Fitur ini hanya tersedia untuk Super Admin.")
 			c.Abort()
 			return

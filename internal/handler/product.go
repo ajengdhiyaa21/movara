@@ -103,6 +103,9 @@ type productPageItem struct {
 
 func buildProductPageItems(current, total int, pageURL func(int) string) []productPageItem {
 	if total <= 1 {
+		if total == 1 {
+			return []productPageItem{{Number: 1, URL: pageURL(1), Current: true}}
+		}
 		return nil
 	}
 	seen := map[int]bool{}

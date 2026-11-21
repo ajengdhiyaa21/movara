@@ -23,6 +23,7 @@ import (
 var sharedTemplates = map[string]bool{"layout.html": true, "icons.html": true}
 
 var funcs = template.FuncMap{
+	"isSuperAdmin": middleware.IsSuperAdmin,
 	"dict": func(values ...interface{}) map[string]interface{} {
 		out := map[string]interface{}{}
 		for i := 0; i+1 < len(values); i += 2 {

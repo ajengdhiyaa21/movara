@@ -91,7 +91,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 		}
 
 		// Manager + Admin: lihat rekap (read-only)
-		view := authed.Group("/", middleware.RequireRole(models.RoleManager, models.RoleAdmin))
+		view := authed.Group("/", middleware.RequireRole(models.RoleManager, models.RoleAdmin, models.RoleSuperAdmin))
 		{
 			view.GET("/rekap", recapH.Index)
 			view.GET("/rekap/cetak", recapH.Print)
@@ -99,7 +99,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 		}
 
 		// Admin saja
-		admin := authed.Group("/", middleware.RequireRole(models.RoleAdmin))
+		admin := authed.Group("/", middleware.RequireRole(models.RoleAdmin, models.RoleSuperAdmin))
 		{
 			admin.GET("/password", pageH.PasswordForm)
 			admin.POST("/password", pageH.ChangePassword)

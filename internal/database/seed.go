@@ -57,12 +57,14 @@ func Seed(db *gorm.DB, adminPassword string) error {
 		return err
 	}
 	admins := []models.User{
-		{Name: "Admin A", Username: "admin.a"},
+		{Name: "Super Admin A", Username: "admin.a", Role: models.RoleSuperAdmin},
 		{Name: "Admin B", Username: "admin.b"},
 	}
 	for _, a := range admins {
 		a.PasswordHash = string(hash)
-		a.Role = models.RoleAdmin
+		if a.Role == "" {
+			a.Role = models.RoleAdmin
+		}
 		a.IsActive = true
 		// FirstOrCreate: tidak menimpa akun yang sudah ada
 		if err := db.Where("username = ?", a.Username).FirstOrCreate(&a).Error; err != nil {

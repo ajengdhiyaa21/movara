@@ -137,9 +137,24 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		userPage = userPages
 	}
 	userDB.Preload("Outlet").Preload("Category").Order("id DESC").Offset((userPage - 1) * userPerPage).Limit(userPerPage).Find(&users)
-	h.db.Preload("Outlet").Preload("Outlets", func(db *gorm.DB) *gorm.DB {
+	managerPage, _ := strconv.Atoi(c.Query("manager_page"))
+	if managerPage < 1 {
+		managerPage = 1
+	}
+	managerPerPage, _ := strconv.Atoi(c.Query("manager_per_page"))
+	if managerPerPage != 10 && managerPerPage != 30 && managerPerPage != 50 {
+		managerPerPage = 10
+	}
+	managerDB := h.db.Model(&models.User{}).Where("role = ?", models.RoleManager)
+	var managerTotal int64
+	managerDB.Count(&managerTotal)
+	managerPages := int((managerTotal + int64(managerPerPage) - 1) / int64(managerPerPage))
+	if managerPages > 0 && managerPage > managerPages {
+		managerPage = managerPages
+	}
+	managerDB.Preload("Outlet").Preload("Outlets", func(db *gorm.DB) *gorm.DB {
 		return db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC")
-	}).Where("role = ?", models.RoleManager).Order("id DESC").Find(&managers)
+	}).Order("id DESC").Offset((managerPage - 1) * managerPerPage).Limit(managerPerPage).Find(&managers)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
@@ -175,7 +190,19 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		auditPeriod = "tanggal " + auditDate
 	}
 	revealAccountID, _ := strconv.ParseUint(c.Query("reveal_id"), 10, 64)
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})
+	userURL := func(p int) string {
+		v := url.Values{"user_page": {strconv.Itoa(p)}, "user_per_page": {strconv.Itoa(userPerPage)}, "pm_q": {pmQuery}, "pm_outlet": {pmOutlet}}
+		return "/kelola?" + v.Encode() + "#users"
+	}
+	auditURL := func(p int) string {
+		v := url.Values{"page": {strconv.Itoa(p)}, "audit_per_page": {strconv.Itoa(auditPerPage)}, "audit_date": {auditDate}, "audit_q": {c.Query("audit_q")}, "audit_role": {c.Query("audit_role")}, "audit_outlet": {c.Query("audit_outlet")}}
+		return "/kelola?" + v.Encode() + "#audit-log"
+	}
+	managerURL := func(p int) string {
+		v := url.Values{"manager_page": {strconv.Itoa(p)}, "manager_per_page": {strconv.Itoa(managerPerPage)}}
+		return "/kelola?" + v.Encode() + "#manager"
+	}
+	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "ManagerPage": managerPage, "ManagerPages": managerPages, "ManagerPageItems": buildProductPageItems(managerPage, managerPages, managerURL), "ManagerPerPage": managerPerPage, "ManagerTotal": managerTotal, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPageItems": buildProductPageItems(userPage, userPages, userURL), "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPageItems": buildProductPageItems(page, auditPages, auditURL), "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {
@@ -486,17 +513,17 @@ func (h *PageHandler) UpdateProfile(c *gin.Context) {
 func (h *PageHandler) AddManager(c *gin.Context) {
 	name, username, password := strings.TrimSpace(c.PostForm("name")), strings.TrimSpace(c.PostForm("username")), c.PostForm("password")
 	if name == "" || username == "" || password == "" {
-		c.Redirect(http.StatusFound, "/kelola?message=Data+Manajemen+belum+lengkap+atau+password+wajib+diisi")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Data+Manajemen+belum+lengkap+atau+password+wajib+diisi")
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+diproses")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Password+gagal+diproses")
 		return
 	}
 	cipherText, err := security.EncryptPassword(os.Getenv("SESSION_SECRET"), password)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Password+gagal+dienkripsi")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Password+gagal+dienkripsi")
 		return
 	}
 	userCode := strings.TrimSpace(c.PostForm("user_code"))
@@ -505,22 +532,22 @@ func (h *PageHandler) AddManager(c *gin.Context) {
 	}
 	outletIDs := managerOutletIDs(c)
 	if len(outletIDs) == 0 {
-		c.Redirect(http.StatusFound, "/kelola?message=Outlet+Manajemen+wajib+dipilih")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Outlet+Manajemen+wajib+dipilih")
 		return
 	}
 	var outlets []models.Outlet
 	if h.db.Where("id IN ? AND is_active = ?", outletIDs, true).Find(&outlets).Error != nil || len(outlets) != len(outletIDs) {
-		c.Redirect(http.StatusFound, "/kelola?message=Outlet+Manajemen+tidak+ditemukan")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Outlet+Manajemen+tidak+ditemukan")
 		return
 	}
 	outletValue := outletIDs[0]
 	u := models.User{Name: name, UserCode: userCode, Username: username, PasswordHash: string(hash), PasswordCiphertext: cipherText, Role: models.RoleManager, OutletID: &outletValue, Outlets: outlets, IsActive: true}
 	if err = h.db.Create(&u).Error; err != nil {
-		c.Redirect(http.StatusFound, "/kelola?message=Username+Manajemen+sudah+digunakan")
+		c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Username+Manajemen+sudah+digunakan")
 		return
 	}
 	h.audit(c, "manager_create", username)
-	c.Redirect(http.StatusFound, "/kelola?message=Akun+Manajemen+berhasil+ditambahkan")
+	c.Redirect(http.StatusFound, "/kelola?tab=manager&message=Akun+Manajemen+berhasil+ditambahkan")
 }
 
 func (h *PageHandler) ResetManagerPassword(c *gin.Context) {
