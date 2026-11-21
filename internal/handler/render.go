@@ -73,6 +73,8 @@ var funcs = template.FuncMap{
 			return "Manajemen"
 		case models.RoleAdmin:
 			return "Admin"
+		case models.RoleSuperAdmin:
+			return "Super Admin"
 		}
 		return string(r)
 	},

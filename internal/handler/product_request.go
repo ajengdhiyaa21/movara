@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -63,10 +64,11 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		// Jika salah satu identitas sudah ada di master, gunakan produk tersebut
 		// untuk jurnal mutasi. Jangan membuat master product kedua.
-		if err := tx.Where("outlet_id = ? AND (barcode = ? OR code = ? OR name = ?)", req.OutletID, barcode, code, productName).First(&existingProduct).Error; err == nil {
+		lookup := tx.Where("outlet_id = ? AND (barcode = ? OR code = ? OR name = ?)", req.OutletID, barcode, code, productName).First(&existingProduct)
+		if lookup.Error == nil {
 			usedExistingProduct = true
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
+		} else if !errors.Is(lookup.Error, gorm.ErrRecordNotFound) {
+			return lookup.Error
 		}
 		product := existingProduct
 		if !usedExistingProduct {
@@ -76,8 +78,18 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 			}
 		}
 		if req.MutationID != nil {
-			if err := tx.Model(&models.Mutation{}).Where("id = ?", *req.MutationID).Updates(map[string]interface{}{"product_id": product.ID, "barcode": product.Barcode, "code": product.Code, "product_name": product.Name, "category_id": product.CategoryID, "status": "approved", "qty": qty}).Error; err != nil {
-				return err
+			// Pengajuan lama bisa memiliki status jurnal selain pending_code.
+			// Selama jurnalnya masih terkait pengajuan ini, selesaikan jurnal tersebut.
+			mutationUpdate := tx.Model(&models.Mutation{}).Where("id = ?", *req.MutationID).Updates(map[string]interface{}{"product_id": product.ID, "barcode": product.Barcode, "code": product.Code, "product_name": product.Name, "category_id": product.CategoryID, "status": "approved", "qty": qty})
+			if mutationUpdate.Error != nil {
+				return mutationUpdate.Error
+			}
+			if mutationUpdate.RowsAffected == 0 {
+				// Fallback untuk data lama yang memiliki MutationID tidak valid.
+				mutation := models.Mutation{ProductID: &product.ID, Barcode: product.Barcode, Code: product.Code, ProductName: product.Name, CategoryID: product.CategoryID, Direction: req.Direction, Status: "approved", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
+				if err := tx.Create(&mutation).Error; err != nil {
+					return err
+				}
 			}
 		} else {
 			mutation := models.Mutation{ProductID: &product.ID, Barcode: product.Barcode, Code: product.Code, ProductName: product.Name, CategoryID: product.CategoryID, Direction: req.Direction, Status: "approved", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
@@ -88,7 +100,7 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 		return tx.Model(&req).Updates(map[string]interface{}{"product_name": productName, "barcode": barcode, "code": code, "category_id": categoryID, "qty": qty, "status": "approved", "reviewed_at": now, "reviewed_by": admin.ID}).Error
 	})
 	if err != nil {
-		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+barcode%2C+PLU%2FSKU%2C+atau+nama+sudah+ada", "blue")
+		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+"+url.QueryEscape(err.Error()), "blue")
 		return
 	}
 	h.audit(c, "product_request_approve", "Produk: "+productName+" | Barcode: "+barcode+" | Outlet: "+req.Outlet.Name+" | Pengaju: "+req.User.Name+" | Jumlah: "+strconv.Itoa(qty)+" pcs | PLU/SKU: "+code)
