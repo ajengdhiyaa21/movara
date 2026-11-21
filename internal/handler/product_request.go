@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ func (h *PageHandler) ProductRequests(c *gin.Context) {
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
 	h.r.HTML(c, http.StatusOK, "product_requests.html", gin.H{
 		"Title": "Produk Baru", "Active": "produk-baru", "Requests": requests,
-		"Categories": categories, "Message": c.Query("message"),
+		"Categories": categories, "Message": c.Query("message"), "MessageTone": c.DefaultQuery("tone", "blue"),
 	})
 }
 
@@ -42,7 +43,7 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	var req models.ProductRequest
 	if h.db.Preload("Outlet").Preload("User").First(&req, uint(id)).Error != nil || req.Status != "pending" {
-		h.redirectProductRequest(c, "Pengajuan+produk+tidak+ditemukan+atau+sudah+diproses")
+		h.redirectProductRequest(c, "Pengajuan+produk+tidak+ditemukan+atau+sudah+diproses", "blue")
 		return
 	}
 	productName := strings.TrimSpace(c.PostForm("product_name"))
@@ -52,19 +53,27 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 	categoryID64, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
 	categoryID := uint(categoryID64)
 	if productName == "" || barcode == "" || len(barcode) > 20 || len(code) < 6 || qty < 1 || qty > service.MaxQty || categoryID == 0 {
-		h.redirectProductRequest(c, "Nama%2C+barcode%2C+qty%2C+PLU%2FSKU%2C+dan+kategori+wajib+valid")
+		h.redirectProductRequest(c, "Nama%2C+barcode%2C+qty%2C+PLU%2FSKU%2C+dan+kategori+wajib+valid", "blue")
 		return
 	}
 	now := clock.Now()
 	admin := middleware.CurrentUser(c)
+	usedExistingProduct := false
+	var existingProduct models.Product
 	err := h.db.Transaction(func(tx *gorm.DB) error {
-		var duplicate models.Product
-		if err := tx.Where("outlet_id = ? AND (barcode = ? OR code = ? OR name = ?)", req.OutletID, barcode, code, productName).First(&duplicate).Error; err == nil {
-			return gorm.ErrDuplicatedKey
-		}
-		product := models.Product{Barcode: barcode, Code: code, Name: productName, IsActive: true, OutletID: req.OutletID, CategoryID: &categoryID}
-		if err := tx.Create(&product).Error; err != nil {
+		// Jika salah satu identitas sudah ada di master, gunakan produk tersebut
+		// untuk jurnal mutasi. Jangan membuat master product kedua.
+		if err := tx.Where("outlet_id = ? AND (barcode = ? OR code = ? OR name = ?)", req.OutletID, barcode, code, productName).First(&existingProduct).Error; err == nil {
+			usedExistingProduct = true
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
+		}
+		product := existingProduct
+		if !usedExistingProduct {
+			product = models.Product{Barcode: barcode, Code: code, Name: productName, IsActive: true, OutletID: req.OutletID, CategoryID: &categoryID}
+			if err := tx.Create(&product).Error; err != nil {
+				return err
+			}
 		}
 		if req.MutationID != nil {
 			if err := tx.Model(&models.Mutation{}).Where("id = ?", *req.MutationID).Updates(map[string]interface{}{"product_id": product.ID, "barcode": product.Barcode, "code": product.Code, "product_name": product.Name, "category_id": product.CategoryID, "status": "approved", "qty": qty}).Error; err != nil {
@@ -79,11 +88,15 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 		return tx.Model(&req).Updates(map[string]interface{}{"product_name": productName, "barcode": barcode, "code": code, "category_id": categoryID, "qty": qty, "status": "approved", "reviewed_at": now, "reviewed_by": admin.ID}).Error
 	})
 	if err != nil {
-		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+barcode%2C+PLU%2FSKU%2C+atau+nama+sudah+ada")
+		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+barcode%2C+PLU%2FSKU%2C+atau+nama+sudah+ada", "blue")
 		return
 	}
 	h.audit(c, "product_request_approve", "Produk: "+productName+" | Barcode: "+barcode+" | Outlet: "+req.Outlet.Name+" | Pengaju: "+req.User.Name+" | Jumlah: "+strconv.Itoa(qty)+" pcs | PLU/SKU: "+code)
-	h.redirectProductRequest(c, "Produk+berhasil+disetujui+dan+ditambahkan+ke+master+data+serta+jurnal+mutasi")
+	if usedExistingProduct {
+		h.redirectProductRequest(c, "Produk+disetujui.+Data+sudah+ada+di+master+dan+dicatat+ke+jurnal+mutasi+tanpa+duplikasi+master.", "orange")
+		return
+	}
+	h.redirectProductRequest(c, "Produk+berhasil+disetujui+dan+ditambahkan+ke+master+data+serta+jurnal+mutasi", "blue")
 }
 
 func (h *PageHandler) RejectProductRequest(c *gin.Context) {
@@ -98,9 +111,9 @@ func (h *PageHandler) RejectProductRequest(c *gin.Context) {
 	} else {
 		h.audit(c, "product_request_reject", "Produk: "+req.ProductName+" | Barcode: "+req.Barcode+" | Outlet: "+req.Outlet.Name+" | Pengaju: "+req.User.Name+" | Jumlah: "+strconv.Itoa(req.Qty)+" pcs | Arah: "+req.Direction)
 	}
-	h.redirectProductRequest(c, message)
+	h.redirectProductRequest(c, message, "blue")
 }
 
-func (h *PageHandler) redirectProductRequest(c *gin.Context, message string) {
-	c.Redirect(http.StatusFound, "/kelola/produk-baru?message="+message)
+func (h *PageHandler) redirectProductRequest(c *gin.Context, message, tone string) {
+	c.Redirect(http.StatusFound, "/kelola/produk-baru?message="+message+"&tone="+tone)
 }

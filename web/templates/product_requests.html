@@ -8,7 +8,7 @@
   <a href="/kelola" class="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium">Kembali ke
     Kelola</a>
 </div>
-{{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
+{{if .Message}}<div class="mt-4 rounded-xl p-3 text-sm {{if eq .MessageTone "orange"}}border border-orange-200 bg-orange-50 text-orange-800{{else}}bg-blue-50 text-blue-700{{end}}">{{.Message}}</div>{{end}}
 <section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
   <div class="border-b border-slate-200 px-6 py-5">
     <h2 class="font-semibold">Daftar pengajuan produk</h2>
