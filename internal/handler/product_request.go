@@ -21,6 +21,11 @@ func (h *PageHandler) ProductRequests(c *gin.Context) {
 	var categories []models.ProductCategory
 	h.db.Preload("Outlet").Preload("User").Preload("User.Category").Preload("Category").Where("status = ?", "pending").Order("requested_at desc").Find(&requests)
 	for i := range requests {
+		var existing models.Product
+		if h.db.Where("outlet_id = ? AND barcode = ?", requests[i].OutletID, requests[i].Barcode).First(&existing).Error == nil {
+			requests[i].ExistingProduct = &existing
+			requests[i].UsesExistingProduct = true
+		}
 		if requests[i].Category == nil && requests[i].User.Category != nil {
 			requests[i].Category = requests[i].User.Category
 			categoryID := requests[i].User.Category.ID
@@ -30,7 +35,7 @@ func (h *PageHandler) ProductRequests(c *gin.Context) {
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
 	h.r.HTML(c, http.StatusOK, "product_requests.html", gin.H{
 		"Title": "Produk Baru", "Active": "produk-baru", "Requests": requests,
-		"Categories": categories, "Message": c.Query("message"), "MessageTone": c.DefaultQuery("tone", "blue"),
+		"Categories": categories, "Message": c.Query("message"), "MessageTone": c.DefaultQuery("tone", "neutral"),
 	})
 }
 
@@ -44,7 +49,7 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	var req models.ProductRequest
 	if h.db.Preload("Outlet").Preload("User").First(&req, uint(id)).Error != nil || req.Status != "pending" {
-		h.redirectProductRequest(c, "Pengajuan+produk+tidak+ditemukan+atau+sudah+diproses", "blue")
+		h.redirectProductRequest(c, "Pengajuan+produk+tidak+ditemukan+atau+sudah+diproses", "neutral")
 		return
 	}
 	productName := strings.TrimSpace(c.PostForm("product_name"))
@@ -54,12 +59,13 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 	categoryID64, _ := strconv.ParseUint(c.PostForm("category_id"), 10, 64)
 	categoryID := uint(categoryID64)
 	if productName == "" || barcode == "" || len(barcode) > 20 || len(code) < 6 || qty < 1 || qty > service.MaxQty || categoryID == 0 {
-		h.redirectProductRequest(c, "Nama%2C+barcode%2C+qty%2C+PLU%2FSKU%2C+dan+kategori+wajib+valid", "blue")
+		h.redirectProductRequest(c, "Nama%2C+barcode%2C+qty%2C+PLU%2FSKU%2C+dan+kategori+wajib+valid", "orange")
 		return
 	}
 	now := clock.Now()
 	admin := middleware.CurrentUser(c)
 	usedExistingProduct := false
+	approvalStatus := "approved"
 	var existingProduct models.Product
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		// Jika salah satu identitas sudah ada di master, gunakan produk tersebut
@@ -74,8 +80,16 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 		if !usedExistingProduct {
 			product = models.Product{Barcode: barcode, Code: code, Name: productName, IsActive: true, OutletID: req.OutletID, CategoryID: &categoryID}
 			if err := tx.Create(&product).Error; err != nil {
-				return err
+				// Approval lain mungkin baru saja membuat master yang sama.
+				// Gunakan master canonical tersebut agar pengajuan kedua tetap selesai.
+				if lookupErr := tx.Where("outlet_id = ? AND barcode = ?", req.OutletID, barcode).First(&product).Error; lookupErr != nil {
+					return err
+				}
+				usedExistingProduct = true
 			}
+		}
+		if usedExistingProduct {
+			approvalStatus = "approved_existing"
 		}
 		if req.MutationID != nil {
 			// Pengajuan lama bisa memiliki status jurnal selain pending_code.
@@ -97,10 +111,10 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 				return err
 			}
 		}
-		return tx.Model(&req).Updates(map[string]interface{}{"product_name": productName, "barcode": barcode, "code": code, "category_id": categoryID, "qty": qty, "status": "approved", "reviewed_at": now, "reviewed_by": admin.ID}).Error
+		return tx.Model(&req).Updates(map[string]interface{}{"product_name": productName, "barcode": barcode, "code": code, "category_id": categoryID, "qty": qty, "status": approvalStatus, "reviewed_at": now, "reviewed_by": admin.ID}).Error
 	})
 	if err != nil {
-		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+"+url.QueryEscape(err.Error()), "blue")
+		h.redirectProductRequest(c, "Produk+gagal+disetujui%3A+"+url.QueryEscape(err.Error()), "red")
 		return
 	}
 	h.audit(c, "product_request_approve", "Produk: "+productName+" | Barcode: "+barcode+" | Outlet: "+req.Outlet.Name+" | Pengaju: "+req.User.Name+" | Jumlah: "+strconv.Itoa(qty)+" pcs | PLU/SKU: "+code)
@@ -108,7 +122,7 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 		h.redirectProductRequest(c, "Produk+disetujui.+Data+sudah+ada+di+master+dan+dicatat+ke+jurnal+mutasi+tanpa+duplikasi+master.", "orange")
 		return
 	}
-	h.redirectProductRequest(c, "Produk+berhasil+disetujui+dan+ditambahkan+ke+master+data+serta+jurnal+mutasi", "blue")
+	h.redirectProductRequest(c, "Produk+berhasil+disetujui+dan+ditambahkan+ke+master+data+serta+jurnal+mutasi", "green")
 }
 
 func (h *PageHandler) RejectProductRequest(c *gin.Context) {
@@ -123,9 +137,9 @@ func (h *PageHandler) RejectProductRequest(c *gin.Context) {
 	} else {
 		h.audit(c, "product_request_reject", "Produk: "+req.ProductName+" | Barcode: "+req.Barcode+" | Outlet: "+req.Outlet.Name+" | Pengaju: "+req.User.Name+" | Jumlah: "+strconv.Itoa(req.Qty)+" pcs | Arah: "+req.Direction)
 	}
-	h.redirectProductRequest(c, message, "blue")
+	h.redirectProductRequest(c, message, "red")
 }
 
 func (h *PageHandler) redirectProductRequest(c *gin.Context, message, tone string) {
-	c.Redirect(http.StatusFound, "/kelola/produk-baru?message="+message+"&tone="+tone)
+	c.Redirect(http.StatusFound, "/kelola/produk-baru?message="+message+"&tone="+url.QueryEscape(tone))
 }
