@@ -25,6 +25,26 @@ type PageHandler struct {
 
 func NewPageHandler(r *Renderer, db *gorm.DB) *PageHandler { return &PageHandler{r: r, db: db} }
 
+// ForceLogout memutus sesi akun target. Endpoint ini dilindungi middleware super admin.
+func (h *PageHandler) ForceLogout(c *gin.Context) {
+	operator := middleware.CurrentUser(c)
+	if operator == nil || !middleware.IsSuperAdmin(operator) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Akses hanya untuk super admin"})
+		return
+	}
+	var target models.User
+	if err := h.db.First(&target, c.Param("id")).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Akun tidak ditemukan"))
+		return
+	}
+	if err := h.db.Model(&models.User{}).Where("id = ?", target.ID).Updates(map[string]interface{}{"active_session_token": "", "active_session_until": nil}).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Gagal mengeluarkan akun dari sistem"))
+		return
+	}
+	h.db.Create(&models.AuditLog{UserID: &operator.ID, OutletID: operator.OutletID, Action: "force_logout", Detail: fmt.Sprintf("Super admin mengeluarkan akun %s (%s) dari sistem", target.Name, target.Username), CreatedAt: clock.Now()})
+	c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Akun "+target.Name+" berhasil dikeluarkan dari sistem"))
+}
+
 // TODO: tabel produk + search + pagination + import Excel/CSV.
 func (h *PageHandler) Master(c *gin.Context) {
 	h.r.HTML(c, http.StatusOK, "master.html", gin.H{"Title": "Master Data", "Active": "master"})
@@ -107,6 +127,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	var outlets []models.Outlet
 	var users []models.User
 	var managers []models.User
+	var superAdmins []models.User
 	var transfers []models.OutletTransferRequest
 	var logs []models.AuditLog
 	var categories []models.ProductCategory
@@ -145,7 +166,12 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	if managerPerPage != 10 && managerPerPage != 30 && managerPerPage != 50 {
 		managerPerPage = 10
 	}
-	managerDB := h.db.Model(&models.User{}).Where("role = ?", models.RoleManager)
+	managerDB := h.db.Model(&models.User{}).Where("role IN ?", []models.Role{models.RoleManager, models.RoleAdmin, models.RoleSuperAdmin})
+	managerQuery := strings.TrimSpace(c.Query("manager_q"))
+	if managerQuery != "" {
+		like := "%" + managerQuery + "%"
+		managerDB = managerDB.Where("name LIKE ? OR username LIKE ? OR user_code LIKE ?", like, like, like)
+	}
 	var managerTotal int64
 	managerDB.Count(&managerTotal)
 	managerPages := int((managerTotal + int64(managerPerPage) - 1) / int64(managerPerPage))
@@ -155,6 +181,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	managerDB.Preload("Outlet").Preload("Outlets", func(db *gorm.DB) *gorm.DB {
 		return db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC")
 	}).Order("id DESC").Offset((managerPage - 1) * managerPerPage).Limit(managerPerPage).Find(&managers)
+	h.db.Where("role = ?", models.RoleSuperAdmin).Order("id ASC").Find(&superAdmins)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
@@ -199,7 +226,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		return "/kelola?" + v.Encode() + "#audit-log"
 	}
 	managerURL := func(p int) string {
-		v := url.Values{"manager_page": {strconv.Itoa(p)}, "manager_per_page": {strconv.Itoa(managerPerPage)}}
+		v := url.Values{"manager_page": {strconv.Itoa(p)}, "manager_per_page": {strconv.Itoa(managerPerPage)}, "manager_q": {managerQuery}}
 		return "/kelola?" + v.Encode() + "#manager"
 	}
 	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "ManagerPage": managerPage, "ManagerPages": managerPages, "ManagerPageItems": buildProductPageItems(managerPage, managerPages, managerURL), "ManagerPerPage": managerPerPage, "ManagerTotal": managerTotal, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPageItems": buildProductPageItems(userPage, userPages, userURL), "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPageItems": buildProductPageItems(page, auditPages, auditURL), "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})

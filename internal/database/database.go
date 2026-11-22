@@ -54,6 +54,11 @@ func Migrate(db *gorm.DB) error {
 	if err := db.Exec("UPDATE users SET user_code = username WHERE user_code IS NULL OR user_code = ''").Error; err != nil {
 		return err
 	}
+	// Normalisasi akun bawaan agar admin.a/c/d/e selalu memiliki hak Super Admin,
+	// termasuk pada database lama yang sebelumnya menyimpan role sebagai admin.
+	if err := db.Exec("UPDATE users SET role = 'super_admin' WHERE username IN ('admin.a', 'admin.c', 'admin.d', 'admin.e')").Error; err != nil {
+		return err
+	}
 	// Migrasikan penempatan tunggal manajemen lama ke tabel relasi multi-outlet.
 	return db.Exec("INSERT IGNORE INTO user_outlets (user_id, outlet_id) SELECT id, outlet_id FROM users WHERE role = 'manager' AND outlet_id IS NOT NULL").Error
 }
