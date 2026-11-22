@@ -151,7 +151,7 @@ func (r *Renderer) prepare(c *gin.Context, page string, data gin.H) (*template.T
 	data["CSRFToken"] = middleware.CSRFToken(c)
 	var pending int64
 	if r.db != nil {
-		if user, ok := data["User"].(*models.User); ok && user != nil && user.Role == models.RoleAdmin {
+		if user, ok := data["User"].(*models.User); ok && user != nil && (user.Role == models.RoleAdmin || user.Role == models.RoleSuperAdmin) {
 			r.db.Model(&models.ProductRequest{}).Where("status = ?", "pending").Count(&pending)
 		}
 	}

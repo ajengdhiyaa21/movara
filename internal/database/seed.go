@@ -58,10 +58,14 @@ func Seed(db *gorm.DB, adminPassword string) error {
 	}
 	admins := []models.User{
 		{Name: "Super Admin A", Username: "admin.a", Role: models.RoleSuperAdmin},
+		{Name: "Super Admin C", Username: "admin.c", Role: models.RoleSuperAdmin},
+		{Name: "Super Admin D", Username: "admin.d", Role: models.RoleSuperAdmin},
+		{Name: "Super Admin E", Username: "admin.e", Role: models.RoleSuperAdmin},
 		{Name: "Admin B", Username: "admin.b"},
 	}
 	for _, a := range admins {
 		a.PasswordHash = string(hash)
+		a.UserCode = a.Username
 		if a.Role == "" {
 			a.Role = models.RoleAdmin
 		}
@@ -88,7 +92,7 @@ func Seed(db *gorm.DB, adminPassword string) error {
 	}
 	// Migrasikan akun demo yang masih memakai password lama. Password yang
 	// sudah diubah Admin tidak disentuh lagi pada startup berikutnya.
-	for _, username := range []string{"admin.a", "admin.b", "manager", "pmkosmetik", "pmobat"} {
+	for _, username := range []string{"admin.a", "admin.b", "admin.c", "admin.d", "admin.e", "manager", "pmkosmetik", "pmobat"} {
 		var existing models.User
 		if err := db.Where("username = ?", username).First(&existing).Error; err != nil {
 			continue

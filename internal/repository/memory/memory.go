@@ -60,7 +60,7 @@ func (s *Store) seed(hash string) {
 	}
 
 	users := []models.User{
-		{ID: 1, Name: "Lina Marlina", Username: "admin.a", Role: models.RoleAdmin},
+		{ID: 1, Name: "Super Admin A", Username: "admin.a", Role: models.RoleSuperAdmin},
 		{ID: 2, Name: "Admin B", Username: "admin.b", Role: models.RoleAdmin},
 		{ID: 3, Name: "Budi Santoso", Username: "manager", Role: models.RoleManager},
 		{ID: 4, Name: "Puji Lestari", Username: "puji", Role: models.RolePM, OutletID: uptr(2)},

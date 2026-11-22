@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <th class="px-3 py-3">Outlet</th>
           <th class="px-3 py-3">PM</th>
           <th class="px-6 py-3">BA</th>
-          {{if eq $.User.Role "admin"}}<th class="px-6 py-3 print:hidden">Aksi</th>{{end}}
+          {{if or (eq $.User.Role "admin") (eq $.User.Role "super_admin")}}<th class="px-6 py-3 print:hidden">Aksi</th>{{end}}
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -667,7 +667,7 @@ document.addEventListener('DOMContentLoaded', function () {
               .User.Name}}</span></td>
           <td class="px-6 py-3.5 text-center text-slate-700">{{with .BA}}{{.}}{{else}}<span
               class="text-slate-300">&mdash;</span>{{end}}</td>
-          {{if eq $.User.Role "admin"}}<td
+          {{if or (eq $.User.Role "admin") (eq $.User.Role "super_admin")}}<td
             class="action-cell flex items-center justify-center gap-2 px-6 py-3.5 print:hidden"><a
               href="/rekap/mutasi/{{.ID}}/edit"
               class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-blue-200 text-blue-700 hover:bg-blue-50"
@@ -681,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
         </tr>
         {{else}}
         <tr>
-          <td colspan="{{if eq $.User.Role " admin"}}12{{else}}11{{end}}" class="px-6 py-14 text-center text-slate-400">
+          <td colspan="{{if or (eq $.User.Role "admin") (eq $.User.Role "super_admin")}}12{{else}}11{{end}}" class="px-6 py-14 text-center text-slate-400">
             Tidak ada mutasi yang cocok dengan filter ini. Coba perluas periode atau hapus kata kunci pencarian.
           </td>
         </tr>
