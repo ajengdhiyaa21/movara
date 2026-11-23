@@ -156,3 +156,17 @@ type AuditLog struct {
 	Detail    string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"index"`
 }
+
+// MaintenanceAnnouncement adalah pengumuman maintenance/update yang tampil
+// global untuk seluruh akun selama masih aktif dan belum melewati waktu selesai.
+type MaintenanceAnnouncement struct {
+	ID        uint       `gorm:"primaryKey"`
+	Title     string     `gorm:"size:150;not null"`
+	Message   string     `gorm:"type:text;not null"`
+	StartsAt  time.Time  `gorm:"index;not null"`
+	EndsAt    *time.Time `gorm:"index"`
+	IsActive  bool       `gorm:"not null;default:true;index"`
+	CreatedBy uint       `gorm:"not null;index"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}

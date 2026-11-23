@@ -244,10 +244,24 @@ func (h *RecapHandler) Index(c *gin.Context) {
 		"PageItems":     items,
 		"PrevURL":       prev,
 		"NextURL":       next,
-		"Bars":          newBars(res),
-		"Volume":        volume,
-		"ExportURL":     "/rekap/export?" + base.Encode(),
-		"PrintURL":      "/rekap/cetak?" + base.Encode(),
+		"FirstURL": func() string {
+			if res.Pages > 1 {
+				return "/rekap?" + func() string { v := base; v.Set("page", "1"); return v.Encode() }()
+			}
+			return ""
+		}(),
+		"LastURL": func() string {
+			if res.Pages > 1 {
+				v := base
+				v.Set("page", strconv.Itoa(res.Pages))
+				return "/rekap?" + v.Encode()
+			}
+			return ""
+		}(),
+		"Bars":      newBars(res),
+		"Volume":    volume,
+		"ExportURL": "/rekap/export?" + base.Encode(),
+		"PrintURL":  "/rekap/cetak?" + base.Encode(),
 	})
 }
 

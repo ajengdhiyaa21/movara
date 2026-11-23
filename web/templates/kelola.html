@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+{{if and .User (eq .User.Username "admin.c")}}
+{{end}}
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
         <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Administrasi</p>
@@ -47,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <p class="mt-1 text-sm text-slate-500">Kelola struktur outlet, akun pramuniaga, dan aktivitas sistem dalam satu
             tempat.</p>
     </div>
-    <div class="flex items-center gap-2">{{if isSuperAdmin .User}}<button type="button" data-account-modal-open
+    <div id="add-account-toolbar" class="flex items-center gap-2">{{if isSuperAdmin .User}}<button type="button" data-account-modal-open
             class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">+ Tambah Akun</button>{{end}}
         <!-- <span
             class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">●
@@ -60,6 +62,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <button type="button" data-kelola-tab="manager" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Akun Manajemen</button>
     <button type="button" data-kelola-tab="administrator" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Administrator</button>
     <button type="button" data-kelola-tab="activity" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Aktivitas Aplikasi</button>
+    {{if and .User (eq .User.Username "admin.c")}}<button type="button" data-kelola-tab="maintenance" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Pengumuman</button>{{end}}
 </nav>
 {{if isSuperAdmin .User}}<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Tambah akun</h2><p class="mt-1 text-sm text-slate-500">Pilih jenis akun yang akan dibuat.</p></div><button type="button" data-account-modal-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
@@ -224,6 +227,19 @@ document.addEventListener('DOMContentLoaded', function () {
         </table>
     </div>
 </section>
+{{if and .User (eq .User.Username "admin.c")}}
+<section id="maintenance-panel" class="mt-6 hidden rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
+  <p class="text-xs font-semibold uppercase tracking-wider text-orange-600">Super Admin</p><h2 class="mt-1 text-xl font-semibold">Pengumuman maintenance / update</h2><p class="mt-1 text-sm text-slate-500">Buat pemberitahuan jadwal maintenance yang akan dilihat seluruh pengguna.</p>
+  <form method="post" action="/kelola/maintenance" class="mt-5 grid gap-4 md:grid-cols-2">
+    <label class="text-sm font-medium text-slate-700">Judul pengumuman<input name="title" required maxlength="150" placeholder="Contoh: Maintenance sistem" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"></label>
+    <label class="text-sm font-medium text-slate-700">Mulai ditampilkan<input type="datetime-local" name="starts_at" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Pengumuman mulai terlihat pada waktu ini.</span></label>
+    <label class="text-sm font-medium text-slate-700 md:col-span-2">Pesan pengumuman<textarea name="message" required placeholder="Contoh: Website akan diperbarui sementara." class="mt-1.5 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"></textarea></label>
+    <label class="text-sm font-medium text-slate-700">Berakhir pada <span class="font-normal text-slate-400">(opsional)</span><input type="datetime-local" name="ends_at" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Kosongkan jika ingin menonaktifkan manual.</span></label>
+    <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 md:col-span-2"><button type="reset" class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</button><button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm" style="background:#ff5a00;color:#fff;display:inline-flex;align-items:center;justify-content:center;min-width:170px">Simpan pengumuman</button></div>
+  </form>
+  {{if .Announcements}}<div class="mt-6 overflow-x-auto"><table class="w-full text-sm"><thead class="border-b text-left text-xs uppercase text-slate-500"><tr><th class="py-3">Judul</th><th class="py-3">Mulai</th><th class="py-3">Status</th><th class="py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y">{{range .Announcements}}<tr><td class="py-3 font-medium">{{.Title}}</td><td class="py-3">{{.StartsAt.Format "02/01/2006 15:04"}}</td><td class="py-3">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td><td class="py-3 text-right"><form method="post" action="/kelola/maintenance/{{.ID}}/toggle"><button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></td></tr>{{end}}</tbody></table></div>{{end}}
+</section>
+{{end}}
 <section id="manager-table-panel" class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-5">
         <div>
@@ -259,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </section>
 <div id="manager-pagination" class="pagination-controls mt-3 flex items-center justify-between gap-2 text-sm"><div class="flex items-center gap-1"><a href="/kelola?manager_page={{sub .ManagerPage 1}}&manager_per_page={{.ManagerPerPage}}#manager" class="rounded-lg border px-3 py-1.5 {{if eq .ManagerPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range .ManagerPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if .Current}}<span class="rounded-lg bg-blue-600 px-3 py-1.5 font-semibold text-white">{{.Number}}</span>{{else}}<a href="{{.URL}}" class="rounded-lg border px-3 py-1.5">{{.Number}}</a>{{end}}{{end}}<a href="/kelola?manager_page={{add .ManagerPage 1}}&manager_per_page={{.ManagerPerPage}}#manager" class="rounded-lg border px-3 py-1.5 {{if ge .ManagerPage .ManagerPages}}pointer-events-none opacity-40{{end}}">›</a></div><span class="pagination-info">Halaman {{.ManagerPage}} dari {{.ManagerPages}}</span></div>
+{{template "pagination" (dict "ID" "manager" "From" (add (mul (sub .ManagerPage 1) .ManagerPerPage) 1) "To" (add (mul (sub .ManagerPage 1) .ManagerPerPage) (len .Managers)) "Total" .ManagerTotal "Page" .ManagerPage "Pages" .ManagerPages "Items" .ManagerPageItems "FirstURL" (printf "/kelola?manager_page=1&manager_per_page=%d#manager" .ManagerPerPage) "PrevURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" (sub .ManagerPage 1) .ManagerPerPage) "NextURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" (add .ManagerPage 1) .ManagerPerPage) "LastURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" .ManagerPages .ManagerPerPage) "JumpURL" "/kelola")}}
 <section id="administrator-panel" class="mt-6 hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 px-6 py-5"><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Administrator</p><h2 class="mt-1 text-lg font-semibold">Akun Administrator</h2><p class="mt-1 text-sm text-slate-500">Akun admin dan Super Admin. Hanya tersedia aksi logout.</p></div>
     <div class="overflow-x-auto"><table class="w-full min-w-[700px] text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Nama</th><th class="px-3 py-3">ID Pengguna</th><th class="px-3 py-3">Username</th><th class="px-3 py-3">Role</th><th class="px-3 py-3">Status</th><th class="px-6 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Managers}}{{if or (eq .Role "admin") (eq .Role "super_admin")}}<tr><td class="px-6 py-4 font-medium">{{.Name}}</td><td class="px-3 py-4 font-mono text-xs text-blue-700">{{.UserCode}}</td><td class="px-3 py-4 font-mono text-xs">{{.Username}}</td><td class="px-3 py-4">{{if eq .Role "super_admin"}}Super Admin{{else}}Administrator{{end}}</td><td class="px-3 py-4">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td><td class="px-6 py-4 text-right"><form method="post" action="/kelola/account/{{.ID}}/force-logout" onsubmit="return confirm('Keluarkan akun ini dari sistem?')"><button class="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">Logout</button></form></td></tr>{{end}}{{end}}</tbody></table></div>
@@ -326,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
         class="rounded-lg border px-3 py-1.5 {{if ge .UserPage .UserPages}}pointer-events-none opacity-40{{end}}">›</a>
 </div>
 <span class="pagination-info">Halaman {{.UserPage}} dari {{.UserPages}}</span></div>
+{{template "pagination" (dict "ID" "pm" "From" (add (mul (sub .UserPage 1) .UserPerPage) 1) "To" (add (mul (sub .UserPage 1) .UserPerPage) (len .Users)) "Total" .UserTotal "Page" .UserPage "Pages" .UserPages "Items" .UserPageItems "FirstURL" (printf "/kelola?user_page=1&user_per_page=%d#users" .UserPerPage) "PrevURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" (sub .UserPage 1) .UserPerPage) "NextURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" (add .UserPage 1) .UserPerPage) "LastURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" .UserPages .UserPerPage) "JumpURL" "/kelola")}}
 <form id="activity-filter-panel" method="get" action="/kelola#audit-log" class="mt-6 rounded-2xl border bg-white p-5">
     <div class="flex flex-wrap gap-2"><input type="search" name="audit_q" autocomplete="off" value="{{.AuditQuery}}"
             placeholder="Cari aktivitas atau detail" class="rounded-lg border px-3 py-2 text-sm"><select
@@ -366,6 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .AuditPages}}<a href="/kelola?page={{add .AuditPage 1}}#audit-log"
             class="rounded-lg border px-3 py-1.5 text-sm hover:bg-slate-50">Berikutnya</a>{{end}}</nav>{{end}}
 </section>
+{{template "pagination" (dict "ID" "audit" "From" (add (mul (sub .AuditPage 1) .AuditPerPage) 1) "To" (add (mul (sub .AuditPage 1) .AuditPerPage) (len .Logs)) "Total" (mul .AuditPages .AuditPerPage) "Page" .AuditPage "Pages" .AuditPages "Items" .AuditPageItems "FirstURL" (printf "/kelola?page=1&audit_per_page=%d#audit-log" .AuditPerPage) "PrevURL" (printf "/kelola?page=%d&audit_per_page=%d#audit-log" (sub .AuditPage 1) .AuditPerPage) "NextURL" (printf "/kelola?page=%d&audit_per_page=%d#audit-log" (add .AuditPage 1) .AuditPerPage) "LastURL" (printf "/kelola?page=%d&audit_per_page=%d#audit-log" .AuditPages .AuditPerPage) "JumpURL" "/kelola")}}
 <nav id="audit-pagination" class="pagination-controls mt-4 flex justify-between gap-2 text-sm" aria-label="Pagination audit log">{{if gt .AuditPage 1}}<a
         href="/kelola?page={{sub .AuditPage 1}}&audit_date={{.AuditDate}}#audit-log"
         class="rounded-lg border px-3 py-1.5 hover:bg-slate-50">‹</a>{{else}}<span
@@ -393,16 +412,21 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   const tabs = document.querySelectorAll('[data-kelola-tab]');
   const panels = {
-    pm: [document.getElementById('pm-panel'), document.getElementById('pm-dashboard')],
-    manager: [document.getElementById('manager-table-panel'), document.getElementById('manager-dashboard'), document.getElementById('manager-pagination')],
+    pm: [document.getElementById('pm-panel'), document.getElementById('pm-dashboard'), document.getElementById('pagination-pm')],
+    manager: [document.getElementById('manager-table-panel'), document.getElementById('manager-dashboard'), document.getElementById('manager-pagination'), document.getElementById('pagination-manager')],
     administrator: [document.getElementById('administrator-panel')],
-    activity: [document.getElementById('activity-filter-panel'), document.getElementById('activity-panel'), document.getElementById('audit-pagination')]
+    activity: [document.getElementById('activity-filter-panel'), document.getElementById('activity-panel'), document.getElementById('audit-pagination'), document.getElementById('pagination-audit')],
+    maintenance: [document.getElementById('maintenance-panel')]
   };
   let activeKelolaTab = 'pm';
   function activate(name) {
     activeKelolaTab = name;
     Object.keys(panels).forEach(function (key) {
       panels[key].filter(Boolean).forEach(function (panel) { panel.classList.toggle('hidden', key !== name); });
+    });
+    ['pm', 'manager', 'audit'].forEach(function (key) {
+      const pagination = document.getElementById('pagination-' + key);
+      if (pagination) pagination.style.display = ((key === 'audit' ? name === 'activity' : name === key) ? 'flex' : 'none');
     });
     tabs.forEach(function (tab) {
       const active = tab.dataset.kelolaTab === name;
@@ -411,6 +435,7 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.toggle('text-slate-600', !active);
     });
     document.getElementById('user-pagination')?.classList.toggle('hidden', name !== 'pm');
+    document.getElementById('add-account-toolbar')?.classList.toggle('hidden', name === 'maintenance');
     document.querySelectorAll('#manager-table-panel tbody tr[data-account-role]').forEach(function (row) {
       row.classList.toggle('hidden', row.dataset.accountRole !== 'manager');
     });
@@ -418,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function () {
   tabs.forEach(function (tab) { tab.addEventListener('click', function () { activate(tab.dataset.kelolaTab); }); });
   // Pertahankan tab Aktivitas saat pagination/filter aktivitas membuka ulang halaman.
   const initialTab = new URLSearchParams(window.location.search).get('tab');
-  activate(initialTab === 'manager' || window.location.hash === '#manager' || new URLSearchParams(window.location.search).has('manager_page') ? 'manager' : (initialTab === 'administrator' || window.location.hash === '#administrator' ? 'administrator' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm')));
+  activate(initialTab === 'maintenance' ? 'maintenance' : (initialTab === 'manager' || window.location.hash === '#manager' || new URLSearchParams(window.location.search).has('manager_page') ? 'manager' : (initialTab === 'administrator' || window.location.hash === '#administrator' ? 'administrator' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm'))));
 
   const modal = document.querySelector('[data-account-modal]');
   document.querySelector('[data-account-modal-open]')?.addEventListener('click', function () {

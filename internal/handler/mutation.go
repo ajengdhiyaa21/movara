@@ -56,6 +56,9 @@ type historyView struct {
 	PerPage       int
 	PrevURL       string
 	NextURL       string
+	FirstURL      string
+	LastURL       string
+	PageItems     []productPageItem
 	Query         string
 	Date          string
 	Direction     string
@@ -200,6 +203,9 @@ func (h *MutationHandler) HistoryPage(c *gin.Context) {
 	if page < view.Pages {
 		view.NextURL = historyPageURL(date, direction, q, page+1, perPage)
 	}
+	view.FirstURL = historyPageURL(date, direction, q, 1, perPage)
+	view.LastURL = historyPageURL(date, direction, q, view.Pages, perPage)
+	view.PageItems = buildProductPageItems(page, view.Pages, func(p int) string { return historyPageURL(date, direction, q, p, perPage) })
 	if c.GetHeader("HX-Request") == "true" {
 		h.r.Partial(c, http.StatusOK, "mutasi.html", "history_inner", gin.H{"History": view, "Target": "history-full"})
 		return
@@ -465,6 +471,9 @@ func (h *MutationHandler) historyPage(c *gin.Context, u *models.User, q, date, d
 	if page < pages {
 		view.NextURL = historyURL(direction, q, date, page+1, perPage)
 	}
+	view.FirstURL = historyURL(direction, q, date, 1, perPage)
+	view.LastURL = historyURL(direction, q, date, pages, perPage)
+	view.PageItems = buildProductPageItems(page, pages, func(p int) string { return historyURL(direction, q, date, p, perPage) })
 	return view, true
 }
 

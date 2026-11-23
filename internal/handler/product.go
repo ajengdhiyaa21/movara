@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -91,11 +90,12 @@ func (h *ProductHandler) Index(c *gin.Context) {
 	pageItems := buildProductPageItems(page, pages, pageURL)
 	successRows := splitImportDetails(c.Query("import_success_rows"))
 	failedRows := splitImportDetails(c.Query("import_errors"))
-	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ImportMessage": c.Query("import") == "1", "ImportSuccess": c.Query("import_success"), "ImportSkipped": c.Query("import_skipped"), "ImportUpdated": c.Query("import_updated"), "ImportSuccessRows": successRows, "ImportErrors": failedRows, "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageItems": pageItems, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1)})
+	h.r.HTML(c, http.StatusOK, "master_clean.html", gin.H{"Title": "Master Data", "Active": "master", "Products": rows, "Total": total, "Query": q, "Outlets": outlets, "Categories": categories, "OutletID": c.Query("outlet_id"), "CategoryID": categoryID, "Message": c.Query("message"), "ImportMessage": c.Query("import") == "1", "ImportSuccess": c.Query("import_success"), "ImportSkipped": c.Query("import_skipped"), "ImportUpdated": c.Query("import_updated"), "ImportSuccessRows": successRows, "ImportErrors": failedRows, "ProductPage": page, "ProductPages": pages, "ProductPerPage": perPage, "ProductPageItems": pageItems, "ProductPrevURL": pageURL(page - 1), "ProductNextURL": pageURL(page + 1), "ProductFirstURL": pageURL(1), "ProductLastURL": pageURL(pages), "ProductFrom": (page-1)*perPage + 1, "ProductTo": (page-1)*perPage + len(rows)})
 }
 
 type productPageItem struct {
 	Number  int
+	Label   string
 	URL     string
 	Current bool
 	Gap     bool
@@ -108,26 +108,16 @@ func buildProductPageItems(current, total int, pageURL func(int) string) []produ
 		}
 		return nil
 	}
-	seen := map[int]bool{}
-	pages := []int{1, total}
-	for p := current - 2; p <= current+2; p++ {
-		if p > 0 && p <= total {
-			pages = append(pages, p)
-		}
+	start := current - 1
+	if current <= 2 {
+		start = 1
 	}
-	sort.Ints(pages)
-	items := make([]productPageItem, 0, len(pages)+2)
-	last := 0
-	for _, p := range pages {
-		if seen[p] {
-			continue
-		}
-		seen[p] = true
-		if last > 0 && p-last > 1 {
-			items = append(items, productPageItem{Gap: true})
-		}
-		items = append(items, productPageItem{Number: p, URL: pageURL(p), Current: p == current})
-		last = p
+	if current >= total-1 {
+		start = total - 2
+	}
+	items := make([]productPageItem, 0, 3)
+	for p := start; p <= start+2 && p <= total; p++ {
+		items = append(items, productPageItem{Number: p, Label: strconv.Itoa(p), URL: pageURL(p), Current: p == current})
 	}
 	return items
 }

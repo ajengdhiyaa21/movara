@@ -48,6 +48,7 @@ func Migrate(db *gorm.DB) error {
 		&models.MutationEditLog{},
 		&models.OutletTransferRequest{},
 		&models.AuditLog{},
+		&models.MaintenanceAnnouncement{},
 	); err != nil {
 		return err
 	}

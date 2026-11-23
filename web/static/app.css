@@ -303,6 +303,24 @@ table.history-table thead th:nth-child(7), table.history-table tbody td:nth-chil
   --movara-primary-dark: #d94d00;
   --movara-gradient: linear-gradient(135deg, #ff5b00 0%, #ff6500 52%, #f56a00 100%);
 }
+
+/* Reusable Modern SaaS / Soft Pill pagination. */
+.saas-pagination { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; border-top:1px solid #e2e8f0; padding:1rem 1.25rem; color:#64748b; font-size:.875rem; }
+.legacy-pagination { display:none !important; }
+#manager-pagination, #user-pagination, nav#audit-pagination { display:none !important; }
+#pagination-pm, #pagination-manager, #pagination-audit { display:none; }
+.saas-pagination-summary, .saas-pagination-controls, .saas-pagination-nav, .saas-pagination-size, .saas-pagination-jump { display:flex; align-items:center; gap:.5rem; }
+.saas-pagination-summary { flex-wrap:wrap; gap:.75rem; }
+.saas-pagination-size select, .saas-pagination-jump input, .saas-pagination-jump button { border:1px solid #cbd5e1; border-radius:9999px; background:#fff; padding:.45rem .7rem; font-size:.75rem; color:#334155; }
+.saas-pagination-size select:focus, .saas-pagination-jump input:focus { border-color:#ff6500; outline:2px solid rgba(255,101,0,.16); }
+.saas-pagination-nav { gap:.35rem; }
+.saas-pagination-nav a, .saas-pagination-nav span { display:grid; min-width:2.25rem; height:2.25rem; place-items:center; border:1px solid #e2e8f0; border-radius:9999px; background:#fff; color:#475569; text-decoration:none; transition:.15s ease; }
+.saas-pagination-nav a:hover { border-color:#ffad66; background:#fff3e8; color:#d94d00; }
+.saas-pagination-nav .is-current { border-color:#ff6500; background:#ff6500; color:#fff; box-shadow:0 4px 10px rgba(255,101,0,.2); font-weight:700; }
+.saas-pagination-nav span[aria-disabled="true"] { cursor:not-allowed; opacity:.4; }
+.saas-pagination-jump button { border-color:#ff6500; background:#ff6500; color:#fff; font-weight:600; cursor:pointer; }
+.saas-pagination-jump button:hover { background:#d94d00; }
+@media (max-width:640px) { .saas-pagination { align-items:stretch; flex-direction:column; } .saas-pagination-controls { flex-wrap:wrap; justify-content:space-between; } .saas-pagination-nav a, .saas-pagination-nav span { min-width:2rem; height:2rem; } }
 body { background: #eef5fc !important; }
 .topbar-shell {
   position: sticky !important;
@@ -453,6 +471,7 @@ button.bg-blue-600:hover, a.bg-blue-600:hover { background: var(--movara-primary
 }
 
 .product-request-table { table-layout: fixed; min-width: 1330px !important; }
+.pm-dashboard-card { min-height: 126px; display: flex; flex-direction: column; justify-content: center; }
 .pm-today-card { border: 1px solid #ffb36b !important; background: linear-gradient(135deg, #fff4e8 0%, #ffe4c7 100%) !important; color: #c94f00 !important; }
 .pm-today-card p:first-child, .pm-today-card p:last-child { color: #8a5a3b !important; }
 .pm-summary-card { border: 1px solid #ffb36b !important; background: linear-gradient(135deg, #fff4e8 0%, #ffe4c7 100%) !important; color: #c94f00 !important; }

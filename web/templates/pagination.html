@@ -1,0 +1,17 @@
+{{define "pagination"}}
+<div id="pagination-{{.ID}}" class="saas-pagination" data-pagination>
+  <div class="saas-pagination-summary">
+    <span>Menampilkan <b>{{.From}}–{{.To}}</b> dari <b>{{.Total}}</b> data</span>
+    {{if .PerPageURL}}<form method="get" action="{{.PerPageURL}}" class="saas-pagination-size"><label for="{{.ID}}-per-page">Baris:</label><select id="{{.ID}}-per-page" name="per_page" onchange="this.form.submit()">{{range .PerPageOptions}}<option value="{{.Value}}" {{if eq .Value $.PerPage}}selected{{end}}>{{.Value}}</option>{{end}}</select>{{range .HiddenFields}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}</form>{{end}}
+  </div>
+  <div class="saas-pagination-controls">
+    <nav class="saas-pagination-nav" aria-label="Pagination">
+      {{if and .FirstURL (gt .Page 1)}}<a href="{{.FirstURL}}" aria-label="Halaman pertama">&laquo;</a>{{else}}<span aria-disabled="true">&laquo;</span>{{end}}
+      {{if .PrevURL}}<a href="{{.PrevURL}}" aria-label="Halaman sebelumnya">&lsaquo;</a>{{else}}<span aria-disabled="true">&lsaquo;</span>{{end}}
+      {{range .Items}}{{if .Current}}<span class="is-current tabular-nums" aria-current="page">{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</span>{{else}}<a class="tabular-nums" href="{{.URL}}">{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</a>{{end}}{{end}}
+      {{if .NextURL}}<a href="{{.NextURL}}" aria-label="Halaman berikutnya">&rsaquo;</a>{{else}}<span aria-disabled="true">&rsaquo;</span>{{end}}
+      {{if and .LastURL (lt .Page .Pages)}}<a href="{{.LastURL}}" aria-label="Halaman terakhir">&raquo;</a>{{else}}<span aria-disabled="true">&raquo;</span>{{end}}
+    </nav>
+  </div>
+</div>
+{{end}}

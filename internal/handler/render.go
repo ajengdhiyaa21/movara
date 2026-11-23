@@ -20,7 +20,7 @@ import (
 )
 
 // File template yang dipakai bersama oleh semua halaman.
-var sharedTemplates = map[string]bool{"layout.html": true, "icons.html": true}
+var sharedTemplates = map[string]bool{"layout.html": true, "icons.html": true, "pagination.html": true}
 
 var funcs = template.FuncMap{
 	"isSuperAdmin": middleware.IsSuperAdmin,
@@ -115,7 +115,7 @@ func NewRenderer(adminWhatsApp string, db *gorm.DB) (*Renderer, error) {
 			continue
 		}
 		t, err := template.New(name).Funcs(funcs).
-			ParseFS(web.Templates, "templates/layout.html", "templates/icons.html", "templates/"+name)
+			ParseFS(web.Templates, "templates/layout.html", "templates/icons.html", "templates/pagination.html", "templates/"+name)
 		if err != nil {
 			return nil, fmt.Errorf("parse %s: %w", name, err)
 		}
@@ -156,6 +156,13 @@ func (r *Renderer) prepare(c *gin.Context, page string, data gin.H) (*template.T
 		}
 	}
 	data["PendingProductRequests"] = pending
+	var announcements []models.MaintenanceAnnouncement
+	if r.db != nil {
+		now := clock.Now()
+		r.db.Where("is_active = ? AND starts_at <= ? AND (ends_at IS NULL OR ends_at >= ?)", true, now, now).
+			Order("starts_at asc").Find(&announcements)
+	}
+	data["MaintenanceAnnouncements"] = announcements
 	return t, data, true
 }
 

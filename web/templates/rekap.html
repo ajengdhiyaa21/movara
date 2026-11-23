@@ -694,8 +694,9 @@ document.addEventListener('DOMContentLoaded', function () {
     <span class="text-slate-500">Total kuantitas sesuai filter</span>
     <b class="font-mono text-blue-600">{{num .TotalQty}} pcs</b>
   </div>
+  {{template "pagination" (dict "ID" "recap" "From" .ShowFrom "To" .ShowTo "Total" .Total "Page" .Page "Pages" .Pages "Items" .PageItems "FirstURL" .FirstURL "PrevURL" .PrevURL "NextURL" .NextURL "LastURL" .LastURL "JumpURL" "/rekap")}}
   <div
-    class="pagination-controls flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 text-sm text-slate-500">
+    class="pagination-controls legacy-pagination flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-6 py-4 text-sm text-slate-500">
     <span class="pagination-info">Halaman {{.Page}} dari {{.Pages}}</span>
     <nav class="flex flex-wrap items-center gap-1 print:hidden" aria-label="Halaman">
       {{if .PrevURL}}<a href="{{.PrevURL}}" aria-label="Halaman sebelumnya"

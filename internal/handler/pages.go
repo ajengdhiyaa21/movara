@@ -45,6 +45,53 @@ func (h *PageHandler) ForceLogout(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Akun "+target.Name+" berhasil dikeluarkan dari sistem"))
 }
 
+func (h *PageHandler) CreateMaintenanceAnnouncement(c *gin.Context) {
+	operator := middleware.CurrentUser(c)
+	if operator == nil || operator.Username != "admin.c" {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Fitur pengumuman hanya tersedia untuk admin.c"))
+		return
+	}
+	title := strings.TrimSpace(c.PostForm("title"))
+	message := strings.TrimSpace(c.PostForm("message"))
+	start, startErr := time.ParseInLocation("2006-01-02T15:04", c.PostForm("starts_at"), clock.WIB)
+	if title == "" || message == "" || startErr != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Judul, pesan, dan waktu mulai wajib diisi"))
+		return
+	}
+	var end *time.Time
+	if raw := strings.TrimSpace(c.PostForm("ends_at")); raw != "" {
+		parsed, err := time.ParseInLocation("2006-01-02T15:04", raw, clock.WIB)
+		if err != nil || !parsed.After(start) {
+			c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Waktu selesai harus lebih besar dari waktu mulai"))
+			return
+		}
+		end = &parsed
+	}
+	announcement := models.MaintenanceAnnouncement{Title: title, Message: message, StartsAt: start, EndsAt: end, IsActive: true, CreatedBy: operator.ID}
+	if err := h.db.Create(&announcement).Error; err != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Pengumuman gagal disimpan"))
+		return
+	}
+	h.audit(c, "maintenance_create", title)
+	c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Pengumuman maintenance berhasil dibuat"))
+}
+
+func (h *PageHandler) ToggleMaintenanceAnnouncement(c *gin.Context) {
+	operator := middleware.CurrentUser(c)
+	if operator == nil || operator.Username != "admin.c" {
+		c.Redirect(http.StatusFound, "/kelola")
+		return
+	}
+	var announcement models.MaintenanceAnnouncement
+	if h.db.First(&announcement, c.Param("id")).Error != nil {
+		c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Pengumuman tidak ditemukan"))
+		return
+	}
+	announcement.IsActive = !announcement.IsActive
+	h.db.Model(&announcement).Update("is_active", announcement.IsActive)
+	c.Redirect(http.StatusFound, "/kelola?message="+url.QueryEscape("Status pengumuman diperbarui"))
+}
+
 // TODO: tabel produk + search + pagination + import Excel/CSV.
 func (h *PageHandler) Master(c *gin.Context) {
 	h.r.HTML(c, http.StatusOK, "master.html", gin.H{"Title": "Master Data", "Active": "master"})
@@ -131,6 +178,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 	var transfers []models.OutletTransferRequest
 	var logs []models.AuditLog
 	var categories []models.ProductCategory
+	var announcements []models.MaintenanceAnnouncement
 	h.db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC").Find(&outlets)
 	h.db.Where("is_active = ?", true).Order("name").Find(&categories)
 	userPage, _ := strconv.Atoi(c.Query("user_page"))
@@ -182,6 +230,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		return db.Order("CASE WHEN type = 'MK' THEN 0 ELSE 1 END ASC").Order("id ASC")
 	}).Order("id DESC").Offset((managerPage - 1) * managerPerPage).Limit(managerPerPage).Find(&managers)
 	h.db.Where("role = ?", models.RoleSuperAdmin).Order("id ASC").Find(&superAdmins)
+	h.db.Order("starts_at desc").Limit(20).Find(&announcements)
 	h.db.Where("status = ?", models.TransferPending).Order("requested_at desc").Find(&transfers)
 	page, _ := strconv.Atoi(c.Query("page"))
 	if page < 1 {
@@ -229,7 +278,7 @@ func (h *PageHandler) Kelola(c *gin.Context) {
 		v := url.Values{"manager_page": {strconv.Itoa(p)}, "manager_per_page": {strconv.Itoa(managerPerPage)}, "manager_q": {managerQuery}}
 		return "/kelola?" + v.Encode() + "#manager"
 	}
-	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "ManagerPage": managerPage, "ManagerPages": managerPages, "ManagerPageItems": buildProductPageItems(managerPage, managerPages, managerURL), "ManagerPerPage": managerPerPage, "ManagerTotal": managerTotal, "Transfers": transfers, "Logs": logs, "UserPage": userPage, "UserPages": userPages, "UserPageItems": buildProductPageItems(userPage, userPages, userURL), "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPageItems": buildProductPageItems(page, auditPages, auditURL), "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})
+	h.r.HTML(c, http.StatusOK, "kelola.html", gin.H{"Title": "Kelola Outlet & PM", "Active": "kelola", "Outlets": outlets, "Categories": categories, "Users": users, "Managers": managers, "ManagerPage": managerPage, "ManagerPages": managerPages, "ManagerPageItems": buildProductPageItems(managerPage, managerPages, managerURL), "ManagerPerPage": managerPerPage, "ManagerTotal": managerTotal, "Transfers": transfers, "Logs": logs, "Announcements": announcements, "UserPage": userPage, "UserPages": userPages, "UserPageItems": buildProductPageItems(userPage, userPages, userURL), "UserPerPage": userPerPage, "UserTotal": userTotal, "PMQuery": pmQuery, "PMOutlet": pmOutlet, "AuditPage": page, "AuditPages": auditPages, "AuditPageItems": buildProductPageItems(page, auditPages, auditURL), "AuditPerPage": auditPerPage, "AuditPeriod": auditPeriod, "AuditDate": auditDate, "AuditQuery": c.Query("audit_q"), "AuditRole": c.Query("audit_role"), "AuditOutlet": c.Query("audit_outlet"), "RevealAccountID": revealAccountID, "Message": c.Query("message")})
 }
 
 func (h *PageHandler) KelolaOutlet(c *gin.Context) {

@@ -100,7 +100,8 @@
         </table>
     </div>
 </section>
-<div class="pagination-controls mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+{{template "pagination" (dict "ID" "products" "From" .ProductFrom "To" .ProductTo "Total" .Total "Page" .ProductPage "Pages" .ProductPages "Items" .ProductPageItems "FirstURL" .ProductFirstURL "PrevURL" .ProductPrevURL "NextURL" .ProductNextURL "LastURL" .ProductLastURL "JumpURL" "/master-data")}}
+<div class="pagination-controls legacy-pagination mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
     <div class="flex items-center gap-1"><a href="{{.ProductPrevURL}}"
             class="rounded-lg border px-3 py-1.5 {{if eq .ProductPage 1}}pointer-events-none opacity-40{{end}}">‹</a>{{range
         .ProductPageItems}}{{if .Gap}}<span class="px-2 text-slate-400">…</span>{{else if .Current}}<span
