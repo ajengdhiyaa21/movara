@@ -378,7 +378,7 @@ func (h *MutationHandler) History(c *gin.Context) {
 	// The input page has its own panel id. Preserve it across pagination
 	// requests so HTMX does not re-render the response with the wrong target.
 	target := strings.TrimSpace(c.Query("target"))
-	if target != "history-input" && target != "history-full" {
+	if target != "history-input" && target != "history-full" && target != "history-counter" && target != "history-market" {
 		target = "history-counter"
 		if hist.Direction == "market_to_counter" {
 			target = "history-market"
@@ -392,7 +392,11 @@ func (h *MutationHandler) History(c *gin.Context) {
 		if hist.Date != "" {
 			v.Set("date", hist.Date)
 		}
-		c.Redirect(http.StatusFound, "/mutasi/input?"+v.Encode())
+		destination := "/mutasi"
+		if target == "history-input" {
+			destination = "/mutasi/input"
+		}
+		c.Redirect(http.StatusFound, destination+"?"+v.Encode())
 		return
 	}
 	h.r.Partial(c, http.StatusOK, "mutasi.html", "history_inner", gin.H{"History": hist, "Target": target})
@@ -599,20 +603,30 @@ func (h *MutationHandler) historyPage(c *gin.Context, u *models.User, q, date, d
 	if end > len(rows) {
 		end = len(rows)
 	}
+	target := strings.TrimSpace(c.Query("target"))
+	if target != "history-input" && target != "history-full" && target != "history-counter" && target != "history-market" {
+		if c.Request != nil && c.Request.URL.Path == "/mutasi/input" {
+			target = "history-input"
+		} else if direction == "market_to_counter" {
+			target = "history-market"
+		} else {
+			target = "history-counter"
+		}
+	}
 	view := historyView{Rows: rows[start:end], TotalQty: totalQty, Total: len(rows), Page: page, Pages: pages, PerPage: perPage, Query: q, Date: res.Date, Direction: direction, CurrentUserID: u.ID}
 	if page > 1 {
-		view.PrevURL = historyURL(direction, q, date, page-1, perPage)
+		view.PrevURL = historyURL(target, direction, q, date, page-1, perPage)
 	}
 	if page < pages {
-		view.NextURL = historyURL(direction, q, date, page+1, perPage)
+		view.NextURL = historyURL(target, direction, q, date, page+1, perPage)
 	}
-	view.FirstURL = historyURL(direction, q, date, 1, perPage)
-	view.LastURL = historyURL(direction, q, date, pages, perPage)
-	view.PageItems = buildProductPageItems(page, pages, func(p int) string { return historyURL(direction, q, date, p, perPage) })
+	view.FirstURL = historyURL(target, direction, q, date, 1, perPage)
+	view.LastURL = historyURL(target, direction, q, date, pages, perPage)
+	view.PageItems = buildProductPageItems(page, pages, func(p int) string { return historyURL(target, direction, q, date, p, perPage) })
 	return view, true
 }
 
-func historyURL(direction, q, date string, page, perPage int) string {
+func historyURL(target, direction, q, date string, page, perPage int) string {
 	v := url.Values{}
 	v.Set("direction", direction)
 	v.Set("q", q)
@@ -621,7 +635,7 @@ func historyURL(direction, q, date string, page, perPage int) string {
 	}
 	v.Set("page", strconv.Itoa(page))
 	v.Set("per_page", strconv.Itoa(perPage))
-	v.Set("target", "history-input")
+	v.Set("target", target)
 	return "/mutasi/riwayat?" + v.Encode()
 }
 
