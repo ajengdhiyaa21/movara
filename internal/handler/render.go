@@ -65,6 +65,13 @@ var funcs = template.FuncMap{
 		}
 		return ""
 	},
+	"firstThreeWords": func(name string) string {
+		parts := strings.Fields(name)
+		if len(parts) > 3 {
+			parts = parts[:3]
+		}
+		return strings.Join(parts, " ")
+	},
 	"roleLabel": func(r models.Role) string {
 		switch r {
 		case models.RolePM:

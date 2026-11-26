@@ -68,9 +68,18 @@
   </div>
   <div data-history-tab-panel="counter">{{template "history_panel" (dict "Title" "Riwayat Konter ke Market" "Direction" "counter_to_market" "History" .CounterHistory "Target" "history-counter" "Compact" true "DateFilter" true)}}</div>
   <div data-history-tab-panel="market" class="hidden">{{template "history_panel" (dict "Title" "Riwayat Market ke Konter" "Direction" "market_to_counter" "History" .MarketHistory "Target" "history-market" "Compact" true "DateFilter" true)}}</div>
-  <div data-history-tab-panel="product-requests" class="hidden">
+  <div id="history-product-requests" data-history-tab-panel="product-requests" class="hidden">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
       <div><h2 class="font-semibold">Pengajuan Produk Baru</h2><p class="mt-0.5 text-sm text-slate-500">Status produk baru yang diajukan dari outlet dan kategori Anda.</p></div>
+      <form method="get" action="{{if .InputOnly}}/mutasi/input{{else}}/mutasi{{end}}" data-product-filter-form class="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="direction" value="{{.Form.Direction}}">
+        <input type="hidden" name="tab" value="product-requests">
+        <input type="date" name="product_date" value="{{.ProductRequestDate}}" aria-label="Tanggal pengajuan" onchange="this.form.submit()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+        <select name="product_per_page" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" onchange="this.form.submit()">
+          <option value="10" {{if eq .ProductRequestPerPage 10}}selected{{end}}>10 data</option><option value="30" {{if eq .ProductRequestPerPage 30}}selected{{end}}>30 data</option><option value="50" {{if eq .ProductRequestPerPage 50}}selected{{end}}>50 data</option>
+        </select>
+        <input type="search" name="product_q" value="{{.ProductRequestQuery}}" placeholder="Cari barcode/nama..." data-product-search class="w-56 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+      </form>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -80,6 +89,7 @@
         </tbody>
       </table>
     </div>
+    {{template "pagination" (dict "ID" "product-requests" "From" .ProductRequestFrom "To" .ProductRequestTo "Total" .ProductRequestTotal "Page" .ProductRequestPage "Pages" .ProductRequestPages "PerPage" .ProductRequestPerPage "Items" .ProductRequestPageItems "FirstURL" .ProductRequestFirstURL "PrevURL" .ProductRequestPrevURL "NextURL" .ProductRequestNextURL "LastURL" .ProductRequestLastURL)}}
   </div>
 </section>
 {{end}}
@@ -230,17 +240,18 @@
 {{define "history_inner"}}
   <div class="max-h-[calc(100vh-17rem)] overflow-x-auto overflow-y-auto">
   <table class="history-clean-table {{if eq .Target "history-input"}}history-input-clean{{end}} w-full text-sm">
-    <thead><tr><th>No</th><th>Barcode</th><th>SKU/PLU</th><th>Nama Produk</th><th>Qty</th><th>Jam</th><th>Nama PM</th>{{if ne .Target "history-input"}}<th>Nama BA</th>{{end}}<th>Status</th>{{if .Actions}}<th>Aksi</th>{{end}}</tr></thead>
+    <thead><tr><th>No</th><th>Barcode</th>{{if eq .Target "history-input"}}<th>Nama Produk<br><span class="history-subhead">SKU/PLU</span></th>{{else}}<th>SKU/PLU</th><th>Nama Produk</th>{{end}}<th>Qty</th><th>Jam</th><th>Nama PM</th>{{if eq .Target "history-input"}}<th>Nama BA</th>{{else if ne .Target "history-input"}}<th>Nama BA</th>{{end}}<th>Status</th>{{if .Actions}}<th>Aksi</th>{{end}}</tr></thead>
     <tbody>
       {{range $i, $row := .History.Rows}}<tr>
         <td class="text-center">{{add (add $i 1) (mul (sub $.History.Page 1) $.History.PerPage)}}</td>
-        <td class="barcode-cell">{{$row.Barcode}}</td><td class="code-cell">{{$row.Code}}</td><td class="product-cell">{{$row.ProductName}}</td><td class="qty-cell">{{$row.Qty}}</td><td class="time-cell">{{jam $row.CreatedAt}}</td><td class="pm-cell">{{if $row.User}}{{$row.User.Name}}{{else}}-{{end}}</td>{{if ne $.Target "history-input"}}<td class="ba-cell">{{with $row.BA}}{{.}}{{else}}-{{end}}</td>{{end}}
-        <td>{{if eq $row.Status "pending_code"}}<span class="history-status status-new">Data Baru</span>{{else}}<span class="history-status status-saved">Tersimpan</span>{{end}}</td>
-        {{if $.Actions}}<td class="action-cell"><div class="flex justify-center gap-1">{{if eq $.History.CurrentUserID $row.UserID}}<button type="button" data-mutation-edit data-id="{{$row.ID}}" data-qty="{{$row.Qty}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Edit jumlah">{{template "i-edit"}}</button>{{end}}<button type="button" data-mutation-history data-id="{{$row.ID}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Riwayat edit">{{template "i-history"}}</button></div></td>{{end}}
+        <td class="barcode-cell">{{$row.Barcode}}</td>{{if eq $.Target "history-input"}}<td class="product-cell"><span class="history-product-name">{{$row.ProductName}}</span><span class="history-product-code">{{$row.Code}}</span></td>{{else}}<td class="code-cell">{{$row.Code}}</td><td class="product-cell">{{$row.ProductName}}</td>{{end}}<td class="qty-cell">{{$row.Qty}}</td><td class="time-cell">{{jam $row.CreatedAt}}</td><td class="pm-cell">{{if $row.User}}{{$row.User.Name}}{{else}}-{{end}}</td><td class="ba-cell">{{with $row.BA}}{{.}}{{else}}-{{end}}</td>
+        <td class="status-cell">{{if or (eq $row.Status "pending") (eq $row.Status "pending_code")}}<span class="history-status status-new">Menunggu diproses</span>{{else}}<span class="history-status status-saved">Tersimpan</span>{{end}}</td>
+        {{if $.Actions}}<td class="action-cell"><div class="history-actions">{{if eq $.History.CurrentUserID $row.UserID}}<button type="button" data-mutation-edit data-id="{{$row.ID}}" data-qty="{{$row.Qty}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Edit jumlah">{{template "i-edit"}}</button>{{end}}<button type="button" data-mutation-history data-id="{{$row.ID}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600" title="Riwayat edit">{{template "i-history"}}</button></div></td>{{end}}
       </tr>{{else}}<tr><td colspan="{{if eq .Target "history-input"}}{{if .Actions}}9{{else}}8{{end}}{{else}}{{if .Actions}}10{{else}}9{{end}}{{end}}" class="empty-cell">{{if .History.Query}}Tidak ada hasil untuk &ldquo;{{.History.Query}}&rdquo;.{{else}}Belum ada mutasi pada tanggal ini di outlet ini.{{end}}</td></tr>{{end}}
     </tbody>
   </table>
-  <table class="history-table w-full text-sm">
+  {{/* Legacy fallback table retained for compatibility but never rendered visually. */}}
+  <table class="history-table w-full text-sm" style="display:none!important" aria-hidden="true">
     <thead>
       <tr
         class="border-y border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -271,7 +282,7 @@
         <td class="px-5 py-3.5">{{with .BA}}<span
             class="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{{.}}</span>{{else}}<span
             class="text-slate-300">&mdash;</span>{{end}}</td>
-        <td class="px-3 py-3.5">{{if eq .Status "pending_code"}}<span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Data Baru</span>{{else}}<span class="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">Tersimpan</span>{{end}}</td>
+        <td class="px-3 py-3.5">{{if or (eq .Status "pending") (eq .Status "pending_code")}}<span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Menunggu diproses</span>{{else}}<span class="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">Tersimpan</span>{{end}}</td>
         {{if $.Actions}}<td class="px-2 py-3.5"><div class="flex justify-center gap-1">{{if eq $.History.CurrentUserID $row.UserID}}<button type="button" data-mutation-edit data-id="{{$row.ID}}" data-qty="{{$row.Qty}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700" title="Edit jumlah">{{template "i-edit"}}</button>{{end}}<button type="button" data-mutation-history data-id="{{$row.ID}}" class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700" title="Riwayat edit">{{template "i-history"}}</button></div></td>{{end}}
       </tr>
       {{else}}
@@ -285,7 +296,7 @@
     </tbody>
   </table>
 </div>
-{{template "pagination" (dict "ID" "mutation" "From" (add (mul (sub .History.Page 1) .History.PerPage) 1) "To" (add (mul (sub .History.Page 1) .History.PerPage) (len .History.Rows)) "Total" .History.Total "Page" .History.Page "Pages" .History.Pages "Items" .History.PageItems "FirstURL" .History.FirstURL "PrevURL" .History.PrevURL "NextURL" .History.NextURL "LastURL" .History.LastURL "JumpURL" "/mutasi/riwayat")}}
+{{template "pagination" (dict "ID" "mutation" "From" (add (mul (sub .History.Page 1) .History.PerPage) 1) "To" (add (mul (sub .History.Page 1) .History.PerPage) (len .History.Rows)) "Total" .History.Total "Page" .History.Page "Pages" .History.Pages "Items" .History.PageItems "FirstURL" .History.FirstURL "PrevURL" .History.PrevURL "NextURL" .History.NextURL "LastURL" .History.LastURL "JumpURL" "/mutasi/riwayat" "HXTarget" (printf "#%s" .Target))}}
 {{end}}
 
 {{define "mutation_edit_modal"}}<div id="mutation-edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 px-4 backdrop-blur-sm"><div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><div class="flex items-start justify-between"><div><h2 class="text-lg font-semibold text-slate-900">Edit jumlah mutasi</h2><p class="mt-1 text-sm text-slate-500">Hanya jumlah barang yang dapat diubah.</p></div><button type="button" data-mutation-modal-close class="text-slate-400">{{template "i-x"}}</button></div><form method="post" action="/mutasi/today/qty" hx-post="/mutasi/today/qty" hx-target="#history-input" hx-swap="innerHTML" class="mt-5"><input type="hidden" name="mutation_id" id="mutation-edit-id"><input type="hidden" name="direction" value="{{.Form.Direction}}"><label class="text-sm font-medium text-slate-700">Qty</label><input id="mutation-edit-qty" name="qty" type="number" min="0" max="999" required class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30"><div class="mt-6 flex justify-end gap-2"><button type="button" data-mutation-modal-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white">Simpan data</button></div></form></div></div>{{end}}

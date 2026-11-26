@@ -108,6 +108,9 @@ func (s *Store) QtyByOutlet(f repository.MutationFilter) ([]repository.OutletTot
 }
 
 func applyMutationFilter(q *gorm.DB, f repository.MutationFilter) *gorm.DB {
+	if f.ExcludePending {
+		q = q.Where("mutations.status NOT IN ?", []string{"pending", "pending_code"})
+	}
 	if f.OutletID != nil {
 		q = q.Where("mutations.outlet_id = ?", *f.OutletID)
 	}

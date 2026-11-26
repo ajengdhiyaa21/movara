@@ -198,6 +198,19 @@
     }
   });
 
+  var initialHistoryTab = new URLSearchParams(window.location.search).get('tab');
+  if (initialHistoryTab) {
+    var initialHistoryButton = document.querySelector('[data-history-tab="' + initialHistoryTab + '"]');
+    if (initialHistoryButton) initialHistoryButton.click();
+  }
+
+  document.addEventListener('input', function (e) {
+    var search = e.target.closest('[data-product-search]');
+    if (!search || !search.form) return;
+    clearTimeout(search._filterTimer);
+    search._filterTimer = setTimeout(function () { search.form.submit(); }, 350);
+  });
+
   function openConfirmModal(form) {
     pendingDeleteForm = form;
     var modal = $('#delete-modal');

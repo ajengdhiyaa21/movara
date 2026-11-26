@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -77,6 +78,9 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 			return lookup.Error
 		}
 		product := existingProduct
+		if usedExistingProduct && !product.IsActive {
+			return fmt.Errorf("produk existing dengan barcode %s berstatus nonaktif; aktifkan produk tersebut atau gunakan data produk baru", barcode)
+		}
 		if !usedExistingProduct {
 			product = models.Product{Barcode: barcode, Code: code, Name: productName, IsActive: true, OutletID: req.OutletID, CategoryID: &categoryID}
 			if err := tx.Create(&product).Error; err != nil {
@@ -88,9 +92,27 @@ func (h *PageHandler) ApproveProductRequest(c *gin.Context) {
 				usedExistingProduct = true
 			}
 		}
+		// Produk lama dapat berasal dari data legacy: SKU/PLU kosong atau
+		// pernah dinonaktifkan. Jangan meneruskan kondisi tersebut ke jurnal.
+		// Kode dari form approval sudah divalidasi minimal 6 karakter di atas.
 		if usedExistingProduct {
-			approvalStatus = "approved_existing"
+			updates := map[string]interface{}{}
+			if strings.TrimSpace(product.Code) == "" {
+				product.Code = code
+				updates["code"] = code
+			}
+			if product.CategoryID == nil {
+				product.CategoryID = &categoryID
+				updates["category_id"] = categoryID
+			}
+			if len(updates) > 0 {
+				if err := tx.Model(&product).Updates(updates).Error; err != nil {
+					return err
+				}
+			}
 		}
+		// Produk existing tetap memakai status approval yang sama.
+		// Perbedaan hanya pada proses internal: data master yang sudah ada digunakan.
 		if req.MutationID != nil {
 			// Pengajuan lama bisa memiliki status jurnal selain pending_code.
 			// Selama jurnalnya masih terkait pengajuan ini, selesaikan jurnal tersebut.

@@ -15,22 +15,22 @@
     <p class="mt-1 text-sm text-slate-500">Produk baru belum masuk master data maupun jurnal mutasi.</p>
   </div>
   <div class="overflow-x-auto">
-    <table class="product-request-table w-full min-w-[1330px] table-fixed text-sm">
+    <table class="product-request-table w-full table-fixed text-sm">
       <colgroup>
-        <col class="w-[320px]">
-        <col class="w-[150px]">
-        <col class="w-[110px]">
-        <col class="w-[130px]">
         <col class="w-[160px]">
-        <col class="w-[60px]">
-        <col class="w-[150px]">
-        <col class="w-[250px]">
+        <col class="w-[330px]">
+        <col class="w-[130px]">
+        <col class="w-[190px]">
+        <col class="w-[160px]">
+        <col class="w-[70px]">
+        <col class="w-[130px]">
+        <col class="w-[240px]">
       </colgroup>
       <thead class="bg-slate-50 text-center text-xs uppercase tracking-wide text-slate-500">
         <tr>
+          <th class="px-3 py-3">Outlet</th>
           <th class="px-4 py-3">Produk</th>
           <th class="px-2 py-3">Barcode</th>
-          <th class="px-2 py-3">Outlet</th>
           <th class="px-2 py-3">Pengaju</th>
           <th class="px-2 py-3">Kategori PM</th>
           <th class="px-2 py-3">Qty</th>
@@ -39,10 +39,10 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">{{range .Requests}}{{ $request := . }}<tr>
-          <td class="px-4 py-4 align-top">{{if .UsesExistingProduct}}<div class="mb-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-xs font-medium text-orange-800">Produk sudah tersedia di Master Data. Data existing akan digunakan.</div>{{end}}<input form="approve-request-{{.ID}}" name="product_name" value="{{if .ExistingProduct}}{{.ExistingProduct.Name}}{{else}}{{.ProductName}}{{end}}" required maxlength="255" {{if .UsesExistingProduct}}readonly{{end}} class="w-full rounded-lg border border-slate-300 px-2.5 py-2 text-sm"><div class="mt-1 text-xs text-slate-400">{{.RequestedAt.Format "02/01/2006 15:04"}}</div></td>
+          <td class="px-3 py-4 align-top whitespace-nowrap font-medium text-slate-700">{{.Outlet.Name}}</td>
+          <td class="px-4 py-4 align-top">{{if .UsesExistingProduct}}<div class="mb-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1.5 text-xs font-medium text-red-700">{{if .ExistingProduct.IsActive}}Produk sudah tersedia di Master Data. Data existing akan digunakan.{{else}}Produk existing ditemukan tetapi statusnya nonaktif. Produk tidak akan diaktifkan otomatis.{{end}}</div>{{end}}<textarea form="approve-request-{{.ID}}" name="product_name" required maxlength="255" rows="2" {{if .UsesExistingProduct}}readonly{{end}} class="w-full resize-none rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs leading-5">{{if .ExistingProduct}}{{.ExistingProduct.Name}}{{else}}{{.ProductName}}{{end}}</textarea><div class="mt-1 text-xs text-slate-400">{{.RequestedAt.Format "02/01/2006 15:04"}}</div></td>
           <td class="px-2 py-4 align-top"><input form="approve-request-{{.ID}}" name="barcode" value="{{if .ExistingProduct}}{{.ExistingProduct.Barcode}}{{else}}{{.Barcode}}{{end}}" required maxlength="20" {{if .UsesExistingProduct}}readonly{{end}} class="w-full rounded-lg border border-slate-300 px-2.5 py-2 font-mono text-xs"></td>
-          <td class="px-2 py-4 whitespace-nowrap">{{.Outlet.Name}}</td>
-          <td class="px-2 py-4 align-top">
+          <td class="px-3 py-4 align-top">
             <div class="font-medium text-slate-800">{{.User.Name}}</div>
             {{if .User.Category}}<div class="mt-1 text-xs text-slate-500">PM {{.User.Category.Name}}</div>{{else if .Category}}<div class="mt-1 text-xs text-slate-500">PM {{.Category.Name}}</div>{{end}}
           </td>

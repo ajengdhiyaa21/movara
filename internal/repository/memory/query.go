@@ -9,6 +9,9 @@ import (
 )
 
 func matches(m *models.Mutation, f repository.MutationFilter, q string) bool {
+	if f.ExcludePending && (m.Status == "pending" || m.Status == "pending_code") {
+		return false
+	}
 	if f.OutletID != nil && m.OutletID != *f.OutletID {
 		return false
 	}

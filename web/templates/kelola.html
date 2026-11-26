@@ -4,14 +4,22 @@
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  const inactiveOutletIDs = { {{range .Outlets}}{{if not .IsActive}}"{{.ID}}": true,{{end}}{{end}} };
+  document.querySelectorAll('select[name="outlet_id"] option').forEach(function (option) {
+    if (inactiveOutletIDs[option.value] === true) {
+      option.disabled = true;
+      option.textContent += ' (Nonaktif)';
+    }
+  });
   function makeOutletChecks(select, form) {
     if (!select || !form) return;
     const box = document.createElement('div');
     box.className = 'grid max-h-40 grid-cols-2 gap-2 overflow-y-auto rounded-xl border border-slate-300 bg-slate-50 p-3 sm:grid-cols-3';
     Array.from(select.options).forEach(function (option) {
       const label = document.createElement('label');
-      label.className = 'flex items-center gap-2 rounded-lg bg-white px-2.5 py-2 text-sm text-slate-700';
-      label.innerHTML = '<input type="checkbox" name="outlet_ids" value="' + option.value + '" class="accent-orange-500"> <span>' + option.textContent + '</span>';
+      const inactive = option.disabled || inactiveOutletIDs[option.value] === true;
+      label.className = 'flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm ' + (inactive ? 'bg-slate-200 text-slate-400' : 'bg-white text-slate-700');
+      label.innerHTML = '<input type="checkbox" name="outlet_ids" value="' + option.value + '" class="accent-orange-500"' + (inactive ? ' disabled' : '') + '> <span>' + option.textContent + (inactive ? ' (Nonaktif)' : '') + '</span>';
       box.appendChild(label);
     });
     select.replaceWith(box);
@@ -40,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
-{{if and .User (eq .User.Username "admin.c")}}
+{{if isSuperAdmin .User}}
 {{end}}
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
@@ -62,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <button type="button" data-kelola-tab="manager" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Akun Manajemen</button>
     <button type="button" data-kelola-tab="administrator" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Administrator</button>
     <button type="button" data-kelola-tab="activity" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Aktivitas Aplikasi</button>
-    {{if and .User (eq .User.Username "admin.c")}}<button type="button" data-kelola-tab="maintenance" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Pengumuman</button>{{end}}
+    {{if isSuperAdmin .User}}<button type="button" data-kelola-tab="maintenance" class="kelola-tab rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Pengumuman</button>{{end}}
 </nav>
 {{if isSuperAdmin .User}}<dialog data-account-modal class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Tambah akun</h2><p class="mt-1 text-sm text-slate-500">Pilih jenis akun yang akan dibuat.</p></div><button type="button" data-account-modal-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
@@ -89,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function () {
 </dialog>
 <dialog data-manager-edit-modal class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-900/40">
     <div class="border-b border-slate-200 px-6 py-5"><div class="flex items-start justify-between gap-4"><div><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Manajemen pengguna</p><h2 class="mt-1 text-xl font-semibold">Edit akun Manager</h2><p data-manager-edit-account class="mt-1 text-sm text-slate-500"></p></div><button type="button" data-manager-edit-close class="text-2xl leading-none text-slate-400 hover:text-slate-700">&times;</button></div></div>
-<form data-manager-edit-form method="post" class="space-y-4 p-6"><div><label class="text-sm font-medium text-slate-700">ID Pengguna</label><input data-manager-edit-user-code name="user_code" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 font-mono text-sm"></div><div><label class="text-sm font-medium text-slate-700">Nama Lengkap Manager</label><input data-manager-edit-name name="name" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Username Login</label><input data-manager-edit-username name="username" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Outlet Penempatan</label><select data-manager-edit-outlet name="outlet_id" required class="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div><div class="flex justify-end gap-2"><button type="button" data-manager-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan perubahan</button></div></form>
+<form data-manager-edit-form method="post" class="space-y-4 p-6"><div><label class="text-sm font-medium text-slate-700">ID Pengguna</label><input data-manager-edit-user-code name="user_code" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 font-mono text-sm"></div><div><label class="text-sm font-medium text-slate-700">Nama Lengkap Manager</label><input data-manager-edit-name name="name" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Username Login</label><input data-manager-edit-username name="username" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"></div><div><label class="text-sm font-medium text-slate-700">Outlet Penempatan</label><select data-manager-edit-outlet name="outlet_id" required class="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">{{range .Outlets}}<option value="{{.ID}}" {{if not .IsActive}}disabled{{end}}>{{.Name}}{{if not .IsActive}} (Nonaktif){{end}}</option>{{end}}</select></div><div class="flex justify-end gap-2"><button type="button" data-manager-edit-close class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Batal</button><button class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Simpan perubahan</button></div></form>
 </dialog>
 <span hidden data-reveal-account-id="{{.RevealAccountID}}"></span>{{end}}
 {{if .Message}}<div class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-700">{{.Message}}</div>{{end}}
@@ -152,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 name="password" type="password" placeholder="Password (kosong = default)"
                 class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm"><select name="outlet_id" required
                 class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">{{range .Outlets}}<option
-                    value="{{.ID}}">{{.Name}}</option>{{end}}</select><select name="category_id" required
+                    value="{{.ID}}" {{if not .IsActive}}disabled{{end}}>{{.Name}}{{if not .IsActive}} (Nonaktif){{end}}</option>{{end}}</select><select name="category_id" required
                 class="rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
                 <option value="">Pilih kategori PM</option>{{range .Categories}}<option value="{{.ID}}">{{.Name}}
                 </option>{{end}}
@@ -227,17 +235,17 @@ document.addEventListener('DOMContentLoaded', function () {
         </table>
     </div>
 </section>
-{{if and .User (eq .User.Username "admin.c")}}
+{{if isSuperAdmin .User}}
 <section id="maintenance-panel" class="mt-6 hidden rounded-2xl border border-orange-200 bg-white p-6 shadow-sm">
   <p class="text-xs font-semibold uppercase tracking-wider text-orange-600">Super Admin</p><h2 class="mt-1 text-xl font-semibold">Pengumuman maintenance / update</h2><p class="mt-1 text-sm text-slate-500">Buat pemberitahuan jadwal maintenance yang akan dilihat seluruh pengguna.</p>
-  <form method="post" action="/kelola/maintenance" class="mt-5 grid gap-4 md:grid-cols-2">
-    <label class="text-sm font-medium text-slate-700">Judul pengumuman<input name="title" required maxlength="150" placeholder="Contoh: Maintenance sistem" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"></label>
-    <label class="text-sm font-medium text-slate-700">Mulai ditampilkan<input type="datetime-local" name="starts_at" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Pengumuman mulai terlihat pada waktu ini.</span></label>
-    <label class="text-sm font-medium text-slate-700 md:col-span-2">Pesan pengumuman<textarea name="message" required placeholder="Contoh: Website akan diperbarui sementara." class="mt-1.5 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"></textarea></label>
-    <label class="text-sm font-medium text-slate-700">Berakhir pada <span class="font-normal text-slate-400">(opsional)</span><input type="datetime-local" name="ends_at" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Kosongkan jika ingin menonaktifkan manual.</span></label>
-    <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 md:col-span-2"><button type="reset" class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</button><button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm" style="background:#ff5a00;color:#fff;display:inline-flex;align-items:center;justify-content:center;min-width:170px">Simpan pengumuman</button></div>
+  <form method="post" action="{{if .EditAnnouncement}}/kelola/maintenance/{{.EditAnnouncement.ID}}/edit{{else}}/kelola/maintenance{{end}}" class="mt-5 grid gap-4 md:grid-cols-2">
+    <label class="text-sm font-medium text-slate-700">Judul pengumuman<input name="title" required maxlength="150" value="{{if .EditAnnouncement}}{{.EditAnnouncement.Title}}{{end}}" placeholder="Contoh: Maintenance sistem" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"></label>
+    <label class="text-sm font-medium text-slate-700">Mulai ditampilkan<input type="datetime-local" name="starts_at" required value="{{if .EditAnnouncement}}{{.EditAnnouncement.StartsAt.Format "2006-01-02T15:04"}}{{end}}" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Pengumuman mulai terlihat pada waktu ini.</span></label>
+    <label class="text-sm font-medium text-slate-700 md:col-span-2">Pesan pengumuman<textarea name="message" required placeholder="Contoh: Website akan diperbarui sementara." class="mt-1.5 min-h-24 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm">{{if .EditAnnouncement}}{{.EditAnnouncement.Message}}{{end}}</textarea></label>
+    <label class="text-sm font-medium text-slate-700">Berakhir pada <span class="font-normal text-slate-400">(opsional)</span><input type="datetime-local" name="ends_at" value="{{if .EditAnnouncement}}{{if .EditAnnouncement.EndsAt}}{{.EditAnnouncement.EndsAt.Format "2006-01-02T15:04"}}{{end}}{{end}}" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm"><span class="mt-1 block text-xs font-normal text-slate-500">Kosongkan jika ingin menonaktifkan manual.</span></label>
+    <div class="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 md:col-span-2"><button type="reset" class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</button><button type="submit" class="rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm" style="background:#ff5a00;color:#fff;display:inline-flex;align-items:center;justify-content:center;min-width:170px">{{if .EditAnnouncement}}Simpan perubahan{{else}}Simpan pengumuman{{end}}</button></div>
   </form>
-  {{if .Announcements}}<div class="mt-6 overflow-x-auto"><table class="w-full text-sm"><thead class="border-b text-left text-xs uppercase text-slate-500"><tr><th class="py-3">Judul</th><th class="py-3">Mulai</th><th class="py-3">Status</th><th class="py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y">{{range .Announcements}}<tr><td class="py-3 font-medium">{{.Title}}</td><td class="py-3">{{.StartsAt.Format "02/01/2006 15:04"}}</td><td class="py-3">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td><td class="py-3 text-right"><form method="post" action="/kelola/maintenance/{{.ID}}/toggle"><button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></td></tr>{{end}}</tbody></table></div>{{end}}
+  {{if .Announcements}}<div class="mt-6 overflow-x-auto"><table class="w-full text-sm"><thead class="border-b text-left text-xs uppercase text-slate-500"><tr><th class="py-3">Judul</th><th class="py-3">Mulai</th><th class="py-3">Status</th><th class="py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y">{{range .Announcements}}<tr><td class="py-3 font-medium">{{.Title}}</td><td class="py-3">{{.StartsAt.Format "02/01/2006 15:04"}}</td><td class="py-3">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td><td class="py-3 text-right"><div class="flex justify-end gap-2"><a href="/kelola?maintenance_edit={{.ID}}#maintenance" class="rounded-lg border border-orange-200 px-3 py-1.5 text-xs text-orange-700">Edit</a><form method="post" action="/kelola/maintenance/{{.ID}}/toggle"><button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs">{{if .IsActive}}Nonaktifkan{{else}}Aktifkan{{end}}</button></form></div></td></tr>{{end}}</tbody></table></div>{{end}}
 </section>
 {{end}}
 <section id="manager-table-panel" class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -278,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
 {{template "pagination" (dict "ID" "manager" "From" (add (mul (sub .ManagerPage 1) .ManagerPerPage) 1) "To" (add (mul (sub .ManagerPage 1) .ManagerPerPage) (len .Managers)) "Total" .ManagerTotal "Page" .ManagerPage "Pages" .ManagerPages "Items" .ManagerPageItems "FirstURL" (printf "/kelola?manager_page=1&manager_per_page=%d#manager" .ManagerPerPage) "PrevURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" (sub .ManagerPage 1) .ManagerPerPage) "NextURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" (add .ManagerPage 1) .ManagerPerPage) "LastURL" (printf "/kelola?manager_page=%d&manager_per_page=%d#manager" .ManagerPages .ManagerPerPage) "JumpURL" "/kelola")}}
 <section id="administrator-panel" class="mt-6 hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 px-6 py-5"><p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Administrator</p><h2 class="mt-1 text-lg font-semibold">Akun Administrator</h2><p class="mt-1 text-sm text-slate-500">Akun admin dan Super Admin. Hanya tersedia aksi logout.</p></div>
-    <div class="overflow-x-auto"><table class="w-full min-w-[700px] text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Nama</th><th class="px-3 py-3">ID Pengguna</th><th class="px-3 py-3">Username</th><th class="px-3 py-3">Role</th><th class="px-3 py-3">Status</th><th class="px-6 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Managers}}{{if or (eq .Role "admin") (eq .Role "super_admin")}}<tr><td class="px-6 py-4 font-medium">{{.Name}}</td><td class="px-3 py-4 font-mono text-xs text-blue-700">{{.UserCode}}</td><td class="px-3 py-4 font-mono text-xs">{{.Username}}</td><td class="px-3 py-4">{{if eq .Role "super_admin"}}Super Admin{{else}}Administrator{{end}}</td><td class="px-3 py-4">{{if .IsActive}}Aktif{{else}}Nonaktif{{end}}</td><td class="px-6 py-4 text-right"><form method="post" action="/kelola/account/{{.ID}}/force-logout" onsubmit="return confirm('Keluarkan akun ini dari sistem?')"><button class="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">Logout</button></form></td></tr>{{end}}{{end}}</tbody></table></div>
+    <div class="overflow-x-auto"><table class="w-full min-w-[700px] text-sm"><thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Nama</th><th class="px-3 py-3">ID Pengguna</th><th class="px-3 py-3">Username</th><th class="px-3 py-3">Role</th><th class="px-6 py-3 text-right">Aksi</th></tr></thead><tbody class="divide-y divide-slate-100">{{range .Administrators}}<tr><td class="px-6 py-4 font-medium">{{.Name}}</td><td class="px-3 py-4 font-mono text-xs text-blue-700">{{.UserCode}}</td><td class="px-3 py-4 font-mono text-xs">{{.Username}}</td><td class="px-3 py-4">{{if eq .Role "super_admin"}}Super Admin{{else}}Administrator{{end}}</td><td class="px-6 py-4 text-right"><form method="post" action="/kelola/account/{{.ID}}/force-logout" onsubmit="return confirm('Keluarkan akun ini dari sistem?')"><button class="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">Logout</button></form></td></tr>{{else}}<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Belum ada akun administrator.</td></tr>{{end}}</tbody></table></div>
 </section>
 {{if false}}
 <section class="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -345,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
 <span class="pagination-info">Halaman {{.UserPage}} dari {{.UserPages}}</span></div>
 {{template "pagination" (dict "ID" "pm" "From" (add (mul (sub .UserPage 1) .UserPerPage) 1) "To" (add (mul (sub .UserPage 1) .UserPerPage) (len .Users)) "Total" .UserTotal "Page" .UserPage "Pages" .UserPages "Items" .UserPageItems "FirstURL" (printf "/kelola?user_page=1&user_per_page=%d#users" .UserPerPage) "PrevURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" (sub .UserPage 1) .UserPerPage) "NextURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" (add .UserPage 1) .UserPerPage) "LastURL" (printf "/kelola?user_page=%d&user_per_page=%d#users" .UserPages .UserPerPage) "JumpURL" "/kelola")}}
 <form id="activity-filter-panel" method="get" action="/kelola#audit-log" class="mt-6 rounded-2xl border bg-white p-5">
-    <div class="flex flex-wrap gap-2"><input type="search" name="audit_q" autocomplete="off" value="{{.AuditQuery}}"
+    <div class="flex flex-wrap items-center justify-between gap-2"><input type="search" name="audit_q" autocomplete="off" value="{{.AuditQuery}}"
             placeholder="Cari aktivitas atau detail" class="rounded-lg border px-3 py-2 text-sm"><select
             name="audit_role" class="rounded-lg border px-3 py-2 text-sm">
             <option value="">Semua role</option>
@@ -354,10 +362,13 @@ document.addEventListener('DOMContentLoaded', function () {
             <option value="pm">Pramuniaga</option>
         </select><input name="audit_account" value="{{.AuditAccount}}" placeholder="ID akun"
             class="rounded-lg border px-3 py-2 text-sm"><input name="audit_outlet" value="{{.AuditOutlet}}"
-            placeholder="ID outlet" class="rounded-lg border px-3 py-2 text-sm"><input type="datetime-local"
+            placeholder="ID outlet" style="width: 100px" class="rounded-lg border px-3 py-2 text-sm"><input type="datetime-local"
             name="audit_from" value="{{.AuditFrom}}" class="rounded-lg border px-3 py-2 text-sm"><input
             type="datetime-local" name="audit_to" value="{{.AuditTo}}"
-            class="rounded-lg border px-3 py-2 text-sm"><button
+            class="rounded-lg border px-3 py-2 text-sm"><select name="audit_per_page"
+            aria-label="Jumlah data aktivitas" onchange="this.form.submit()"
+            class="rounded-lg border px-3 py-2 text-sm"><option value="10" {{if eq .AuditPerPage 10}}selected{{end}}>10 data</option><option
+            value="30" {{if eq .AuditPerPage 30}}selected{{end}}>30 data</option><option value="50" {{if eq .AuditPerPage 50}}selected{{end}}>50 data</option></select><button
             class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white">Filter</button><a
             href="/kelola#audit-log" class="rounded-lg border px-3 py-2 text-sm">Reset</a></div>
 </form>
@@ -435,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
       tab.classList.toggle('text-slate-600', !active);
     });
     document.getElementById('user-pagination')?.classList.toggle('hidden', name !== 'pm');
-    document.getElementById('add-account-toolbar')?.classList.toggle('hidden', name === 'maintenance');
+    document.getElementById('add-account-toolbar')?.classList.toggle('hidden', name === 'maintenance' || name === 'administrator' || name === 'activity');
     document.querySelectorAll('#manager-table-panel tbody tr[data-account-role]').forEach(function (row) {
       row.classList.toggle('hidden', row.dataset.accountRole !== 'manager');
     });
@@ -443,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
   tabs.forEach(function (tab) { tab.addEventListener('click', function () { activate(tab.dataset.kelolaTab); }); });
   // Pertahankan tab Aktivitas saat pagination/filter aktivitas membuka ulang halaman.
   const initialTab = new URLSearchParams(window.location.search).get('tab');
-  activate(initialTab === 'maintenance' ? 'maintenance' : (initialTab === 'manager' || window.location.hash === '#manager' || new URLSearchParams(window.location.search).has('manager_page') ? 'manager' : (initialTab === 'administrator' || window.location.hash === '#administrator' ? 'administrator' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm'))));
+  activate(initialTab === 'maintenance' || window.location.hash === '#maintenance' || new URLSearchParams(window.location.search).has('maintenance_edit') ? 'maintenance' : (initialTab === 'manager' || window.location.hash === '#manager' || new URLSearchParams(window.location.search).has('manager_page') ? 'manager' : (initialTab === 'administrator' || window.location.hash === '#administrator' ? 'administrator' : (window.location.hash === '#audit-log' || new URLSearchParams(window.location.search).has('page') ? 'activity' : 'pm'))));
 
   const modal = document.querySelector('[data-account-modal]');
   document.querySelector('[data-account-modal-open]')?.addEventListener('click', function () {

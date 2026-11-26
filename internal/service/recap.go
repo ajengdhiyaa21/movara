@@ -8,6 +8,8 @@ import (
 	"movara/internal/repository"
 )
 
+// Jurnal Mutasi ditampilkan ringkas agar seluruh kolom tetap terbaca di desktop.
+// Total dan TotalQty tetap dihitung dari seluruh hasil filter, bukan hanya halaman aktif.
 const DefaultPerPage = 10
 
 type RecapService struct {
@@ -31,7 +33,7 @@ type RecapQuery struct {
 }
 
 func (q RecapQuery) filter() repository.MutationFilter {
-	return repository.MutationFilter{OutletID: q.OutletID, OutletIDs: q.OutletIDs, CategoryID: q.CategoryID, Direction: q.Direction, From: q.From, To: q.To, Query: q.Q}
+	return repository.MutationFilter{OutletID: q.OutletID, OutletIDs: q.OutletIDs, CategoryID: q.CategoryID, Direction: q.Direction, ExcludePending: true, From: q.From, To: q.To, Query: q.Q}
 }
 
 type RecapResult struct {
@@ -120,6 +122,33 @@ func (s *RecapService) ExportRows(q RecapQuery) ([]models.Mutation, error) {
 
 func (s *RecapService) Volume(q RecapQuery) ([]VolumeChart, error) {
 	result := make(map[uint]*VolumeChart)
+	// Sertakan seluruh outlet MK dalam chart, termasuk outlet yang bernilai nol
+	// pada periode/filter aktif agar jumlah kategori chart tetap konsisten.
+	outlets, err := s.outlets.List()
+	if err != nil {
+		return nil, err
+	}
+	for _, outlet := range outlets {
+		if !outlet.IsActive || len(outlet.Code) < 2 || outlet.Code[:2] != "MK" {
+			continue
+		}
+		if q.OutletID != nil && *q.OutletID != outlet.ID {
+			continue
+		}
+		if len(q.OutletIDs) > 0 {
+			allowed := false
+			for _, id := range q.OutletIDs {
+				if id == outlet.ID {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				continue
+			}
+		}
+		result[outlet.ID] = &VolumeChart{Code: outlet.Code}
+	}
 	for _, direction := range []string{"counter_to_market", "market_to_counter"} {
 		if q.Direction != "" && q.Direction != direction {
 			continue

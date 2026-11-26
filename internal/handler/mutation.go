@@ -40,6 +40,23 @@ type inputSummary struct {
 	NewProducts  int
 }
 
+type productRequestView struct {
+	Rows      []models.ProductRequest
+	Total     int64
+	Page      int
+	Pages     int
+	PerPage   int
+	From      int
+	To        int
+	PageItems []productPageItem
+	PrevURL   string
+	NextURL   string
+	FirstURL  string
+	LastURL   string
+	Date      string
+	Query     string
+}
+
 func normalizeInputMode(mode string) string {
 	if strings.TrimSpace(mode) == "manual" {
 		return "manual"
@@ -75,6 +92,76 @@ func NewMutationHandler(r *Renderer, svc *service.MutationService, db *gorm.DB) 
 	return &MutationHandler{r: r, svc: svc, db: db}
 }
 
+func (h *MutationHandler) productRequestPage(c *gin.Context, u *models.User, direction, path string) productRequestView {
+	perPage, _ := strconv.Atoi(c.Query("product_per_page"))
+	if perPage != 10 && perPage != 30 && perPage != 50 {
+		perPage = 10
+	}
+	page, _ := strconv.Atoi(c.Query("product_page"))
+	if page < 1 {
+		page = 1
+	}
+
+	query := h.db.Where("outlet_id = ?", *u.OutletID)
+	if u.CategoryID != nil {
+		query = query.Where("category_id = ?", *u.CategoryID)
+	}
+	date := strings.TrimSpace(c.Query("product_date"))
+	if _, err := time.ParseInLocation("2006-01-02", date, clock.WIB); err != nil {
+		date = clock.Now().Format("2006-01-02")
+	}
+	day, _ := time.ParseInLocation("2006-01-02", date, clock.WIB)
+	query = query.Where("requested_at >= ? AND requested_at < ?", day, day.AddDate(0, 0, 1))
+	search := strings.TrimSpace(c.Query("product_q"))
+	if search != "" {
+		like := "%" + search + "%"
+		query = query.Where("(product_name LIKE ? OR barcode LIKE ?)", like, like)
+	}
+	var total int64
+	query.Model(&models.ProductRequest{}).Count(&total)
+	pages := int((total + int64(perPage) - 1) / int64(perPage))
+	if pages < 1 {
+		pages = 1
+	}
+	if page > pages {
+		page = pages
+	}
+
+	var rows []models.ProductRequest
+	query.Preload("Outlet").Preload("User").Preload("Category").
+		Order("requested_at desc").Offset((page - 1) * perPage).Limit(perPage).Find(&rows)
+
+	pageURL := func(target int) string {
+		v := url.Values{
+			"direction":        []string{direction},
+			"product_page":     []string{strconv.Itoa(target)},
+			"product_per_page": []string{strconv.Itoa(perPage)},
+			"tab":              []string{"product-requests"},
+			"product_date":     []string{date},
+			"product_q":        []string{search},
+		}
+		return path + "?" + v.Encode() + "#history-product-requests"
+	}
+	from, to := 0, 0
+	if total > 0 {
+		from = (page-1)*perPage + 1
+		to = from + len(rows) - 1
+	}
+	view := productRequestView{
+		Rows: rows, Total: total, Page: page, Pages: pages, PerPage: perPage,
+		From: from, To: to, PageItems: buildProductPageItems(page, pages, pageURL),
+		FirstURL: pageURL(1), LastURL: pageURL(pages),
+		Date: date, Query: search,
+	}
+	if page > 1 {
+		view.PrevURL = pageURL(page - 1)
+	}
+	if page < pages {
+		view.NextURL = pageURL(page + 1)
+	}
+	return view
+}
+
 func (h *MutationHandler) lastTodayBA(u *models.User) string {
 	if u == nil || u.OutletID == nil {
 		return ""
@@ -98,20 +185,22 @@ func (h *MutationHandler) Index(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var productRequests []models.ProductRequest
-	requestQuery := h.db.Preload("Outlet").Preload("User").Preload("Category").Where("outlet_id = ?", *u.OutletID)
-	if u.CategoryID != nil {
-		requestQuery = requestQuery.Where("category_id = ?", *u.CategoryID)
-	}
-	requestQuery.Order("requested_at desc").Find(&productRequests)
 	direction := normalizeDirection(c.Query("direction"))
+	productRequests := h.productRequestPage(c, u, direction, "/mutasi")
 	h.r.HTML(c, http.StatusOK, "mutasi.html", gin.H{
-		"Title":           "Input Mutasi",
-		"Active":          "mutasi",
-		"Form":            scanForm{Qty: 1, Direction: direction},
-		"CounterHistory":  counterHistory,
-		"MarketHistory":   marketHistory,
-		"ProductRequests": productRequests,
+		"Title":              "Input Mutasi",
+		"Active":             "mutasi",
+		"Form":               scanForm{Qty: 1, Direction: direction},
+		"CounterHistory":     counterHistory,
+		"MarketHistory":      marketHistory,
+		"ProductRequests":    productRequests.Rows,
+		"ProductRequestPage": productRequests.Page, "ProductRequestPages": productRequests.Pages,
+		"ProductRequestPerPage": productRequests.PerPage, "ProductRequestTotal": productRequests.Total,
+		"ProductRequestFrom": productRequests.From, "ProductRequestTo": productRequests.To,
+		"ProductRequestPageItems": productRequests.PageItems, "ProductRequestPrevURL": productRequests.PrevURL,
+		"ProductRequestNextURL": productRequests.NextURL, "ProductRequestFirstURL": productRequests.FirstURL,
+		"ProductRequestLastURL": productRequests.LastURL,
+		"ProductRequestDate":    productRequests.Date, "ProductRequestQuery": productRequests.Query,
 		"WAURL": h.r.WhatsAppURL(fmt.Sprintf(
 			"Halo Admin, saya %s (%s). Saya ingin menambahkan produk baru ke master data.",
 			u.Name, outletName(u))),
@@ -132,7 +221,21 @@ func (h *MutationHandler) Input(c *gin.Context) {
 		return
 	}
 	u := middleware.CurrentUser(c)
-	hist, ok := h.history(c, u, "", "", direction)
+	page, _ := strconv.Atoi(c.Query("page"))
+	perPage, _ := strconv.Atoi(c.Query("per_page"))
+	var hist historyView
+	var ok bool
+	if page > 1 || perPage > 0 {
+		if page < 1 {
+			page = 1
+		}
+		if perPage != 10 && perPage != 30 && perPage != 50 {
+			perPage = 10
+		}
+		hist, ok = h.historyPage(c, u, strings.TrimSpace(c.Query("q")), strings.TrimSpace(c.Query("date")), direction, page, perPage)
+	} else {
+		hist, ok = h.history(c, u, "", "", direction)
+	}
 	if !ok {
 		return
 	}
@@ -147,19 +250,35 @@ func (h *MutationHandler) Input(c *gin.Context) {
 		return
 	}
 	summary := inputSummary{Qty: today.TotalQty, Transactions: len(today.Rows)}
-	for _, row := range today.Rows {
-		if row.Status == "pending_code" {
-			summary.NewProducts++
-		}
+	// Pengajuan produk baru dihitung dari tabel product_requests sebagai
+	// sumber status approval yang canonical. Ini tetap akurat meskipun data
+	// mutation legacy belum memiliki status pending yang seragam.
+	dayStart, dayEnd := clock.DayBounds(clock.Now())
+	requestQuery := h.db.Model(&models.ProductRequest{}).
+		Where("outlet_id = ? AND direction = ? AND status = ? AND requested_at >= ? AND requested_at < ?", *u.OutletID, direction, "pending", dayStart, dayEnd)
+	if u.CategoryID != nil {
+		requestQuery = requestQuery.Where("category_id = ?", *u.CategoryID)
 	}
+	var pendingNewProducts int64
+	requestQuery.Count(&pendingNewProducts)
+	summary.NewProducts = int(pendingNewProducts)
+	productRequests := h.productRequestPage(c, u, direction, "/mutasi/input")
 	h.r.HTML(c, http.StatusOK, "mutasi.html", gin.H{
-		"Title":           "Input Mutasi Barang",
-		"Active":          "mutasi",
-		"InputOnly":       true,
-		"Form":            scanForm{Qty: 0, BA: h.lastTodayBA(u), Direction: direction},
-		"History":         hist,
-		"PreviousHistory": previous,
-		"InputSummary":    summary,
+		"Title":              "Input Mutasi Barang",
+		"Active":             "mutasi",
+		"InputOnly":          true,
+		"Form":               scanForm{Qty: 0, BA: h.lastTodayBA(u), Direction: direction},
+		"History":            hist,
+		"PreviousHistory":    previous,
+		"InputSummary":       summary,
+		"ProductRequests":    productRequests.Rows,
+		"ProductRequestPage": productRequests.Page, "ProductRequestPages": productRequests.Pages,
+		"ProductRequestPerPage": productRequests.PerPage, "ProductRequestTotal": productRequests.Total,
+		"ProductRequestFrom": productRequests.From, "ProductRequestTo": productRequests.To,
+		"ProductRequestPageItems": productRequests.PageItems, "ProductRequestPrevURL": productRequests.PrevURL,
+		"ProductRequestNextURL": productRequests.NextURL, "ProductRequestFirstURL": productRequests.FirstURL,
+		"ProductRequestLastURL": productRequests.LastURL,
+		"ProductRequestDate":    productRequests.Date, "ProductRequestQuery": productRequests.Query,
 		"WAURL": h.r.WhatsAppURL(fmt.Sprintf(
 			"Halo Admin, saya %s (%s). Saya ingin menambahkan produk baru ke master data.",
 			u.Name, outletName(u))),
@@ -256,9 +375,25 @@ func (h *MutationHandler) History(c *gin.Context) {
 	if !ok {
 		return
 	}
-	target := "history-counter"
-	if hist.Direction == "market_to_counter" {
-		target = "history-market"
+	// The input page has its own panel id. Preserve it across pagination
+	// requests so HTMX does not re-render the response with the wrong target.
+	target := strings.TrimSpace(c.Query("target"))
+	if target != "history-input" && target != "history-full" {
+		target = "history-counter"
+		if hist.Direction == "market_to_counter" {
+			target = "history-market"
+		}
+	}
+	if c.GetHeader("HX-Request") != "true" {
+		v := url.Values{"direction": []string{hist.Direction}, "page": []string{strconv.Itoa(hist.Page)}, "per_page": []string{strconv.Itoa(hist.PerPage)}}
+		if hist.Query != "" {
+			v.Set("q", hist.Query)
+		}
+		if hist.Date != "" {
+			v.Set("date", hist.Date)
+		}
+		c.Redirect(http.StatusFound, "/mutasi/input?"+v.Encode())
+		return
 	}
 	h.r.Partial(c, http.StatusOK, "mutasi.html", "history_inner", gin.H{"History": hist, "Target": target})
 }
@@ -307,7 +442,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 			if err := tx.Create(req).Error; err != nil {
 				return err
 			}
-			mutation := &models.Mutation{Barcode: barcode, ProductName: productName, Direction: direction, Status: "pending_code", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
+			mutation := &models.Mutation{Barcode: barcode, ProductName: productName, Direction: direction, Status: "pending", Qty: qty, BAName: req.BAName, OutletID: req.OutletID, UserID: req.UserID, CreatedAt: req.RequestedAt}
 			if err := tx.Create(mutation).Error; err != nil {
 				return err
 			}
@@ -349,7 +484,7 @@ func (h *MutationHandler) Create(c *gin.Context) {
 	form := scanForm{
 		Qty: 0, BA: ba, Direction: direction,
 		Success: func() string {
-			if m.Status == "pending_code" {
+			if m.Status == "pending" {
 				return fmt.Sprintf("Pengajuan produk berhasil dikirim: %d pcs. Menunggu Admin melengkapi data produk.", m.Qty)
 			}
 			return fmt.Sprintf("Tersimpan: %d pcs %s", m.Qty, m.ProductName)
@@ -486,6 +621,7 @@ func historyURL(direction, q, date string, page, perPage int) string {
 	}
 	v.Set("page", strconv.Itoa(page))
 	v.Set("per_page", strconv.Itoa(perPage))
+	v.Set("target", "history-input")
 	return "/mutasi/riwayat?" + v.Encode()
 }
 

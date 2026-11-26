@@ -6,11 +6,11 @@
   </div>
   <div class="saas-pagination-controls">
     <nav class="saas-pagination-nav" aria-label="Pagination">
-      {{if and .FirstURL (gt .Page 1)}}<a href="{{.FirstURL}}" aria-label="Halaman pertama">&laquo;</a>{{else}}<span aria-disabled="true">&laquo;</span>{{end}}
-      {{if .PrevURL}}<a href="{{.PrevURL}}" aria-label="Halaman sebelumnya">&lsaquo;</a>{{else}}<span aria-disabled="true">&lsaquo;</span>{{end}}
-      {{range .Items}}{{if .Current}}<span class="is-current tabular-nums" aria-current="page">{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</span>{{else}}<a class="tabular-nums" href="{{.URL}}">{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</a>{{end}}{{end}}
-      {{if .NextURL}}<a href="{{.NextURL}}" aria-label="Halaman berikutnya">&rsaquo;</a>{{else}}<span aria-disabled="true">&rsaquo;</span>{{end}}
-      {{if and .LastURL (lt .Page .Pages)}}<a href="{{.LastURL}}" aria-label="Halaman terakhir">&raquo;</a>{{else}}<span aria-disabled="true">&raquo;</span>{{end}}
+      {{if and .FirstURL (gt .Page 1)}}<a href="{{.FirstURL}}"{{if .HXTarget}} hx-get="{{.FirstURL}}" hx-target="{{.HXTarget}}" hx-swap="innerHTML"{{end}} aria-label="Halaman pertama">&laquo;</a>{{else}}<span aria-disabled="true">&laquo;</span>{{end}}
+      {{if .PrevURL}}<a href="{{.PrevURL}}"{{if .HXTarget}} hx-get="{{.PrevURL}}" hx-target="{{.HXTarget}}" hx-swap="innerHTML"{{end}} aria-label="Halaman sebelumnya">&lsaquo;</a>{{else}}<span aria-disabled="true">&lsaquo;</span>{{end}}
+      {{range .Items}}{{if .Current}}<span class="is-current tabular-nums" aria-current="page">{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</span>{{else}}<a class="tabular-nums" href="{{.URL}}"{{if $.HXTarget}} hx-get="{{.URL}}" hx-target="{{$.HXTarget}}" hx-swap="innerHTML"{{end}}>{{if .Label}}{{.Label}}{{else}}{{.Number}}{{end}}</a>{{end}}{{end}}
+      {{if .NextURL}}<a href="{{.NextURL}}"{{if .HXTarget}} hx-get="{{.NextURL}}" hx-target="{{.HXTarget}}" hx-swap="innerHTML"{{end}} aria-label="Halaman berikutnya">&rsaquo;</a>{{else}}<span aria-disabled="true">&rsaquo;</span>{{end}}
+      {{if and .LastURL (lt .Page .Pages)}}<a href="{{.LastURL}}"{{if .HXTarget}} hx-get="{{.LastURL}}" hx-target="{{.HXTarget}}" hx-swap="innerHTML"{{end}} aria-label="Halaman terakhir">&raquo;</a>{{else}}<span aria-disabled="true">&raquo;</span>{{end}}
     </nav>
   </div>
 </div>

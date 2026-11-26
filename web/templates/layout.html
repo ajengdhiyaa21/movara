@@ -7,7 +7,7 @@
   <title>{{.Title}} · MOVARA</title>
   <script src="/static/htmx.min.js"></script>
   <link rel="stylesheet" href="/static/tailwind.css">
-<link rel="stylesheet" href="/static/app.css?v=20261123-pagination-tabs-2">
+<link rel="stylesheet" href="/static/app.css?v=20261123-product-request-fit-4">
   <script src="/static/app.js?v=20261121-search-scope-1" defer></script>
 </head>
 <body class="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 antialiased"{{if .User}} data-user-role="{{.User.Role}}" data-user-id="{{.User.ID}}"{{end}}>
@@ -57,7 +57,7 @@
 {{end}}
 
 {{if and .User .MaintenanceAnnouncements}}
-<div class="mx-auto mt-8 w-full max-w-[1500px] space-y-3 px-4 sm:px-8 lg:px-10 print:hidden">{{range .MaintenanceAnnouncements}}<div class="rounded-3xl px-5 py-4 shadow-sm sm:px-6" style="border:1px solid #fb923c;background:#fff7ed;color:#7f1d1d"><div class="flex items-start gap-4"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-white" style="background:#ea580c">!</span><div class="min-w-0"><p class="font-bold leading-6">Pemberitahuan penting: {{.Title}}</p><p class="mt-1 text-sm leading-6">{{.Message}}</p><p class="mt-1 text-xs font-medium" style="color:#c2410c">Jadwal: {{.StartsAt.Format "02/01/2006 15:04"}}{{if .EndsAt}} sampai {{.EndsAt.Format "02/01/2006 15:04"}}{{end}} WIB.</p></div></div></div>{{end}}</div>
+<div class="mx-auto mt-8 w-full max-w-[1500px] space-y-3 px-4 sm:px-8 lg:px-10 print:hidden">{{range .MaintenanceAnnouncements}}<div class="rounded-3xl px-5 py-4 shadow-sm sm:px-6" style="border:1px solid #fb923c;background:#fff7ed;color:#7f1d1d"><div class="flex items-start gap-4"><span class="maintenance-alert-icon grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-white" style="background:#ea580c">!</span><div class="min-w-0"><p class="font-bold leading-6">Pemberitahuan Penting:</p><p class="mt-1 font-bold uppercase leading-6">{{.Title}}</p><p class="mt-1 text-sm leading-6">{{.Message}}</p><p class="mt-1 text-xs font-bold" style="color:#c2410c">{{.StartsAt.Format "02/01/2006 15:04"}}{{if .EndsAt}} sampai {{.EndsAt.Format "02/01/2006 15:04"}}{{end}} WIB.</p></div></div></div>{{end}}</div>
 {{end}}
 <main class="w-full flex-1 {{if .User}}mx-auto {{if eq .Active "mutasi"}}max-w-none{{else}}max-w-[1500px]{{end}} px-4 py-5 sm:px-8 sm:py-8 lg:px-10{{end}}">
   {{template "content" .}}

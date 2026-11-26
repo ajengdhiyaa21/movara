@@ -36,8 +36,11 @@ type MutationFilter struct {
 	OutletIDs  []uint
 	CategoryID *uint
 	Direction  string
-	From, To   time.Time
-	Query      string
+	// ExcludePending hides temporary rows created while a new product waits
+	// for admin approval. Those rows are shown through product_requests.
+	ExcludePending bool
+	From, To       time.Time
+	Query          string
 }
 
 type OutletTotal struct {

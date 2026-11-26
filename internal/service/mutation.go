@@ -60,7 +60,7 @@ type TodayResult struct {
 
 // Period mengembalikan riwayat pada rentang waktu tertentu untuk outlet PM.
 func (s *MutationService) Period(outletID uint, categoryID *uint, q, direction string, from, to time.Time) ([]models.Mutation, error) {
-	rows, _, err := s.mutations.Search(repository.MutationFilter{OutletID: &outletID, CategoryID: categoryID, Direction: direction, From: from, To: to, Query: q}, 0, 0)
+	rows, _, err := s.mutations.Search(repository.MutationFilter{OutletID: &outletID, CategoryID: categoryID, Direction: direction, ExcludePending: true, From: from, To: to, Query: q}, 0, 0)
 	return rows, err
 }
 
@@ -172,7 +172,7 @@ func (s *MutationService) Add(u *models.User, barcode, productName, direction st
 		if productName == "" {
 			productName = "Menunggu informasi admin"
 		}
-		m.ProductName, m.Status = productName, "pending_code"
+		m.ProductName, m.Status = productName, "pending"
 	}
 	if ba != "" {
 		m.BAName = &ba
@@ -181,7 +181,7 @@ func (s *MutationService) Add(u *models.User, barcode, productName, direction st
 		return nil, err
 	}
 	action := "mutation_create"
-	if m.Status == "pending_code" {
+	if m.Status == "pending" {
 		action = "mutation_product_request"
 	}
 	s.audit.Log(&u.ID, u.OutletID, action,

@@ -139,6 +139,7 @@ func New(cfg *config.Config, repos *repository.Repos, db *gorm.DB) (*gin.Engine,
 			admin.GET("/kelola/account/:id/password", middleware.RequireSuperAdmin(), pageH.RevealLatestPassword)
 			admin.POST("/kelola/account/:id/force-logout", middleware.RequireSuperAdmin(), pageH.ForceLogout)
 			admin.POST("/kelola/maintenance", middleware.RequireSuperAdmin(), pageH.CreateMaintenanceAnnouncement)
+			admin.POST("/kelola/maintenance/:id/edit", middleware.RequireSuperAdmin(), pageH.UpdateMaintenanceAnnouncement)
 			admin.POST("/kelola/maintenance/:id/toggle", middleware.RequireSuperAdmin(), pageH.ToggleMaintenanceAnnouncement)
 			admin.POST("/kelola/manager/:id/toggle", middleware.RequireSuperAdmin(), pageH.ToggleManager)
 			admin.GET("/kelola/pm/create", middleware.RequireSuperAdmin(), pageH.AddPMForm)

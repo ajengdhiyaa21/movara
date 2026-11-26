@@ -34,11 +34,11 @@ func (h *ProductHandler) resolvePending(c *gin.Context, p *models.Product) {
 		return
 	}
 	var pending []models.Mutation
-	if h.db.Where("barcode = ? AND outlet_id = ? AND status = ?", p.Barcode, p.OutletID, "pending_code").Find(&pending).Error != nil {
+	if h.db.Where("barcode = ? AND outlet_id = ? AND status IN ?", p.Barcode, p.OutletID, []string{"pending", "pending_code"}).Find(&pending).Error != nil {
 		return
 	}
 	for i := range pending {
-		if h.db.Model(&pending[i]).Updates(map[string]interface{}{"product_id": p.ID, "code": p.Code, "product_name": p.Name, "status": "approved_by_admin"}).Error == nil {
+		if h.db.Model(&pending[i]).Updates(map[string]interface{}{"product_id": p.ID, "code": p.Code, "product_name": p.Name, "status": "approved"}).Error == nil {
 			h.audit(c, "mutation_approved", fmt.Sprintf("Pengajuan mutasi #%d disetujui melalui produk %s", pending[i].ID, p.Code))
 		}
 	}
@@ -102,6 +102,14 @@ type productPageItem struct {
 }
 
 func buildProductPageItems(current, total int, pageURL func(int) string) []productPageItem {
+	// Page number is always 1-based. Keep this defensive guard because this
+	// helper is shared by all paginated PM/admin views.
+	if current < 1 {
+		current = 1
+	}
+	if total < 1 {
+		total = 1
+	}
 	if total <= 1 {
 		if total == 1 {
 			return []productPageItem{{Number: 1, URL: pageURL(1), Current: true}}
@@ -117,6 +125,9 @@ func buildProductPageItems(current, total int, pageURL func(int) string) []produ
 	}
 	items := make([]productPageItem, 0, 3)
 	for p := start; p <= start+2 && p <= total; p++ {
+		if p < 1 {
+			continue
+		}
 		items = append(items, productPageItem{Number: p, Label: strconv.Itoa(p), URL: pageURL(p), Current: p == current})
 	}
 	return items

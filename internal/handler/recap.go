@@ -418,9 +418,15 @@ func readRecapFilter(c *gin.Context) (service.RecapQuery, recapForm) {
 	}
 	q.Page, _ = strconv.Atoi(c.Query("page"))
 	perPage := c.Query("per_page")
-	q.All = perPage == "all"
-	if !q.All {
-		q.PerPage, _ = strconv.Atoi(perPage)
+	switch perPage {
+	case "all":
+		q.All = true
+	case "50":
+		q.PerPage = 50
+	case "10":
+		q.PerPage = 10
+	default:
+		q.PerPage = service.DefaultPerPage
 	}
 
 	form := recapForm{Q: q.Q, PerPage: q.PerPage, AllData: q.All, Direction: q.Direction}
